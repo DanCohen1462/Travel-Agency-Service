@@ -1,8 +1,44 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
+    Layout = "_Layout";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">  apps with ASP.NET Core</a>.</p>
+<div class="search-section d-flex justify-content-center align-items-center">
+    <div class="search-box shadow p-4 rounded">
+        <h3 class="text-center mb-3">Find Your Next Destination</h3>
+
+        <form method="get" asp-controller="Home" asp-action="Gallery">
+            <div class="input-group">
+                <input type="text" class="form-control" name="destination" placeholder="Enter a destination (e.g., Paris)" required>
+
+                <button class="btn btn-primary">
+                    Search
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<style>
+    .search-section {
+        margin-top: 40px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .search-box {
+        width: 500px;
+        background: #ffffff;
+        border-radius: 12px;
+    }
+
+    .input-group input {
+        height: 50px;
+        font-size: 1.1rem;
+    }
+
+    .input-group button {
+        width: 120px;
+        font-size: 1.1rem;
+    }
+</style>

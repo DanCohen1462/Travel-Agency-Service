@@ -1,0 +1,41 @@
+@{
+    ViewData["Title"] = "Travel Packages";
+    Layout = "_Layout";
+}
+
+<h2 class="mt-4">Available Travel Packages</h2>
+
+<p class="text-muted mb-4">
+    Showing results for: <strong>@Context.Request.Query["destination"]</strong>
+</p>
+
+<div class="row">
+
+    <!-- Package 1 -->
+    <div class="col-md-4 mb-3">
+        <div class="border p-3 rounded">
+            <h4>Paris - 5 Days</h4>
+            <p>Flight + Hotel + Breakfast</p>
+            <p><strong>Price:</strong> $899</p>
+        </div>
+    </div>
+
+    <!-- Package 2 -->
+    <div class="col-md-4 mb-3">
+        <div class="border p-3 rounded">
+            <h4>Rome - 4 Days</h4>
+            <p>Hotel + Guided Tours</p>
+            <p><strong>Price:</strong> $750</p>
+        </div>
+    </div>
+
+    <!-- Package 3 -->
+    <div class="col-md-4 mb-3">
+        <div class="border p-3 rounded">
+            <h4>London - 6 Days</h4>
+            <p>Flight + Hotel + Attractions</p>
+            <p><strong>Price:</strong> $1150</p>
+        </div>
+    </div>
+
+</div>
