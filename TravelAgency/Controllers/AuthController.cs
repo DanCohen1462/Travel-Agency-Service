@@ -22,13 +22,15 @@ public class AuthController : Controller
     public IActionResult Register(User model)
     {
         if (!ModelState.IsValid)
+        {
             return View(model);
+        }
 
+        // חיפוש אם המשתמש קיים
         using (SqlConnection conn = new SqlConnection(_connectionString))
         {
             conn.Open();
 
-            // בדיקה אם המשתמש קיים
             string checkQuery = "SELECT COUNT(*) FROM Users WHERE Username = @Username";
             using (SqlCommand cmd = new SqlCommand(checkQuery, conn))
             {
@@ -37,21 +39,24 @@ public class AuthController : Controller
                 int exists = (int)cmd.ExecuteScalar();
                 if (exists > 0)
                 {
-                    ModelState.AddModelError("", "Username already exists");
+                    ModelState.AddModelError("Username", "Username already exists");
                     return View(model);
                 }
             }
 
-            // הצפנת סיסמה
-        
-
-            // הכנסת המשתמש
-            string insertQuery =
-                "INSERT INTO Users (Username, Password) VALUES (@Username, @Password)";
+            string insertQuery = @"INSERT INTO Users 
+            (Username, firstName, lastName, birthDate, gender, phoneNumber, email, Password)
+            VALUES (@Username, @firstName, @lastName, @birthDate, @gender, @phoneNumber, @email, @Password)";
 
             using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
             {
                 cmd.Parameters.AddWithValue("@Username", model.Username);
+                cmd.Parameters.AddWithValue("@firstName", model.firstName);
+                cmd.Parameters.AddWithValue("@lastName", model.lastName);
+                cmd.Parameters.AddWithValue("@birthDate", model.birthDate);
+                cmd.Parameters.AddWithValue("@gender", model.gender);
+                cmd.Parameters.AddWithValue("@phoneNumber", model.phoneNumber);
+                cmd.Parameters.AddWithValue("@email", model.email);
                 cmd.Parameters.AddWithValue("@Password", model.Password);
 
                 cmd.ExecuteNonQuery();
@@ -60,6 +65,7 @@ public class AuthController : Controller
 
         return RedirectToAction("Login");
     }
+
 
     public IActionResult Login() => View();
 

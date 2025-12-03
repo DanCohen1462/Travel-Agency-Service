@@ -11,6 +11,6 @@ public class AppDbContext : DbContext
 
     // כאן  טבלאות
     // לדוגמה:
-    public DbSet<Student> Students { get; set; }
+    
     public DbSet<User> Users { get; set; }
 }
