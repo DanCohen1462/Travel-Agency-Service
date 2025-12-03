@@ -1,15 +1,37 @@
+using Microsoft.EntityFrameworkCore;
+using TravelAgency.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// MVC
 builder.Services.AddControllersWithViews();
+
+// Sessions (required for cart, login temp data, booking progress)
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(60);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// DB Connection
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// Authentication (Optional now – Needed later)
+builder.Services.AddAuthentication();
+
+// Email service will be added later
+// builder.Services.AddTransient<IEmailSender, MyEmailSender>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Error handling
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -18,8 +40,14 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+// Auth
+app.UseAuthentication();
 app.UseAuthorization();
 
+// Sessions
+app.UseSession();
+
+// Routing
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

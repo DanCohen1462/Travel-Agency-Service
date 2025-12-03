@@ -1,0 +1,33 @@
+@model User
+
+@{
+    Layout = "_AuthLayout";
+    
+}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card shadow p-4" style="width: 400px; border-radius: 12px;">
+        <h3 class="text-center mb-4">Welcome Back</h3>
+
+        <form method="post">
+
+            <div class="mb-3">
+                <label class="form-label">Username</label>
+                <input name="username" class="form-control" required />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input name="password" type="password" class="form-control" required />
+            </div>
+
+            <button class="btn btn-success w-100">Login</button>
+
+            <p class="text-danger text-center mt-2">@ViewBag.Error</p>
+
+            <p class="text-center mt-3">
+                Don't have an account?
+                <a href="/Auth/Register">Create account</a>
+            </p>
+        </form>
+    </div>
+</div>

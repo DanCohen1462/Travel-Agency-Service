@@ -1,0 +1,35 @@
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="container py-5">
+    <div class="card shadow p-4" style="border-radius: 12px;">
+        <h2 class="mb-4">Welcome, @ViewBag.Username!</h2>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Your Account Details</h5>
+                <ul class="list-group">
+                    <li class="list-group-item">Username: @ViewBag.Username</li>
+                    <li class="list-group-item">Member Since: Coming soon</li>
+                    <li class="list-group-item">Email: Coming soon</li>
+                </ul>
+            </div>
+
+            <div class="col-md-6">
+                <h5>Booking Status</h5>
+                <ul class="list-group">
+                    <li class="list-group-item">Active bookings: 0</li>
+                    <li class="list-group-item">Past trips: 0</li>
+                    <li class="list-group-item">Waiting list: 0</li>
+                </ul>
+            </div>
+        </div>
+
+        <hr class="my-4"/>
+
+        <a href="#" class="btn btn-primary">Edit Profile</a>
+        <a href="#" class="btn btn-secondary">Change Password</a>
+        <a href="/Auth/Logout" class="btn btn-danger">Logout</a>
+    </div>
+</div>
