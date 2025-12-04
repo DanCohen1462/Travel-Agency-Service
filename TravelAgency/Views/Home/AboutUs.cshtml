@@ -3,29 +3,200 @@
     Layout = "_Layout";
 }
 
+<style>
+
+    /* ===== Hero Section ===== */
+    .about-hero {
+        position: relative;
+        background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2000');
+        background-size: cover;
+        background-position: center;
+        height: 340px;
+        border-radius: 18px;
+        overflow: hidden;
+        margin-bottom: 40px;
+    }
+
+    .about-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+    }
+
+    .about-hero-content {
+        position: relative;
+        z-index: 2;
+        color: white;
+        text-align: center;
+        top: 50%;
+        transform: translateY(-50%);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .about-title {
+        font-size: 3rem;
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
+
+    .about-subtitle {
+        font-size: 1.2rem;
+        opacity: 0.9;
+    }
+
+    /* ===== Content Section ===== */
+    .about-section {
+        margin-bottom: 60px;
+    }
+
+    .about-text {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #333;
+    }
+
+    /* ===== Cards ===== */
+    .about-card {
+        border-radius: 16px;
+        border: none;
+        padding: 30px;
+        background: #ffffff;
+        box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+        transition: transform 0.25s ease;
+        height: 100%;
+    }
+
+    .about-card:hover {
+        transform: translateY(-8px);
+    }
+
+    .about-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+        color: #157347;
+    }
+
+    .about-card-title {
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    /* ===== Team Section ===== */
+    .team-card img {
+        border-radius: 50%;
+        width: 110px;
+        height: 110px;
+        object-fit: cover;
+        margin-bottom: 15px;
+    }
+
+    .team-card {
+        text-align: center;
+        border: none;
+        padding: 25px;
+        border-radius: 16px;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+        transition: transform .2s ease;
+    }
+
+    .team-card:hover {
+        transform: translateY(-6px);
+    }
+
+    .team-name {
+        font-weight: 700;
+        font-size: 1.2rem;
+    }
+
+    .team-role {
+        color: #888;
+        font-size: 0.95rem;
+    }
+
+    @@media (max-width: 768px) {
+        .about-title {
+            font-size: 2.2rem;
+        }
+    }
+
+</style>
+
 <div class="container mt-4">
-    <h2 class="mb-4 text-center">About Our Travel Agency</h2>
 
-    <p style="font-size: 1.1rem; line-height: 1.7;">
-        Welcome to <strong>TravelAgency</strong> – your trusted partner for unforgettable journeys
-        across Israel and around the world.  
-        We specialize in crafting personalized travel experiences designed to match every dream,
-        every budget, and every adventure style.
-    </p>
-
-    <p style="font-size: 1.1rem; line-height: 1.7;">
-        Whether you're interested in exploring the breathtaking landscapes of Israel,
-        enjoying luxury vacations abroad, or discovering hidden gems across the globe –  
-        our expert team is here to guide you every step of the way.
-    </p>
-
-    <p style="font-size: 1.1rem; line-height: 1.7;">
-        With years of experience, top-tier service, and a passion for travel,
-        we make sure every trip becomes a memorable story.  
-        Let us help you plan your next adventure with confidence, ease, and excitement.
-    </p>
-
-    <div class="text-center mt-4">
-        <a class="btn btn-primary" asp-controller="Home" asp-action="ContactUs">Contact Us</a>
+    <!-- ===== HERO ===== -->
+    <div class="about-hero">
+        <div class="about-hero-content">
+            <h1 class="about-title">About TravelAgency</h1>
+            <p class="about-subtitle">Discover the world with the people who make dreams come true.</p>
+        </div>
     </div>
+
+    <!-- ===== Our Story ===== -->
+    <div class="about-section">
+        <h2 class="mb-3">Our Story</h2>
+        <p class="about-text">
+            TravelAgency הוקמה מתוך אהבה אמיתית לטיולים, חוויות וגלובליות.  
+            אנחנו חברה שמתמחה בבניית מסלולי טיול מותאמים אישית בישראל וברחבי העולם.  
+            המטרה שלנו היא להפוך כל חלום של חופשה – למציאות.  
+            עם ניסיון של שנים בתחום התיירות, אלפי לקוחות מרוצים ושותפים בינלאומיים,
+            אנו מספקים חוויית שירות מלאה – משלב התכנון ועד חזרתכם הבטוחה הביתה.
+        </p>
+    </div>
+
+    <!-- ===== Values Cards ===== -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="about-card">
+                <div class="about-icon">🌍</div>
+                <h5 class="about-card-title">Worldwide Expertise</h5>
+                <p>אנחנו עובדים עם ספקים מובילים ומכירים מאות יעדים — מהערים הגדולות ועד הפינות הנסתרות בעולם.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="about-card">
+                <div class="about-icon">✨</div>
+                <h5 class="about-card-title">Personalized Trips</h5>
+                <p>אנחנו מאמינים שאין חופשה אחת שמתאימה לכולם — ולכן כל מסלול נבנה בהתאמה מלאה ללקוח.</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="about-card">
+                <div class="about-icon">🤝</div>
+                <h5 class="about-card-title">Premium Service</h5>
+                <p>זמינים עבורכם 24/7, מלווים אתכם מתחילת התהליך ועד החזרה, ומטפלים בכל פרט קטן.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Team Section ===== -->
+    <h2 class="mb-4">Meet Our Team</h2>
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="team-card">
+                <img src="https://randomuser.me/api/portraits/men/32.jpg" />
+                <div class="team-name">Dan Cohen</div>
+                <div class="team-role">Founder & CEO</div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="team-card">
+                <img src="https://randomuser.me/api/portraits/women/65.jpg" />
+                <div class="team-name">Nadav davidpur</div>
+                <div class="team-role">Travel Expert</div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="team-card">
+                <img src="https://randomuser.me/api/portraits/men/77.jpg" />
+                <div class="team-name">Rinat kabalik</div>
+                <div class="team-role">Customer Experience Manager</div>
+            </div>
+        </div>
+    </div>
+
 </div>
