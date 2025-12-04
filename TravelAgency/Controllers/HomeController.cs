@@ -40,5 +40,10 @@ public class HomeController : Controller
     {
         return View();
     }
+    public IActionResult PackageDetails(int id)
+    {
+        ViewBag.Id = id;
+        return View();
+    }
     
 }
