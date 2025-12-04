@@ -45,8 +45,8 @@ public class AuthController : Controller
             }
 
             string insertQuery = @"INSERT INTO Users 
-            (Username, firstName, lastName, birthDate, gender, phoneNumber, email, Password)
-            VALUES (@Username, @firstName, @lastName, @birthDate, @gender, @phoneNumber, @email, @Password)";
+            (Username, firstName, lastName, birthDate, gender, phoneNumber, email, Password,type)
+            VALUES (@Username, @firstName, @lastName, @birthDate, @gender, @phoneNumber, @email, @Password,1)";
 
             using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
             {
