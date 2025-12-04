@@ -45,5 +45,14 @@ public class HomeController : Controller
         ViewBag.Id = id;
         return View();
     }
+    public IActionResult Cart(int id)
+    {
+        ViewBag.Id = id; // איזה חבילה נוספה לעגלה
+        return View();
+    }
+    public IActionResult Payment()
+    {
+        return View();
+    }
     
 }
