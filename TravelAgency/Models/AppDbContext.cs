@@ -13,4 +13,6 @@ public class AppDbContext : DbContext
     // לדוגמה:
     
     public DbSet<User> Users { get; set; }
+    public DbSet<Package> Packages { get; set; }
+    public DbSet<Category> Categories { get; set; }
 }

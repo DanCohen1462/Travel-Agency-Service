@@ -72,35 +72,47 @@ public class AuthController : Controller
     [HttpPost]
     public IActionResult Login(string username, string password)
     {
-       // string hashed = HashPassword(password);
-
         using (SqlConnection conn = new SqlConnection(_connectionString))
         {
             conn.Open();
 
-            string query =
-                "SELECT Id FROM Users WHERE Username = @Username AND Password = @Password";
+            string query = 
+                "SELECT Id, type FROM Users WHERE Username = @Username AND Password = @Password";
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
                 cmd.Parameters.AddWithValue("@Username", username);
                 cmd.Parameters.AddWithValue("@Password", password);
 
-                var result = cmd.ExecuteScalar();
-
-                if (result == null)
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
-                    ViewBag.Error = "Invalid username or password";
-                    return View();
-                }
+                    if (!reader.Read())
+                    {
+                        ViewBag.Error = "Invalid username or password";
+                        return View();
+                    }
 
-                HttpContext.Session.SetString("UserId", result.ToString());
-                HttpContext.Session.SetString("Username", username);
+                    int userId = reader.GetInt32(0);
+                    int userType = reader.GetInt32(1);
+
+                    HttpContext.Session.SetString("UserId", userId.ToString());
+                    HttpContext.Session.SetString("Username", username);
+                    HttpContext.Session.SetString("UserType", userType.ToString());
+
+                    
+                    if (userType == 1) // 1 = Admin
+                        return RedirectToAction("Dashboard", "Admin");
+
+                    if (userType == 2) // 2 = Worker
+                        return RedirectToAction("Panel", "Worker");
+
+                    // 3 = Customer
+                    return RedirectToAction("Index", "Home");
+                }
             }
         }
-
-        return RedirectToAction("Index", "Home");
     }
+
 
     public IActionResult Logout()
     {

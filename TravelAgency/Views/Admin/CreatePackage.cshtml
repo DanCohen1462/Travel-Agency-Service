@@ -1,0 +1,103 @@
+@model Package
+
+@{
+    ViewBag.Title = "title";
+    Layout = "_Layout";
+}
+
+
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card shadow-lg" style="border-radius: 18px;">
+                <div class="card-header text-center bg-primary text-white" style="border-radius: 18px 18px 0 0;">
+                    <h3 class="py-2">Create New Package</h3>
+                </div>
+
+                <div class="card-body p-4">
+
+                    <form asp-action="CreatePackage" method="post" enctype="multipart/form-data">
+
+                        <!-- Destination -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Destination</label>
+                            <input name="destination" class="form-control" placeholder="e.g. Paris, France" required />
+                        </div>
+
+                        <!-- Start Date -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Start Date</label>
+                            <input name="startDate" type="date" class="form-control" required />
+                        </div>
+
+                        <!-- End Date -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">End Date</label>
+                            <input name="endDate" type="date" class="form-control" required />
+                        </div>
+
+                        <!-- Price -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Total Price ($)</label>
+                            <input name="sum" type="number" class="form-control" placeholder="e.g. 3999" required />
+                        </div>
+
+                        <!-- Age Limit -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Age Limit</label>
+                            <input name="ageLimit" type="number" class="form-control" placeholder="e.g. 18" required />
+                        </div>
+
+                        <!-- Free Places -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Available Spots</label>
+                            <input name="numFreePlaces" type="number" class="form-control" placeholder="e.g. 20" required />
+                        </div>
+
+                        <!-- Category -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Category</label>
+                            <select name="idCategory" class="form-select" required>
+                                <option selected disabled>Select a category...</option>
+
+                                @foreach (var cat in ViewBag.Categories)
+                                {
+                                    <option value="@cat.Id">@cat.name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Image Upload -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Package Image (URL)</label>
+                            <input name="image" class="form-control" placeholder="https://image-url.com" required />
+                        </div>
+
+                        <!-- Information -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Description</label>
+                            <textarea name="information" class="form-control" rows="3" placeholder="Short description of the trip..." required></textarea>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button class="btn btn-primary w-100 py-2 fw-bold" style="font-size: 1.1rem;">
+                            Create Package
+                        </button>
+
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        animation: fadeIn 0.4s ease-out;
+    }
+
+
+</style>
+

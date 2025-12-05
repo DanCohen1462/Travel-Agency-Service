@@ -36,15 +36,8 @@ public class HomeController : Controller
     {
         return View();
     }
-    public IActionResult Gallery(string destination)
-    {
-        return View();
-    }
-    public IActionResult PackageDetails(int id)
-    {
-        ViewBag.Id = id;
-        return View();
-    }
+  
+
     public IActionResult Cart(int id)
     {
         ViewBag.Id = id; // איזה חבילה נוספה לעגלה
