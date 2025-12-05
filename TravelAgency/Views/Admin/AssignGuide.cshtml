@@ -1,0 +1,159 @@
+@model TravelAgency.Models.AssignGuideViewModel
+
+@{
+    Layout = "_Layout";  // או _AdminLayout אם יש
+}
+
+<div class="container mt-5">
+
+    <h2 class="mb-4 text-center fw-bold">Assign Guide to Package</h2>
+
+    <div class="row">
+
+        <!-- חלק שמאל: מדריכים -->
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Available Guides</h5>
+                </div>
+                <div class="card-body">
+
+                    @if (!Model.Guides.Any())
+                    {
+                        <p class="text-muted">No available guides.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var g in Model.Guides)
+                                {
+                                    <tr>
+                                        <td>@g.firstName @g.lastName</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+
+                </div>
+            </div>
+        </div>
+
+
+        <!-- חלק ימין: חבילות שלא שובצו -->
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Packages Without Guide</h5>
+                </div>
+                <div class="card-body">
+
+                    @if (!Model.UnassignedPackages.Any())
+                    {
+                        <p class="text-muted">All packages have been assigned.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Destination</th>
+                                    <th>Dates</th>
+                                    <th>Assign</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @foreach (var p in Model.UnassignedPackages)
+                                {
+                                    <tr>
+                                        <td>@p.destination</td>
+                                        <td>
+                                            @p.StartDate.ToShortDateString()
+                                            -
+                                            @p.EndDate.ToShortDateString()
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-outline-primary btn-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#assignModal"
+                                                    data-package-id="@p.Id">
+                                                Assign
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal לבחור מדריך -->
+<div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Assign Guide</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <form method="post" action="/Admin/AssignGuideToPackage">
+                    <input type="hidden" id="modal-package-id" name="packageId" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select a Guide:</label>
+           
+                        <select class="form-select" name="guideId" required>
+                            <option disabled selected>Choose guide...</option>
+
+                            @foreach (var g in Model.Guides)
+                            {
+                                if (g.IsAvailable)
+                                {
+                                    <option value="@g.Id">@g.firstName @g.lastName</option>
+                                }
+                                else
+                                {
+                                    <option disabled class="text-muted">
+                                        @g.firstName @g.lastName (Unavailable)
+                                    </option>
+                                }
+                            }
+                        </select>
+
+                    </div>
+
+                    <button class="btn btn-success w-100">Assign</button>
+                </form>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // כאשר לוחצים Assign על חבילה – מעדכן את modal
+    var assignModal = document.getElementById('assignModal');
+
+    assignModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var packageId = button.getAttribute('data-package-id');
+        document.getElementById('modal-package-id').value = packageId;
+    });
+</script>

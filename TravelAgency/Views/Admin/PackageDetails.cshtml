@@ -1,0 +1,81 @@
+@model TravelAgency.Models.Package;
+@using TravelAgency.Models
+
+
+@{
+    Layout = "_Layout";
+    var guide = ViewBag.Guide as User;
+    string category = ViewBag.Category;
+}
+
+<div class="container mt-4">
+
+    <div class="card shadow-lg mb-4" style="border-radius: 18px;">
+        <div class="row g-0">
+
+            <!-- תמונה -->
+            <div class="col-md-5">
+                <img src="@Model.image" class="img-fluid rounded-start" 
+                     style="height: 100%; object-fit: cover;">
+            </div>
+
+            <!-- מידע -->
+            <div class="col-md-7">
+                <div class="card-body p-4">
+
+                    <h2 class="fw-bold mb-3">@Model.destination</h2>
+
+                    <span class="badge bg-primary me-2">@category</span>
+
+                    @if (guide != null)
+                    {
+                        <span class="badge bg-success">Guide: @guide.firstName @guide.lastName</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">No guide assigned</span>
+                    }
+
+                    <hr class="my-4">
+
+                    <p><strong>Dates:</strong> 
+                        @Model.StartDate.ToShortDateString() – @Model.EndDate.ToShortDateString()
+                    </p>
+
+                    <p><strong>Price:</strong> $@Model.sum</p>
+                    <p><strong>Age Limit:</strong> @Model.ageLimit+</p>
+                    <p><strong>Free Spots:</strong> @Model.numFreePlaces</p>
+
+                    <hr class="my-4">
+
+                    <h5>Description</h5>
+                    <p class="text-muted">@Model.information</p>
+
+                    <div class="d-flex justify-content-between mt-4">
+
+                        <a href="/Admin/AssignGuide" class="btn btn-outline-primary">
+                            Change Guide
+                        </a>
+
+                        <form method="post" action="/Admin/DeletePackage">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button class="btn btn-danger"
+                                    onclick="return confirm('Delete this package?');">
+                                Delete Package
+                            </button>
+                        </form>
+                        <a href="/Admin/EditPackage/@Model.Id" class="btn btn-warning text-white">
+                            Edit Package
+                        </a>
+
+
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <a href="/Admin/Packages" class="btn btn-secondary">Back to Packages</a>
+</div>

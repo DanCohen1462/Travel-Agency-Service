@@ -1,0 +1,93 @@
+@model TravelAgency.Models.Package
+
+@{
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="col-md-8 mx-auto">
+
+        <div class="card shadow-lg" style="border-radius: 18px;">
+            <div class="card-header bg-warning text-white" style="border-radius: 18px 18px 0 0;">
+                <h3 class="py-2">Edit Package</h3>
+            </div>
+
+            <div class="card-body p-4">
+
+                <form method="post" asp-action="EditPackage">
+
+                    <input type="hidden" name="Id" value="@Model.Id" />
+
+                    <!-- Destination -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Destination</label>
+                        <input name="destination" class="form-control" value="@Model.destination" required />
+                    </div>
+
+                    <!-- Dates -->
+                    <div class="row">
+                        <div class="col">
+                            <label class="form-label fw-bold">Start Date</label>
+                            <input type="date" name="StartDate" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col">
+                            <label class="form-label fw-bold">End Date</label>
+                            <input type="date" name="EndDate" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-dd")" required />
+                        </div>
+                    </div>
+
+                    <!-- Price -->
+                    <div class="mb-3 mt-3">
+                        <label class="form-label fw-bold">Price ($)</label>
+                        <input name="sum" type="number" class="form-control" value="@Model.sum" required />
+                    </div>
+
+                    <!-- Age Limit -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Age Limit</label>
+                        <input name="ageLimit" type="number" class="form-control" value="@Model.ageLimit" required />
+                    </div>
+
+                    <!-- Free Places -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Available Spots</label>
+                        <input name="numFreePlaces" type="number" class="form-control" value="@Model.numFreePlaces" required />
+                    </div>
+
+                    <!-- Category -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Category</label>
+                        <select name="idCategory" class="form-select" required>
+                            @foreach (var cat in ViewBag.Categories)
+                            {
+                                <option value="@cat.Id" selected="@(cat.Id == Model.idCategory)">
+                                    @cat.name
+                                </option>
+
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Image -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Image URL</label>
+                        <input name="image" class="form-control" value="@Model.image" required />
+                    </div>
+
+                    <!-- Information -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <textarea name="information" class="form-control" rows="3">@Model.information</textarea>
+                    </div>
+
+                    <button class="btn btn-warning text-white w-100 fw-bold">Save Changes</button>
+
+                </form>
+
+            </div>
+        </div>
+
+        <a href="/Admin/PackageDetails/@Model.Id" class="btn btn-secondary mt-3 mb-5">Back</a>
+
+    </div>
+</div>

@@ -14,6 +14,7 @@ public class Package
     
     public int UserId { get; set; }
     public string information { get; set; }
-    public int inactive {get; set; }
+    
+    public bool inactive {get; set; }
     
 }

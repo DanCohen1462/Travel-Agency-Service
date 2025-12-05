@@ -49,6 +49,10 @@ public class User
     [RegularExpression("^(?=.*[A-Z])(?=.*[0-9]).+$",
         ErrorMessage = "Password must contain at least one uppercase letter and one digit")]
     public string Password { get; set; }
+    
+    
+    
+    public bool IsAvailable { get; set; }
 }
 
 
