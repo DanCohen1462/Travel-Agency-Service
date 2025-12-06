@@ -24,9 +24,29 @@
                             @pkg.StartDate.ToShortDateString() - @pkg.EndDate.ToShortDateString()
                         </p>
 
-                        <p class="card-text fw-semibold text-primary">
-                            Price: $@pkg.sum
-                        </p>
+                        @* <p class="card-text fw-semibold text-primary"> *@
+                        @*     Price: $@pkg.sum *@
+                        @* </p> *@
+                        @if (pkg.ActiveDiscount > 0)
+                        {
+                            var discountPrice = pkg.sum - (pkg.sum * pkg.ActiveDiscount / 100);
+
+                            <p>
+                                <span style="text-decoration: line-through; color: gray;">
+                                    $@pkg.sum
+                                </span>
+
+                                <span class="text-success fw-bold ms-2">
+                                    $@discountPrice
+                                </span>
+
+                                <span class="badge bg-danger ms-2">@pkg.ActiveDiscount% OFF</span>
+                            </p>
+                        }
+                        else
+                        {
+                            <p><strong>Price:</strong> $@pkg.sum</p>
+                        }
 
                         <div class="d-flex justify-content-between">
                             <a href="/Admin/PackageDetails/@pkg.Id" 
