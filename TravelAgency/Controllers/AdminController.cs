@@ -197,7 +197,23 @@ public class AdminController : Controller
         {
             conn.Open();
 
-            string query = "SELECT Id, destination, image, StartDate, EndDate, sum FROM Package WHERE inactive = 0";
+            string query = @"
+                SELECT 
+                    p.Id,
+                    p.destination,
+                    p.image,
+                    p.StartDate,
+                    p.EndDate,
+                    p.sum,
+                    (
+                        SELECT TOP 1 discountPercent
+                        FROM Discount d
+                        WHERE d.packageId = p.Id
+                        AND GETDATE() BETWEEN d.startDate AND d.endDate
+                    ) AS ActiveDiscount
+                FROM Package p
+                WHERE p.inactive = 0";
+
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             using (SqlDataReader reader = cmd.ExecuteReader())
@@ -211,7 +227,9 @@ public class AdminController : Controller
                         image = reader.GetString(2),
                         StartDate = reader.GetDateTime(3),
                         EndDate = reader.GetDateTime(4),
-                        sum = reader.GetInt32(5)
+                        sum = reader.GetInt32(5),
+                        ActiveDiscount = reader.IsDBNull(6) ? 0 : reader.GetInt32(6)
+
                     });
                 }
             }
@@ -306,7 +324,37 @@ public class AdminController : Controller
                     }
                 }
             }
+            List<User> registeredUsers = new List<User>();
+
+            string reservationsQuery = @"
+            SELECT u.Id, u.firstName, u.lastName, u.email
+            FROM HistoryReservation h
+            JOIN Users u ON h.userId = u.Id
+            WHERE h.packageId = @pid";
+
+            using (SqlCommand cmd = new SqlCommand(reservationsQuery, conn))
+            {
+                cmd.Parameters.AddWithValue("@pid", id);
+
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        registeredUsers.Add(new User
+                        {
+                            Id = reader.GetInt32(0),
+                            firstName = reader.GetString(1),
+                            lastName = reader.GetString(2),
+                            email = reader.GetString(3)
+                        });
+                    }
+                }
+            }
+     
+            ViewBag.Registered = registeredUsers;
+        
         }
+        
 
         ViewBag.Category = category?.name;
         ViewBag.Guide = guide;
@@ -414,6 +462,29 @@ public class AdminController : Controller
         }
 
         return RedirectToAction("PackageDetails", new { id = model.Id });
+    }
+    [HttpPost]
+    public IActionResult AddDiscount(int packageId, int discountPercent, DateTime startDate, DateTime endDate)
+    {
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            string query = @"INSERT INTO Discount (packageId, discountPercent, startDate, endDate)
+                         VALUES (@pid, @percent, @start, @end)";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@pid", packageId);
+                cmd.Parameters.AddWithValue("@percent", discountPercent);
+                cmd.Parameters.AddWithValue("@start", startDate);
+                cmd.Parameters.AddWithValue("@end", endDate);
+
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        return RedirectToAction("PackageDetails", new { id = packageId });
     }
 
 
