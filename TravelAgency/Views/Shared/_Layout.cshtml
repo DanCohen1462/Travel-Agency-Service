@@ -17,10 +17,13 @@
     <nav class="navbar navbar-expand-lg navbar-custom mb-3">
         <div class="container">
 
-            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+            <!-- שם החברה + קישור לדף הבית -->
+            <a class="navbar-brand"
+               asp-controller="Home" asp-action="Index">
                 TravelAgency
             </a>
 
+            <!-- כפתור תפריט במובייל -->
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -31,30 +34,33 @@
                 var fullName = HttpContextAccessor.HttpContext?.Session.GetString("FullName")
                                ?? HttpContextAccessor.HttpContext?.Session.GetString("Username")
                                ?? "";
-                // כרגע אין לנו ספירה אמיתית, אז אם אין כלום בסשן זה יהיה 0
                 var cartCount = HttpContextAccessor.HttpContext?.Session.GetInt32("CartCount") ?? 0;
             }
 
             <div class="collapse navbar-collapse" id="navbarNav">
 
-                <!-- LEFT SIDE -->
+                <!-- תפריט ליד שם החברה (שמאל) -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     @if (string.IsNullOrEmpty(userId))
                     {
-                        <!-- אורח (לא מחובר) -->
+                        <!-- אורח -->
                         <li class="nav-item">
                             <a class="nav-link @(ViewData["Title"]=="Home" ? "active" : "")"
-                               asp-controller="Home" asp-action="Index">Home</a>
+                               asp-controller="Home" asp-action="Index">
+                                Home
+                            </a>
                         </li>
-
                         <li class="nav-item">
                             <a class="nav-link @(ViewData["Title"]=="About" ? "active" : "")"
-                               asp-controller="Home" asp-action="AboutUs">About Us</a>
+                               asp-controller="Home" asp-action="AboutUs">
+                                About Us
+                            </a>
                         </li>
-
                         <li class="nav-item">
                             <a class="nav-link @(ViewData["Title"]=="Contact" ? "active" : "")"
-                               asp-controller="Home" asp-action="ContactUs">Contact Us</a>
+                               asp-controller="Home" asp-action="ContactUs">
+                                Contact Us
+                            </a>
                         </li>
                     }
                     else
@@ -62,50 +68,55 @@
                         <!-- משתמש מחובר -->
                         <li class="nav-item">
                             <a class="nav-link @(ViewData["Title"]=="MyTrips" ? "active" : "")"
-                               asp-controller="Users" asp-action="MyTrips">My Trips</a>
+                               asp-controller="Users" asp-action="MyTrips">
+                                My Trips
+                            </a>
                         </li>
-
                         <li class="nav-item">
                             <a class="nav-link @(ViewData["Title"]=="Profile" ? "active" : "")"
-                               asp-controller="Users" asp-action="Profile">Profile</a>
+                               asp-controller="Users" asp-action="Profile">
+                                Profile
+                            </a>
                         </li>
-
-                        <!-- זהו העמוד של החיפוש – הולך ל-Gallery -->
                         <li class="nav-item">
                             <a class="nav-link @(ViewData["Title"]=="Travel Packages" ? "active" : "")"
-                               asp-controller="Package" asp-action="Gallery">Search Trip</a>
+                               asp-controller="Package" asp-action="Gallery">
+                                Search Trip
+                            </a>
                         </li>
-
                         <li class="nav-item">
                             <a class="nav-link @(ViewData["Title"]=="Notifications" ? "active" : "")"
-                               asp-controller="Notifications" asp-action="Index">Notifications</a>
+                               asp-controller="Notifications" asp-action="Index">
+                                Notifications
+                            </a>
                         </li>
-
                         <li class="nav-item">
                             <a class="nav-link @(ViewData["Title"]=="Contact" ? "active" : "")"
-                               asp-controller="Home" asp-action="ContactUs">Contact Us</a>
+                               asp-controller="Home" asp-action="ContactUs">
+                                Contact Us
+                            </a>
                         </li>
                     }
                 </ul>
 
-                <!-- RIGHT SIDE -->
+                <!-- צד ימין: Login או Cart+Logout -->
                 <ul class="navbar-nav ms-auto align-items-center">
                     @if (string.IsNullOrEmpty(userId))
                     {
-                        <!-- משתמש לא מחובר → Login -->
+                        <!-- אורח – כפתור Login -->
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Auth" asp-action="Login">
+                            <a class="btn btn-outline-primary"
+                               asp-controller="Auth" asp-action="Login">
                                 Login
                             </a>
                         </li>
                     }
                     else
                     {
-                        <!-- Cart עם אייקון וריבוע אדום -->
                         <li class="nav-item me-3">
                             <a class="nav-link d-flex align-items-center"
                                asp-controller="Cart" asp-action="Index">
-                                <span class="me-1">&#128722;</span> <!-- אייקון עגלה -->
+                                <span class="me-1">&#128722;</span>
                                 Cart
                                 <span class="badge rounded-pill bg-danger ms-1">@cartCount</span>
                             </a>
@@ -115,9 +126,9 @@
                             <span class="navbar-text">Hello @fullName!</span>
                         </li>
 
-                        <!-- Logout כלינק רגיל, לא כפתור -->
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Auth" asp-action="Logout">
+                            <a class="btn btn-outline-danger"
+                               asp-controller="Auth" asp-action="Logout">
                                 Logout
                             </a>
                         </li>
@@ -128,6 +139,9 @@
         </div>
     </nav>
 </header>
+
+
+
 
 <div class="container">
     <main role="main" class="pb-3">

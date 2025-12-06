@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
 using System.Text;
@@ -13,8 +12,6 @@ public class AuthController : Controller
     {
         _connectionString = config.GetConnectionString("DefaultConnection");
     }
-
-
 
     public IActionResult Register() => View();
 
@@ -45,8 +42,8 @@ public class AuthController : Controller
             }
 
             string insertQuery = @"INSERT INTO Users 
-            (Username, firstName, lastName, birthDate, gender, phoneNumber, email, Password,type)
-            VALUES (@Username, @firstName, @lastName, @birthDate, @gender, @phoneNumber, @email, @Password,3)";
+            (Username, firstName, lastName, birthDate, gender, phoneNumber, email, Password, type)
+            VALUES (@Username, @firstName, @lastName, @birthDate, @gender, @phoneNumber, @email, @Password, 3)";
 
             using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
             {
@@ -66,7 +63,6 @@ public class AuthController : Controller
         return RedirectToAction("Login");
     }
 
-
     public IActionResult Login() => View();
 
     [HttpPost]
@@ -78,7 +74,6 @@ public class AuthController : Controller
 
             string query =
                 "SELECT Id, type, firstName, lastName FROM Users WHERE Username = @Username AND Password = @Password";
-
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
@@ -103,7 +98,6 @@ public class AuthController : Controller
                     HttpContext.Session.SetString("FullName", firstName + " " + lastName);
                     HttpContext.Session.SetString("UserType", userType.ToString());
 
-                    
                     if (userType == 1) // 1 = Admin
                         return RedirectToAction("Dashboard", "Admin");
 
@@ -112,16 +106,15 @@ public class AuthController : Controller
 
                     // 3 = Customer
                     return RedirectToAction("Gallery", "Package");
-
                 }
             }
         }
     }
 
-
     public IActionResult Logout()
     {
         HttpContext.Session.Clear();
-        return RedirectToAction("Login");
+        // אחרי התנתקות חוזרים לדף הבית הציבורי
+        return RedirectToAction("Index", "Home");
     }
 }

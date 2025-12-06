@@ -1,6 +1,8 @@
+@model TravelAgency.Models.ContactFormViewModel
+
 @{
-ViewData["Title"] = "Contact Us";
-Layout = "_Layout";
+    ViewData["Title"] = "Contact";
+    Layout = "_Layout";
 }
 
 <style>
@@ -17,7 +19,6 @@ Layout = "_Layout";
         margin-bottom: 40px;
     }
 
-    /* כהות עדינה על התמונה */
     .contact-hero-section::before {
         content: "";
         position: absolute;
@@ -57,6 +58,8 @@ Layout = "_Layout";
         border-radius: 18px;
         border: none;
         box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+        max-width: 900px;      /* לא לגלוש מעבר למסך */
+        margin: 0 auto;
     }
 
     .contact-label {
@@ -75,7 +78,6 @@ Layout = "_Layout";
         font-size: 1rem;
     }
 
-    /* Responsive */
     @@media (max-width: 768px) {
         .contact-title {
             font-size: 2rem;
@@ -86,7 +88,7 @@ Layout = "_Layout";
 
 <div class="container mt-4">
 
-    <!-- ===== Hero Section with Background Image ===== -->
+    <!-- ===== Hero Section ===== -->
     <div class="contact-hero-section">
         <div class="contact-hero-content">
             <h1 class="contact-title mb-3">Contact Our Travel Experts</h1>
@@ -101,7 +103,6 @@ Layout = "_Layout";
         </div>
     </div>
 
-
     <!-- ===== Contact Form ===== -->
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -111,34 +112,44 @@ Layout = "_Layout";
                     Tell us about the vacation you're dreaming of — and we’ll take care of the rest.
                 </p>
 
+                @if (ViewBag.Success != null)
+                {
+                    <div class="alert alert-success">@ViewBag.Success</div>
+                }
+
                 <form method="post" asp-controller="Home" asp-action="ContactUs">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="contact-label">Full Name</label>
-                            <input type="text" name="name" class="form-control contact-input" required />
+                            <input asp-for="FullName" class="form-control contact-input" />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label class="contact-label">Email</label>
-                            <input type="email" name="email" class="form-control contact-input" required />
+                            <input asp-for="Email" class="form-control contact-input" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="contact-label">Phone</label>
-                            <input type="text" name="phone" class="form-control contact-input" />
+                            <input asp-for="Phone" class="form-control contact-input" />
+                            <span asp-validation-for="Phone" class="text-danger"></span>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label class="contact-label">Preferred Destination</label>
-                            <input type="text" name="destination" class="form-control contact-input" placeholder="Paris, Rome, Eilat..." />
+                            <input asp-for="Destination" class="form-control contact-input" placeholder="Paris, Rome, Eilat..." />
+                            <span asp-validation-for="Destination" class="text-danger"></span>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="contact-label">Message</label>
-                        <textarea name="message" rows="4" class="form-control contact-textarea" required></textarea>
+                        <textarea asp-for="Message" rows="4" class="form-control contact-textarea"></textarea>
+                        <span asp-validation-for="Message" class="text-danger"></span>
                     </div>
 
                     <div class="d-flex justify-content-between flex-wrap">
@@ -149,5 +160,8 @@ Layout = "_Layout";
             </div>
         </div>
     </div>
-
 </div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}
