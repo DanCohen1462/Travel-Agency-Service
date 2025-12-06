@@ -1,3 +1,7 @@
+@using TravelAgency.Models
+@model List<TravelAgency.Models.Package>
+
+
 @{
 ViewBag.Title = "Travel Packages";
 Layout = "_Layout";
@@ -41,6 +45,16 @@ Layout = "_Layout";
         font-weight: 600;
     }
 
+    .category-badge {
+        background: #FFE08A;
+        color: #333;
+        padding: 6px 14px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        display: inline-block;
+        margin-bottom: 10px;
+    }
     .tag {
         background: #EDF0F5;
         padding: 5px 10px;
@@ -75,6 +89,35 @@ Layout = "_Layout";
         background: #155BB4;
         color: white;
     }
+    .filter-bar {
+        position: relative;
+    }
+
+    .search-suggestions {
+        position: absolute;
+        right: 0;
+        top: 100%;
+        margin-top: 4px;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        max-height: 220px;
+        overflow-y: auto;
+        z-index: 1000;
+        width: 220px;
+    }
+
+    .search-suggestions-item {
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .search-suggestions-item:hover {
+        background: #F2F4F8;
+    }
+
 </style>
 
 <div class="container mt-5 mb-5">
@@ -87,80 +130,265 @@ Layout = "_Layout";
         <strong>@Context.Request.Query["destination"]</strong>
     </p>
     }
+    <!-- ==================== FILTER BAR ==================== -->
+    <div class="filter-bar d-flex align-items-center gap-3 mb-4">
+
+        <!-- Destination Filter -->
+        <select id="filterDestination" class="form-select" style="max-width: 180px;">
+            <option value="">Destination</option>
+            @foreach (var dest in ViewBag.Destinations)
+            {
+            <option value="@dest">@dest</option>
+            }
+        </select>
+
+        <!-- Category Filter -->
+        <select id="filterCategory" class="form-select" style="max-width: 180px;">
+            <option value="">Category</option>
+            @foreach (var cat in ViewBag.Categories)
+            {
+            <option value="@cat.Id">@cat.name</option>
+            }
+        </select>
+
+        <!-- Price Filter -->
+        <select id="filterPrice" class="form-select" style="max-width: 160px;">
+            <option value="">Price</option>
+            <option value="1">Under $500</option>
+            <option value="2">$500 - $1000</option>
+            <option value="3">Above $1000</option>
+        </select>
+
+        <!-- Min Free Spots Filter -->
+        <select id="filterSpots" class="form-select" style="max-width: 170px;">
+            <option value="">Min Spots</option>
+            <option value="1">1+</option>
+            <option value="5">5+</option>
+            <option value="10">10+</option>
+        </select>
+
+        <!-- Free Search + suggestions -->
+        <div style="position: relative;">
+            <input id="filterSearch" type="text" class="form-control"
+                   placeholder="Search trips..." style="max-width: 220px;"/>
+
+            <div id="searchSuggestions" class="search-suggestions"></div>
+        </div>
+
+        <button id="btnSearch" class="btn btn-primary" style="height: 38px;">
+            Search
+        </button>
+    </div>
+
+
+
+
+    <!-- ===================================================== -->
 
     <div class="row g-4">
 
-        <!-- ====================== PACKAGE 1 ====================== -->
-        <div class="col-md-4">
+        @foreach (var pkg in Model)
+        {
+        var cats = ViewBag.Categories as List<Category>;
+        var cat = cats?.FirstOrDefault(c => c.Id == pkg.idCategory);
+
+        <div class="col-md-4 package-item"
+             data-destination="@pkg.destination"
+             data-category="@(cat != null ? cat.Id.ToString() : "")"
+             data-categoryname="@(cat != null ? cat.name : "")"
+             data-spots="@pkg.numFreePlaces"
+             data-price="@pkg.sum"
+             data-text="@(pkg.destination + " " + (cat != null ? cat.name + " " : "") + pkg.information)">
+
             <div class="package-card">
-                <img src="/images/paris.jpg" class="package-img" alt="Paris">
+                <img src="@pkg.image" class="package-img" alt="@pkg.destination" />
 
                 <div class="package-body">
-                    <span class="badge bg-primary badge-category">Honeymoon</span>
 
-                    <h4 class="mt-3">Package #101 — Paris</h4>
-                    <p class="tag">Start: 12/03/2025</p>
-                    <p class="tag">End: 17/03/2025</p>
+                    @* מציגים קטגוריה רק אם יש *@
+                    @if (cat != null)
+                    {
+                    <span class="category-badge">@cat.name</span>
+                    }
 
-                    <p><strong>Age Limit:</strong> 16+</p>
-                    <p><strong>Rooms Left:</strong> 5</p>
+                    <h4 class="mt-3">
+                        Package #@pkg.Id — @pkg.destination
+                    </h4>
 
-                    <p class="price">$899</p>
+                    <p class="tag">
+                        Start: @pkg.StartDate.ToString("dd/MM/yyyy")
+                    </p>
+                    <p class="tag">
+                        End: @pkg.EndDate.ToString("dd/MM/yyyy")
+                    </p>
 
-                    <a href="/Package/PackageDetails/101" class="btn-details">
+                    <p>
+                        <strong>Age Limit:</strong> @pkg.ageLimit+
+                    </p>
+                    <p>
+                        <strong>Rooms Left:</strong> @pkg.numFreePlaces
+                    </p>
+
+                    <p class="price">$@pkg.sum</p>
+
+                    <a href="/Package/PackageDetails/@pkg.Id" class="btn-details">
                         View Details
                     </a>
                 </div>
             </div>
         </div>
+        }
 
-        <!-- ====================== PACKAGE 2 ====================== -->
-        <div class="col-md-4">
-            <div class="package-card">
-                <img src="/images/rome.jpg" class="package-img" alt="Roma">
-
-                <div class="package-body">
-                    <span class="badge bg-warning text-dark badge-category">Adventure</span>
-
-                    <h4 class="mt-3">Package #202 — Roma</h4>
-                    <p class="tag">Start: 01/04/2025</p>
-                    <p class="tag">End: 05/04/2025</p>
-
-                    <p><strong>Age Limit:</strong> 16+</p>
-                    <p><strong>Rooms Left:</strong> 3</p>
-
-                    <p class="price">$750</p>
-
-                    <a href="/Package/PackageDetails/202" class="btn-details">
-                        View Details
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- ====================== PACKAGE 3 ====================== -->
-        <div class="col-md-4">
-            <div class="package-card">
-                <img src="/images/london.jpg" class="package-img" alt="London">
-
-                <div class="package-body">
-                    <span class="badge bg-success badge-category">Family</span>
-
-                    <h4 class="mt-3">Package #303 — London</h4>
-                    <p class="tag">Start: 20/04/2025</p>
-                    <p class="tag">End: 26/04/2025</p>
-
-                    <p><strong>Age Limit:</strong> 16+</p>
-                    <p><strong>Rooms Left:</strong> 7</p>
-
-                    <p class="price">$1150</p>
-
-                    <a href="/Package/PackageDetails/303" class="btn-details">
-                        View Details
-                    </a>
-                </div>
-            </div>
-        </div>
 
     </div>
 </div>
+@section Scripts {
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const btnSearch = document.getElementById("btnSearch");
+        const selDestination = document.getElementById("filterDestination");
+        const selCategory = document.getElementById("filterCategory");
+        const selPrice = document.getElementById("filterPrice");
+        const selSpots = document.getElementById("filterSpots");
+        const txtSearch = document.getElementById("filterSearch");
+        const suggestionBox = document.getElementById("searchSuggestions");
+
+        const cards = document.querySelectorAll(".package-item");
+
+        // פונקציה לנרמול טקסט לחיפוש (אותיות קטנות, בלי פסיקים, רווח אחד)
+        function normalize(str) {
+            return (str || "")
+                .toLowerCase()
+                .replace(/,/g, " ")      // פסיקים -> רווח
+                .replace(/\s+/g, " ")     // כמה רווחים -> רווח אחד
+                .trim();
+        }
+
+        // -------- פונקציית הסינון --------
+        function applyFilter() {
+            const dest = normalize(selDestination.value);
+            const cat = (selCategory.value || "").trim();    // זה Id, לא צריך normalize
+            const priceFilter = selPrice.value;
+            const minSpots = selSpots.value ? parseInt(selSpots.value) : 0;
+            const text = normalize(txtSearch.value);
+
+            cards.forEach(card => {
+                const cardDest = normalize(card.dataset.destination || "");
+                const cardCat = (card.dataset.category || "");
+                const cardSpots = parseInt(card.dataset.spots || "0");
+                const cardPrice = parseInt(card.dataset.price || "0");
+                const cardText = normalize(card.dataset.text || "");
+
+                let show = true;
+
+                // סינון לפי יעד
+                if (dest && !cardDest.includes(dest)) {
+                    show = false;
+                }
+
+                // סינון לפי קטגוריה (Id)
+                if (show && cat && cardCat !== cat) {
+                    show = false;
+                }
+
+                // סינון לפי מחיר
+                if (show && priceFilter) {
+                    if (priceFilter === "1" && cardPrice >= 500) show = false;              // מתחת ל־500
+                    if (priceFilter === "2" && (cardPrice < 500 || cardPrice > 1000)) show = false; // 500–1000
+                    if (priceFilter === "3" && cardPrice <= 1000) show = false;             // מעל 1000
+                }
+
+                // סינון לפי מינימום מקומות פנויים
+                if (show && minSpots && (isNaN(cardSpots) || cardSpots < minSpots)) {
+                    show = false;
+                }
+
+                // חיפוש חופשי (יעד + קטגוריה + אינפורמציה)
+                if (show && text && !cardText.includes(text)) {
+                    show = false;
+                }
+
+                card.style.display = show ? "" : "none";
+            });
+        }
+
+        btnSearch.addEventListener("click", function () {
+            applyFilter();
+            suggestionBox.innerHTML = "";
+            suggestionBox.style.display = "none";
+        });
+
+        // ---------------- השלמה אוטומטית ----------------
+        function buildSuggestions() {
+            const query = normalize(txtSearch.value);
+
+            if (!query || query.length < 2) {
+                suggestionBox.innerHTML = "";
+                suggestionBox.style.display = "none";
+                return;
+            }
+
+            const suggestionsSet = new Set();
+
+            cards.forEach(card => {
+                const rawDest = card.dataset.destination || "";
+                const rawCatName = card.dataset.categoryname || "";
+
+                const destLower = normalize(rawDest);
+                const catLower = normalize(rawCatName);
+
+                // יעד בלבד
+                if (destLower.includes(query)) {
+                    suggestionsSet.add(rawDest);
+                }
+
+                // קטגוריה בלבד
+                if (catLower.includes(query)) {
+                    suggestionsSet.add(rawCatName);
+                }
+
+                // יעד + קטגוריה ביחד
+                if (rawDest && rawCatName &&
+                    (destLower.includes(query) || catLower.includes(query))) {
+                    suggestionsSet.add(`${rawDest}, ${rawCatName}`);
+                }
+            });
+
+            const suggestions = Array.from(suggestionsSet).slice(0, 8);
+
+            if (suggestions.length === 0) {
+                suggestionBox.innerHTML = "";
+                suggestionBox.style.display = "none";
+                return;
+            }
+
+            suggestionBox.innerHTML = "";
+            suggestions.forEach(s => {
+                const div = document.createElement("div");
+                div.className = "search-suggestions-item";
+                div.dataset.value = s;
+                div.textContent = s;
+                suggestionBox.appendChild(div);
+            });
+            suggestionBox.style.display = "block";
+        }
+
+        txtSearch.addEventListener("input", function () {
+            buildSuggestions();
+        });
+
+        suggestionBox.addEventListener("click", function (e) {
+            const item = e.target.closest(".search-suggestions-item");
+            if (!item) return;
+
+            // משאירים פסיק בתצוגה, אבל לחיפוש מנרמלים
+            const label = item.dataset.value || "";
+
+            // מציגים בשדה בדיוק איך שהופיע בהצעה (עם פסיקים)
+            txtSearch.value = label;
+            suggestionBox.innerHTML = "";
+            suggestionBox.style.display = "none";
+        });
+    });
+</script>
+}

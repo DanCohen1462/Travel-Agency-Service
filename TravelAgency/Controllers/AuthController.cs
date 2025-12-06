@@ -46,7 +46,7 @@ public class AuthController : Controller
 
             string insertQuery = @"INSERT INTO Users 
             (Username, firstName, lastName, birthDate, gender, phoneNumber, email, Password,type)
-            VALUES (@Username, @firstName, @lastName, @birthDate, @gender, @phoneNumber, @email, @Password,1)";
+            VALUES (@Username, @firstName, @lastName, @birthDate, @gender, @phoneNumber, @email, @Password,3)";
 
             using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
             {
@@ -76,8 +76,9 @@ public class AuthController : Controller
         {
             conn.Open();
 
-            string query = 
-                "SELECT Id, type FROM Users WHERE Username = @Username AND Password = @Password";
+            string query =
+                "SELECT Id, type, firstName, lastName FROM Users WHERE Username = @Username AND Password = @Password";
+
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
@@ -94,9 +95,12 @@ public class AuthController : Controller
 
                     int userId = reader.GetInt32(0);
                     int userType = reader.GetInt32(1);
+                    string firstName = reader.GetString(2);
+                    string lastName = reader.GetString(3);
 
                     HttpContext.Session.SetString("UserId", userId.ToString());
                     HttpContext.Session.SetString("Username", username);
+                    HttpContext.Session.SetString("FullName", firstName + " " + lastName);
                     HttpContext.Session.SetString("UserType", userType.ToString());
 
                     
@@ -107,7 +111,8 @@ public class AuthController : Controller
                         return RedirectToAction("Panel", "Worker");
 
                     // 3 = Customer
-                    return RedirectToAction("Index", "Home");
+                    return RedirectToAction("Gallery", "Package");
+
                 }
             }
         }
