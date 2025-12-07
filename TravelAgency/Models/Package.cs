@@ -19,5 +19,4 @@ public class Package
     
     
     public int ActiveDiscount { get; set; }
-
 }
