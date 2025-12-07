@@ -1,7 +1,10 @@
 using System.Diagnostics;
+using System.Text.Json;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using TravelAgency.Models;
+
 
 namespace TravelAgency.Controllers
 {
@@ -97,13 +100,30 @@ namespace TravelAgency.Controllers
 
         public IActionResult Cart(int id)
         {
-            ViewBag.Id = id; // איזה חבילה נוספה לעגלה
-            return View();
+            return RedirectToAction("Index", "Cart");
         }
 
         public IActionResult Payment()
         {
+            int totalPrice = 0;
+
+            var json = HttpContext.Session.GetString("Cart");
+            if (!string.IsNullOrEmpty(json))
+            {
+                try
+                {
+                    var items = JsonSerializer.Deserialize<List<CartItem>>(json) ?? new List<CartItem>();
+                    totalPrice = items.Sum(i => i.Price * i.Quantity);
+                }
+                catch
+                {
+                    totalPrice = 0;
+                }
+            }
+
+            ViewBag.TotalPrice = totalPrice;
             return View();
         }
+
     }
 }

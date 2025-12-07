@@ -118,6 +118,13 @@
             הפעולה מדמה תשלום בלבד.
         </div>
 
+        @if (ViewBag.TotalPrice != null)
+        {
+            <div class="alert alert-info">
+                <strong>Total amount:</strong> $@ViewBag.TotalPrice
+            </div>
+        }
+
         <button class="btn-pay mt-4">Complete Payment</button>
 
     </form>

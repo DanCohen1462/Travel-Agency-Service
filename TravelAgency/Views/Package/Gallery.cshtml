@@ -1,10 +1,9 @@
 @using TravelAgency.Models
 @model List<TravelAgency.Models.Package>
 
-
 @{
-ViewBag.Title = "Travel Packages";
-Layout = "_Layout";
+    ViewBag.Title = "Travel Packages";
+    Layout = "_Layout";
 }
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -21,11 +20,18 @@ Layout = "_Layout";
         overflow: hidden;
         box-shadow: 0 10px 30px rgba(0,0,0,0.08);
         transition: 0.3s;
+        position: relative;          /* חשוב לעיגול האדום */
     }
 
     .package-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 14px 40px rgba(0,0,0,0.12);
+    }
+
+    /* כרטיס של טיול מלא (אין מקומות) */
+    .package-card-full {
+        filter: grayscale(0.7);
+        opacity: 0.75;
     }
 
     .package-img {
@@ -55,6 +61,7 @@ Layout = "_Layout";
         display: inline-block;
         margin-bottom: 10px;
     }
+
     .tag {
         background: #EDF0F5;
         padding: 5px 10px;
@@ -89,6 +96,21 @@ Layout = "_Layout";
         background: #155BB4;
         color: white;
     }
+
+    /* עיגול אדום – נשארו מעט מקומות */
+    .badge-leftover {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(220, 53, 69, 0.88); /* אדום שקוף */
+        color: #fff;
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
     .filter-bar {
         position: relative;
     }
@@ -125,11 +147,12 @@ Layout = "_Layout";
 
     @if (!string.IsNullOrEmpty(Context.Request.Query["destination"]))
     {
-    <p class="text-muted mb-4">
-        Showing results for:
-        <strong>@Context.Request.Query["destination"]</strong>
-    </p>
+        <p class="text-muted mb-4">
+            Showing results for:
+            <strong>@Context.Request.Query["destination"]</strong>
+        </p>
     }
+
     <!-- ==================== FILTER BAR ==================== -->
     <div class="filter-bar d-flex align-items-center gap-3 mb-4">
 
@@ -138,7 +161,7 @@ Layout = "_Layout";
             <option value="">Destination</option>
             @foreach (var dest in ViewBag.Destinations)
             {
-            <option value="@dest">@dest</option>
+                <option value="@dest">@dest</option>
             }
         </select>
 
@@ -147,7 +170,7 @@ Layout = "_Layout";
             <option value="">Category</option>
             @foreach (var cat in ViewBag.Categories)
             {
-            <option value="@cat.Id">@cat.name</option>
+                <option value="@cat.Id">@cat.name</option>
             }
         </select>
 
@@ -179,216 +202,254 @@ Layout = "_Layout";
             Search
         </button>
     </div>
-
-
-
-
     <!-- ===================================================== -->
 
     <div class="row g-4">
 
         @foreach (var pkg in Model)
         {
-        var cats = ViewBag.Categories as List<Category>;
-        var cat = cats?.FirstOrDefault(c => c.Id == pkg.idCategory);
+            var cats = ViewBag.Categories as List<Category>;
+            var cat = cats?.FirstOrDefault(c => c.Id == pkg.idCategory);
 
-        <div class="col-md-4 package-item"
-             data-destination="@pkg.destination"
-             data-category="@(cat != null ? cat.Id.ToString() : "")"
-             data-categoryname="@(cat != null ? cat.name : "")"
-             data-spots="@pkg.numFreePlaces"
-             data-price="@pkg.sum"
-             data-text="@(pkg.destination + " " + (cat != null ? cat.name + " " : "") + pkg.information)">
+            bool isFull = pkg.numFreePlaces <= 0;
+            bool isAlmostFull = pkg.numFreePlaces > 0 && pkg.numFreePlaces <= 5;
 
-            <div class="package-card">
-                <img src="@pkg.image" class="package-img" alt="@pkg.destination" />
 
-                <div class="package-body">
 
-                    @* מציגים קטגוריה רק אם יש *@
-                    @if (cat != null)
-                    {
-                    <span class="category-badge">@cat.name</span>
-                    }
+            <div class="col-md-4 package-item"
+                 data-destination="@pkg.destination"
+                 data-category="@(cat != null ? cat.Id.ToString() : "")"
+                 data-categoryname="@(cat != null ? cat.name : "")"
+                 data-spots="@pkg.numFreePlaces"
+                 data-price="@pkg.sum"
+                 data-text="@(pkg.destination + " " + (cat != null ? cat.name + " " : "") + pkg.information)">
 
-                    <h4 class="mt-3">
-                        Package #@pkg.Id — @pkg.destination
-                    </h4>
+                <div class="package-card @(isFull ? "package-card-full" : "")">
+                    <img src="@pkg.image" class="package-img" alt="@pkg.destination" />
 
-                    <p class="tag">
-                        Start: @pkg.StartDate.ToString("dd/MM/yyyy")
-                    </p>
-                    <p class="tag">
-                        End: @pkg.EndDate.ToString("dd/MM/yyyy")
-                    </p>
+                    <div class="package-body">
 
-                    <p>
-                        <strong>Age Limit:</strong> @pkg.ageLimit+
-                    </p>
-                    <p>
-                        <strong>Rooms Left:</strong> @pkg.numFreePlaces
-                    </p>
+                        @* עיגול אדום – מעט מקומות *@
+                        @if (isAlmostFull)
+                        {
+                            <div class="badge-leftover">
+                                נשארו רק @pkg.numFreePlaces מקומות פנויים
+                            </div>
+                        }
 
-                    <p class="price">$@pkg.sum</p>
+                        @* מציגים קטגוריה רק אם יש *@
+                        @if (cat != null)
+                        {
+                            <span class="category-badge">@cat.name</span>
+                        }
 
-                    <a href="/Package/PackageDetails/@pkg.Id" class="btn-details">
-                        View Details
-                    </a>
+                        <h4 class="mt-3">
+                            Package #@pkg.Id — @pkg.destination
+                        </h4>
+
+                        <p class="tag">
+                            Start: @pkg.StartDate.ToString("dd/MM/yyyy")
+                        </p>
+                        <p class="tag">
+                            End: @pkg.EndDate.ToString("dd/MM/yyyy")
+                        </p>
+
+                        <p>
+                            <strong>Age Limit:</strong> @pkg.ageLimit+
+                        </p>
+
+                        <p>
+                            <strong>Rooms Left:</strong>
+                            @if (isFull)
+                            {
+                                <span class="text-danger fw-semibold">Full</span>
+                            }
+                            else
+                            {
+                                @pkg.numFreePlaces
+                            }
+                        </p>
+
+                        <p class="price">$@pkg.sum</p>
+
+                        @* אם הטיול מלא – כפתור רשימת המתנה *@
+                        @if (isFull)
+                        {
+                            <form method="post"
+                                  asp-controller="Booking"
+                                  asp-action="JoinWaitlist"
+                                  class="mt-2">
+                                <input type="hidden" name="packageId" value="@pkg.Id" />
+                                <button type="submit"
+                                        class="btn btn-outline-secondary w-100"
+                                        onclick="return confirm('את/ה בטוח/ה שברצונך להצטרף לרשימת ההמתנה לטיול זה?');">
+                                    הצטרף לרשימת המתנה
+                                </button>
+                            </form>
+
+                            <a href="/Package/PackageDetails/@pkg.Id"
+                               class="btn btn-details mt-2"
+                               style="background:#6c757d;">
+                                View Details
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="/Package/PackageDetails/@pkg.Id" class="btn-details">
+                                View Details
+                            </a>
+
+                            @* כפתור הוספה לעגלה – הלוגיקה ב-Controller נעשה בשלב הבא *@
+                            <form method="post"
+                                  asp-controller="Cart"
+                                  asp-action="Add"
+                                  class="mt-2">
+                                <input type="hidden" name="packageId" value="@pkg.Id" />
+                                <button type="submit" class="btn btn-success w-100">
+                                    Add to Cart
+                                </button>
+                            </form>
+                        }
+                    </div>
                 </div>
             </div>
-        </div>
         }
-
-
     </div>
 </div>
+
 @section Scripts {
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const btnSearch = document.getElementById("btnSearch");
-        const selDestination = document.getElementById("filterDestination");
-        const selCategory = document.getElementById("filterCategory");
-        const selPrice = document.getElementById("filterPrice");
-        const selSpots = document.getElementById("filterSpots");
-        const txtSearch = document.getElementById("filterSearch");
-        const suggestionBox = document.getElementById("searchSuggestions");
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const btnSearch = document.getElementById("btnSearch");
+            const selDestination = document.getElementById("filterDestination");
+            const selCategory = document.getElementById("filterCategory");
+            const selPrice = document.getElementById("filterPrice");
+            const selSpots = document.getElementById("filterSpots");
+            const txtSearch = document.getElementById("filterSearch");
+            const suggestionBox = document.getElementById("searchSuggestions");
 
-        const cards = document.querySelectorAll(".package-item");
+            const cards = document.querySelectorAll(".package-item");
 
-        // פונקציה לנרמול טקסט לחיפוש (אותיות קטנות, בלי פסיקים, רווח אחד)
-        function normalize(str) {
-            return (str || "")
-                .toLowerCase()
-                .replace(/,/g, " ")      // פסיקים -> רווח
-                .replace(/\s+/g, " ")     // כמה רווחים -> רווח אחד
-                .trim();
-        }
-
-        // -------- פונקציית הסינון --------
-        function applyFilter() {
-            const dest = normalize(selDestination.value);
-            const cat = (selCategory.value || "").trim();    // זה Id, לא צריך normalize
-            const priceFilter = selPrice.value;
-            const minSpots = selSpots.value ? parseInt(selSpots.value) : 0;
-            const text = normalize(txtSearch.value);
-
-            cards.forEach(card => {
-                const cardDest = normalize(card.dataset.destination || "");
-                const cardCat = (card.dataset.category || "");
-                const cardSpots = parseInt(card.dataset.spots || "0");
-                const cardPrice = parseInt(card.dataset.price || "0");
-                const cardText = normalize(card.dataset.text || "");
-
-                let show = true;
-
-                // סינון לפי יעד
-                if (dest && !cardDest.includes(dest)) {
-                    show = false;
-                }
-
-                // סינון לפי קטגוריה (Id)
-                if (show && cat && cardCat !== cat) {
-                    show = false;
-                }
-
-                // סינון לפי מחיר
-                if (show && priceFilter) {
-                    if (priceFilter === "1" && cardPrice >= 500) show = false;              // מתחת ל־500
-                    if (priceFilter === "2" && (cardPrice < 500 || cardPrice > 1000)) show = false; // 500–1000
-                    if (priceFilter === "3" && cardPrice <= 1000) show = false;             // מעל 1000
-                }
-
-                // סינון לפי מינימום מקומות פנויים
-                if (show && minSpots && (isNaN(cardSpots) || cardSpots < minSpots)) {
-                    show = false;
-                }
-
-                // חיפוש חופשי (יעד + קטגוריה + אינפורמציה)
-                if (show && text && !cardText.includes(text)) {
-                    show = false;
-                }
-
-                card.style.display = show ? "" : "none";
-            });
-        }
-
-        btnSearch.addEventListener("click", function () {
-            applyFilter();
-            suggestionBox.innerHTML = "";
-            suggestionBox.style.display = "none";
-        });
-
-        // ---------------- השלמה אוטומטית ----------------
-        function buildSuggestions() {
-            const query = normalize(txtSearch.value);
-
-            if (!query || query.length < 2) {
-                suggestionBox.innerHTML = "";
-                suggestionBox.style.display = "none";
-                return;
+            function normalize(str) {
+                return (str || "")
+                    .toLowerCase()
+                    .replace(/,/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
             }
 
-            const suggestionsSet = new Set();
+            function applyFilter() {
+                const dest = normalize(selDestination.value);
+                const cat = (selCategory.value || "").trim();
+                const priceFilter = selPrice.value;
+                const minSpots = selSpots.value ? parseInt(selSpots.value) : 0;
+                const text = normalize(txtSearch.value);
 
-            cards.forEach(card => {
-                const rawDest = card.dataset.destination || "";
-                const rawCatName = card.dataset.categoryname || "";
+                cards.forEach(card => {
+                    const cardDest = normalize(card.dataset.destination || "");
+                    const cardCat = (card.dataset.category || "");
+                    const cardSpots = parseInt(card.dataset.spots || "0");
+                    const cardPrice = parseInt(card.dataset.price || "0");
+                    const cardText = normalize(card.dataset.text || "");
 
-                const destLower = normalize(rawDest);
-                const catLower = normalize(rawCatName);
+                    let show = true;
 
-                // יעד בלבד
-                if (destLower.includes(query)) {
-                    suggestionsSet.add(rawDest);
-                }
+                    if (dest && !cardDest.includes(dest)) {
+                        show = false;
+                    }
 
-                // קטגוריה בלבד
-                if (catLower.includes(query)) {
-                    suggestionsSet.add(rawCatName);
-                }
+                    if (show && cat && cardCat !== cat) {
+                        show = false;
+                    }
 
-                // יעד + קטגוריה ביחד
-                if (rawDest && rawCatName &&
-                    (destLower.includes(query) || catLower.includes(query))) {
-                    suggestionsSet.add(`${rawDest}, ${rawCatName}`);
-                }
-            });
+                    if (show && priceFilter) {
+                        if (priceFilter === "1" && cardPrice >= 500) show = false;
+                        if (priceFilter === "2" && (cardPrice < 500 || cardPrice > 1000)) show = false;
+                        if (priceFilter === "3" && cardPrice <= 1000) show = false;
+                    }
 
-            const suggestions = Array.from(suggestionsSet).slice(0, 8);
+                    if (show && minSpots && (isNaN(cardSpots) || cardSpots < minSpots)) {
+                        show = false;
+                    }
 
-            if (suggestions.length === 0) {
-                suggestionBox.innerHTML = "";
-                suggestionBox.style.display = "none";
-                return;
+                    if (show && text && !cardText.includes(text)) {
+                        show = false;
+                    }
+
+                    card.style.display = show ? "" : "none";
+                });
             }
 
-            suggestionBox.innerHTML = "";
-            suggestions.forEach(s => {
-                const div = document.createElement("div");
-                div.className = "search-suggestions-item";
-                div.dataset.value = s;
-                div.textContent = s;
-                suggestionBox.appendChild(div);
+            btnSearch.addEventListener("click", function () {
+                applyFilter();
+                suggestionBox.innerHTML = "";
+                suggestionBox.style.display = "none";
             });
-            suggestionBox.style.display = "block";
-        }
 
-        txtSearch.addEventListener("input", function () {
-            buildSuggestions();
+            function buildSuggestions() {
+                const query = normalize(txtSearch.value);
+
+                if (!query || query.length < 2) {
+                    suggestionBox.innerHTML = "";
+                    suggestionBox.style.display = "none";
+                    return;
+                }
+
+                const suggestionsSet = new Set();
+
+                cards.forEach(card => {
+                    const rawDest = card.dataset.destination || "";
+                    const rawCatName = card.dataset.categoryname || "";
+
+                    const destLower = normalize(rawDest);
+                    const catLower = normalize(rawCatName);
+
+                    if (destLower.includes(query)) {
+                        suggestionsSet.add(rawDest);
+                    }
+
+                    if (catLower.includes(query)) {
+                        suggestionsSet.add(rawCatName);
+                    }
+
+                    if (rawDest && rawCatName &&
+                        (destLower.includes(query) || catLower.includes(query))) {
+                        suggestionsSet.add(`${rawDest}, ${rawCatName}`);
+                    }
+                });
+
+                const suggestions = Array.from(suggestionsSet).slice(0, 8);
+
+                if (suggestions.length === 0) {
+                    suggestionBox.innerHTML = "";
+                    suggestionBox.style.display = "none";
+                    return;
+                }
+
+                suggestionBox.innerHTML = "";
+                suggestions.forEach(s => {
+                    const div = document.createElement("div");
+                    div.className = "search-suggestions-item";
+                    div.dataset.value = s;
+                    div.textContent = s;
+                    suggestionBox.appendChild(div);
+                });
+                suggestionBox.style.display = "block";
+            }
+
+            txtSearch.addEventListener("input", function () {
+                buildSuggestions();
+            });
+
+            suggestionBox.addEventListener("click", function (e) {
+                const item = e.target.closest(".search-suggestions-item");
+                if (!item) return;
+
+                const label = item.dataset.value || "";
+                txtSearch.value = label;
+                suggestionBox.innerHTML = "";
+                suggestionBox.style.display = "none";
+            });
         });
-
-        suggestionBox.addEventListener("click", function (e) {
-            const item = e.target.closest(".search-suggestions-item");
-            if (!item) return;
-
-            // משאירים פסיק בתצוגה, אבל לחיפוש מנרמלים
-            const label = item.dataset.value || "";
-
-            // מציגים בשדה בדיוק איך שהופיע בהצעה (עם פסיקים)
-            txtSearch.value = label;
-            suggestionBox.innerHTML = "";
-            suggestionBox.style.display = "none";
-        });
-    });
-</script>
+    </script>
 }

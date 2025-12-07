@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Cryptography;
-using System.Text;
 using TravelAgency.Models;
-using Microsoft.Data.SqlClient; // <<< חשוב!
+using Microsoft.Data.SqlClient;
 
 public class AuthController : Controller
 {
@@ -13,6 +11,7 @@ public class AuthController : Controller
         _connectionString = config.GetConnectionString("DefaultConnection");
     }
 
+    // ---------- Register ----------
     public IActionResult Register() => View();
 
     [HttpPost]
@@ -23,7 +22,6 @@ public class AuthController : Controller
             return View(model);
         }
 
-        // חיפוש אם המשתמש קיים
         using (SqlConnection conn = new SqlConnection(_connectionString))
         {
             conn.Open();
@@ -63,6 +61,7 @@ public class AuthController : Controller
         return RedirectToAction("Login");
     }
 
+    // ---------- Login ----------
     public IActionResult Login() => View();
 
     [HttpPost]
@@ -98,23 +97,84 @@ public class AuthController : Controller
                     HttpContext.Session.SetString("FullName", firstName + " " + lastName);
                     HttpContext.Session.SetString("UserType", userType.ToString());
 
-                    if (userType == 1) // 1 = Admin
+                    if (userType == 1) // Admin
                         return RedirectToAction("Dashboard", "Admin");
 
-                    if (userType == 2) // 2 = Worker
+                    if (userType == 2) // Worker
                         return RedirectToAction("Panel", "Worker");
 
-                    // 3 = Customer
+                    // Customer
                     return RedirectToAction("Gallery", "Package");
                 }
             }
         }
     }
 
+    // ---------- Change Password ----------
+    [HttpGet]
+    public IActionResult ChangePassword()
+    {
+        var userIdStr = HttpContext.Session.GetString("UserId");
+        if (string.IsNullOrEmpty(userIdStr))
+            return RedirectToAction("Login");
+
+        return View(new ChangePasswordViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ChangePassword(ChangePasswordViewModel model)
+    {
+        var userIdStr = HttpContext.Session.GetString("UserId");
+        if (string.IsNullOrEmpty(userIdStr))
+            return RedirectToAction("Login");
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        int userId = int.Parse(userIdStr);
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            // בודקים שהסיסמה הנוכחית נכונה
+            string checkSql = "SELECT Password FROM Users WHERE Id = @Id AND inactive = 0";
+            string currentPasswordFromDb = null;
+
+            using (var cmd = new SqlCommand(checkSql, conn))
+            {
+                cmd.Parameters.AddWithValue("@Id", userId);
+                var result = cmd.ExecuteScalar();
+                currentPasswordFromDb = result as string;
+            }
+
+            if (currentPasswordFromDb == null || currentPasswordFromDb != model.CurrentPassword)
+            {
+                ModelState.AddModelError("CurrentPassword", "Current password is incorrect");
+                return View(model);
+            }
+
+            // מעדכנים לסיסמה החדשה
+            string updateSql = "UPDATE Users SET Password = @NewPassword WHERE Id = @Id AND inactive = 0";
+            using (var cmd = new SqlCommand(updateSql, conn))
+            {
+                cmd.Parameters.AddWithValue("@NewPassword", model.NewPassword);
+                cmd.Parameters.AddWithValue("@Id", userId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        ViewBag.Success = "Password changed successfully.";
+        return View(new ChangePasswordViewModel());
+    }
+
+    // ---------- Logout ----------
     public IActionResult Logout()
     {
         HttpContext.Session.Clear();
-        // אחרי התנתקות חוזרים לדף הבית הציבורי
         return RedirectToAction("Index", "Home");
     }
 }

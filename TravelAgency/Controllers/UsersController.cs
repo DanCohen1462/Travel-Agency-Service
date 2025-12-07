@@ -14,6 +14,7 @@ namespace TravelAgency.Controllers
         }
 
         // ---------- Profile (GET) ----------
+        [HttpGet]
         public IActionResult Profile()
         {
             var userIdStr = HttpContext.Session.GetString("UserId");
@@ -67,11 +68,15 @@ namespace TravelAgency.Controllers
 
         // ---------- Profile (POST) ----------
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult Profile(UserProfileViewModel model)
         {
             var userIdStr = HttpContext.Session.GetString("UserId");
             if (string.IsNullOrEmpty(userIdStr))
                 return RedirectToAction("Login", "Auth");
+
+            var userId = int.Parse(userIdStr);
+            model.Id = userId;
 
             if (!ModelState.IsValid)
             {
@@ -83,32 +88,53 @@ namespace TravelAgency.Controllers
             {
                 conn.Open();
 
+                // בודקים שכינוי לא כפול למשתמש אחר
+                string checkSql = @"SELECT COUNT(*) FROM Users
+                                    WHERE Username = @Username AND Id <> @Id AND inactive = 0";
+
+                using (var checkCmd = new SqlCommand(checkSql, conn))
+                {
+                    checkCmd.Parameters.AddWithValue("@Username", model.Username);
+                    checkCmd.Parameters.AddWithValue("@Id", userId);
+
+                    int exists = (int)checkCmd.ExecuteScalar();
+                    if (exists > 0)
+                    {
+                        ModelState.AddModelError("Username", "Username already exists");
+                        ViewData["Title"] = "Profile";
+                        return View(model);
+                    }
+                }
+
                 // מעדכנים רק Worker / Customer, לא אדמין
                 string sql = @"
                     UPDATE Users
-                    SET firstName   = @FirstName,
-                        lastName    = @LastName,
-                        birthDate   = @BirthDate,
-                        gender      = @Gender,
-                        phoneNumber = @PhoneNumber,
-                        email       = @Email
+                    SET Username   = @Username,
+                        firstName  = @FirstName,
+                        lastName   = @LastName,
+                        birthDate  = @BirthDate,
+                        gender     = @Gender,
+                        phoneNumber= @PhoneNumber,
+                        email      = @Email
                     WHERE Id = @Id AND (type = 2 OR type = 3) AND inactive = 0";
 
                 using (var cmd = new SqlCommand(sql, conn))
                 {
-                    cmd.Parameters.AddWithValue("@FirstName",   model.FirstName);
-                    cmd.Parameters.AddWithValue("@LastName",    model.LastName);
-                    cmd.Parameters.AddWithValue("@BirthDate",   (object?)model.BirthDate ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Gender",      (object?)model.Gender ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Username",   model.Username);
+                    cmd.Parameters.AddWithValue("@FirstName",  model.FirstName);
+                    cmd.Parameters.AddWithValue("@LastName",   model.LastName);
+                    cmd.Parameters.AddWithValue("@BirthDate",  (object?)model.BirthDate ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Gender",     (object?)model.Gender ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@PhoneNumber", (object?)model.PhoneNumber ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@Email",       model.Email);
-                    cmd.Parameters.AddWithValue("@Id",          model.Id);
+                    cmd.Parameters.AddWithValue("@Email",      model.Email);
+                    cmd.Parameters.AddWithValue("@Id",         userId);
 
                     cmd.ExecuteNonQuery();
                 }
             }
 
-            // מעדכן את השם המלא בסשן אם השתנה
+            // מעדכן סשן
+            HttpContext.Session.SetString("Username", model.Username);
             HttpContext.Session.SetString("FullName", model.FirstName + " " + model.LastName);
 
             ViewBag.Success = "Profile updated successfully.";

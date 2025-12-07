@@ -1,35 +1,82 @@
+@model TravelAgency.Models.UserProfileViewModel
+
 @{
-    ViewData["Title"] = "My Profile";
+    ViewData["Title"] = "Profile";
+    Layout = "_Layout";
 }
 
-<div class="container py-5">
-    <div class="card shadow p-4" style="border-radius: 12px;">
-        <h2 class="mb-4">Welcome, @ViewBag.Username!</h2>
+<div class="container mt-4">
+    <h2 class="mb-4">My Profile</h2>
 
-        <div class="row">
-            <div class="col-md-6">
-                <h5>Your Account Details</h5>
-                <ul class="list-group">
-                    <li class="list-group-item">Username: @ViewBag.Username</li>
-                    <li class="list-group-item">Member Since: Coming soon</li>
-                    <li class="list-group-item">Email: Coming soon</li>
-                </ul>
-            </div>
+    @if (ViewBag.Success != null)
+    {
+        <div class="alert alert-success">@ViewBag.Success</div>
+    }
 
-            <div class="col-md-6">
-                <h5>Booking Status</h5>
-                <ul class="list-group">
-                    <li class="list-group-item">Active bookings: 0</li>
-                    <li class="list-group-item">Past trips: 0</li>
-                    <li class="list-group-item">Waiting list: 0</li>
-                </ul>
-            </div>
+    <form asp-action="Profile" method="post" class="card p-4" style="max-width: 700px;">
+        @Html.AntiForgeryToken()
+
+        @Html.HiddenFor(m => m.Id)
+        @Html.HiddenFor(m => m.Type)
+
+        <!-- Username (עכשיו ניתן לעריכה) -->
+        <div class="mb-3">
+            <label asp-for="Username" class="form-label"></label>
+            <input asp-for="Username" class="form-control" />
+            <span asp-validation-for="Username" class="text-danger"></span>
         </div>
 
-        <hr class="my-4"/>
+        <!-- First Name -->
+        <div class="mb-3">
+            <label asp-for="FirstName" class="form-label"></label>
+            <input asp-for="FirstName" class="form-control" />
+            <span asp-validation-for="FirstName" class="text-danger"></span>
+        </div>
 
-        <a href="#" class="btn btn-primary">Edit Profile</a>
-        <a href="#" class="btn btn-secondary">Change Password</a>
-        <a href="/Auth/Logout" class="btn btn-danger">Logout</a>
-    </div>
+        <!-- Last Name -->
+        <div class="mb-3">
+            <label asp-for="LastName" class="form-label"></label>
+            <input asp-for="LastName" class="form-control" />
+            <span asp-validation-for="LastName" class="text-danger"></span>
+        </div>
+
+        <!-- Birth Date -->
+        <div class="mb-3">
+            <label asp-for="BirthDate" class="form-label"></label>
+            <input asp-for="BirthDate" class="form-control" type="date" />
+            <span asp-validation-for="BirthDate" class="text-danger"></span>
+        </div>
+
+        <!-- Gender -->
+        <div class="mb-3">
+            <label asp-for="Gender" class="form-label"></label>
+            <input asp-for="Gender" class="form-control" />
+            <span asp-validation-for="Gender" class="text-danger"></span>
+        </div>
+
+        <!-- Phone -->
+        <div class="mb-3">
+            <label asp-for="PhoneNumber" class="form-label"></label>
+            <input asp-for="PhoneNumber" class="form-control" />
+            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        </div>
+
+        <!-- Email -->
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a asp-controller="Auth" asp-action="ChangePassword" class="btn btn-outline-secondary">
+                Change Password
+            </a>
+        </div>
+    </form>
 </div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

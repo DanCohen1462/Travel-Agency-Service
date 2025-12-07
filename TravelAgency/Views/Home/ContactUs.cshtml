@@ -58,17 +58,20 @@
         border-radius: 18px;
         border: none;
         box-shadow: 0 12px 30px rgba(0,0,0,0.1);
-        max-width: 900px;      /* לא לגלוש מעבר למסך */
-        margin: 0 auto;
+        max-width: 900px;      
+        width: 100%;          
+        margin: 0 auto 80px auto;  
     }
 
     .contact-label {
         font-weight: 600;
     }
 
-    .contact-input, .contact-textarea {
+    .contact-input,
+    .contact-textarea {
         border-radius: 12px;
         border: 1px solid #ddd;
+        width: 100%;
     }
 
     .contact-btn {
@@ -116,6 +119,9 @@
                 {
                     <div class="alert alert-success">@ViewBag.Success</div>
                 }
+
+                <!-- סיכום שגיאות כללי -->
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                 <form method="post" asp-controller="Home" asp-action="ContactUs">
                     <div class="row">
