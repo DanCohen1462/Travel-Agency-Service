@@ -1,0 +1,61 @@
+@{
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <h2 class="fw-bold mb-4">Admin Dashboard</h2>
+
+    <div class="row g-4">
+
+        <!-- ניהול משתמשים -->
+        <div class="col-md-4">
+            <a href="/Admin/Users" class="text-decoration-none">
+                <div class="card shadow p-4 text-center">
+                    <h4>👥 Manage Users</h4>
+                    <p class="text-muted">Edit, activate or change roles</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- ניהול חבילות -->
+        <div class="col-md-4">
+            <a href="/Admin/Packages" class="text-decoration-none">
+                <div class="card shadow p-4 text-center">
+                    <h4>📦 Manage Packages</h4>
+                    <p class="text-muted">Edit or delete packages</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- יצירת חבילה -->
+        <div class="col-md-4">
+            <a href="/Admin/CreatePackage" class="text-decoration-none">
+                <div class="card shadow p-4 text-center">
+                    <h4>➕ Create Package</h4>
+                    <p class="text-muted">Add a new travel package</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- ניהול מדריכים -->
+        <div class="col-md-4">
+            <a href="/Admin/AssignGuide" class="text-decoration-none">
+                <div class="card shadow p-4 text-center">
+                    <h4>🧑‍🏫 Manage Guides</h4>
+                    <p class="text-muted">Assign guides to packages</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- גרפים וסטטיסטיקות -->
+        <div class="col-md-4">
+            <a href="/Admin/Analytics" class="text-decoration-none">
+                <div class="card shadow p-4 text-center bg-primary text-white">
+                    <h4>📊 Analytics & Reports</h4>
+                    <p>View system statistics</p>
+                </div>
+            </a>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,82 @@
+@{
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+
+    <h2 class="fw-bold mb-4">Analytics Dashboard</h2>
+
+    <div class="row g-4">
+
+        <!-- Chart 1: Users by Type -->
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3">
+                <h5 class="text-center">Users by Type</h5>
+                <canvas id="usersChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 2: Packages by Category -->
+        <div class="col-md-6">
+            <div class="card shadow-sm p-3">
+                <h5 class="text-center">Packages by Category</h5>
+                <canvas id="categoriesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 3: Reservations per Month -->
+        @* <div class="col-md-12"> *@
+        @*     <div class="card shadow-sm p-3"> *@
+        @*         <h5 class="text-center">Reservations per Month</h5> *@
+        @*         <canvas id="reservationsChart"></canvas> *@
+        @*     </div> *@
+        @* </div> *@
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // ---------- Users by Type ----------
+    const usersData = @Html.Raw(Json.Serialize(ViewBag.UsersByType));
+    new Chart(document.getElementById('usersChart'), {
+        type: 'pie',
+        data: {
+            labels: Object.keys(usersData),
+            datasets: [{
+                data: Object.values(usersData),
+                backgroundColor: ['#007bff', '#28a745', '#ffc107']
+            }]
+        }
+    });
+
+    // ---------- Packages by Category ----------
+    const categoriesData = @Html.Raw(Json.Serialize(ViewBag.PackagesByCategory));
+    new Chart(document.getElementById('categoriesChart'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(categoriesData),
+            datasets: [{
+                label: 'Packages',
+                data: Object.values(categoriesData),
+                backgroundColor: '#17a2b8'
+            }]
+        }
+    });
+
+    // ---------- Reservations per Month ----------
+    // const reservationsData = @Html.Raw(Json.Serialize(ViewBag.ReservationsPerMonth));
+    // new Chart(document.getElementById('reservationsChart'), {
+    //     type: 'line',
+    //     data: {
+    //         labels: Object.keys(reservationsData),
+    //         datasets: [{
+    //             label: 'Reservations',
+    //             data: Object.values(reservationsData),
+    //             borderColor: '#dc3545',
+    //             fill: false
+    //         }]
+    //     }
+   // });
+</script>
