@@ -1,0 +1,52 @@
+@model List<TravelAgency.Models.Package>
+
+@{
+    Layout = "_Layout"; 
+}
+
+<div class="container mt-4">
+    <h2 class="fw-bold text-center mb-4">Packages Gallery</h2>
+
+    <div class="row">
+
+        @foreach (var pkg in Model)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-sm" style="border-radius: 16px; overflow: hidden;">
+
+                    <img src="@pkg.image" class="card-img-top" 
+                         style="height: 200px; object-fit: cover;" />
+
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold">@pkg.destination</h5>
+
+                        <p class="card-text text-muted">
+                            @pkg.StartDate.ToShortDateString() - @pkg.EndDate.ToShortDateString()
+                        </p>
+
+                        <p class="card-text fw-semibold text-primary">
+                            Price: $@pkg.sum
+                        </p>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="/Admin/PackageDetails/@pkg.Id" 
+                               class="btn btn-outline-primary btn-sm">
+                                View
+                            </a>
+
+                            <form method="post" action="/Admin/DeletePackage">
+                                <input type="hidden" name="id" value="@pkg.Id" />
+                                <button class="btn btn-danger btn-sm"
+                                        onclick="return confirm('Are you sure you want to delete this package?');">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        }
+
+    </div>
+</div>

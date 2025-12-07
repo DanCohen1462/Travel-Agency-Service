@@ -1,0 +1,119 @@
+﻿@model TravelAgency.Models.CartViewModel
+
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Cart";
+}
+
+<div class="container mt-4 mb-5">
+    <h2 class="fw-bold mb-4">My Cart</h2>
+
+    @if (TempData["CartError"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["CartError"]
+        </div>
+    }
+
+    @if (Model.Items == null || !Model.Items.Any())
+    {
+        <div class="alert alert-info">
+            Your cart is empty.
+        </div>
+
+        <a asp-controller="Package" asp-action="Gallery"
+           class="btn btn-primary mt-2">
+            ← Back to Packages
+        </a>
+    }
+    else
+    {
+        <table class="table table-striped align-middle">
+            <thead>
+            <tr>
+                <th>Destination</th>
+                <th>Dates</th>
+                <th>Price</th>
+                <th style="width:120px;">Quantity</th>
+                <th>Subtotal</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>@item.Destination</td>
+                    <td>
+                        @item.StartDate.ToString("dd/MM/yyyy") -
+                        @item.EndDate.ToString("dd/MM/yyyy")
+                    </td>
+                    <td>$@item.Price</td>
+                    <td>
+                        <form method="post"
+                              asp-action="UpdateQuantity"
+                              asp-controller="Cart"
+                              class="d-flex">
+                            <input type="hidden" name="packageId" value="@item.PackageId"/>
+
+                            <input type="number" name="quantity"
+                                   value="@item.Quantity"
+                                   min="0"
+                                   class="form-control form-control-sm me-1"/>
+
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-primary">
+                                Update
+                            </button>
+                        </form>
+                    </td>
+                    <td>
+                        $@(item.Price * item.Quantity)
+                    </td>
+                    <td>
+                        <form method="post"
+                              asp-action="Remove"
+                              asp-controller="Cart">
+                            <input type="hidden" name="packageId" value="@item.PackageId"/>
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-danger"
+                                    onclick="return confirm('Remove this trip from cart?');">
+                                Remove
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div>
+                <p class="mb-1">
+                    <strong>Total items:</strong> @Model.TotalItems
+                </p>
+                <p class="mb-0">
+                    <strong>Total price:</strong> $@Model.TotalPrice
+                </p>
+            </div>
+
+            <div class="d-flex gap-2">
+                <form method="post" asp-action="Clear" asp-controller="Cart">
+                    <button type="submit" class="btn btn-outline-secondary">
+                        Clear Cart
+                    </button>
+                </form>
+
+                <a asp-controller="Package" asp-action="Gallery"
+                   class="btn btn-outline-primary">
+                    ← Back to Packages
+                </a>
+
+                <a asp-controller="Home" asp-action="Payment"
+                   class="btn btn-success">
+                    Go to Payment
+                </a>
+            </div>
+        </div>
+    }
+</div>

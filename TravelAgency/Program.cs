@@ -6,6 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 // MVC
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddHttpContextAccessor();
+
 // Sessions (required for cart, login temp data, booking progress)
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
