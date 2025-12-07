@@ -17,6 +17,4 @@ public class Package
     
     public bool inactive {get; set; }
     
-    
-    public int ActiveDiscount { get; set; }
 }
