@@ -1,0 +1,52 @@
+@* @model TravelAgency.Models.User *@
+@{
+    Layout = "_Layout";
+}
+
+<div class="container mt-4 col-md-6">
+
+    <h2>Edit User</h2>
+
+    <form method="post" action="/Admin/EditUser">
+
+        <input type="hidden" name="Id" value="@Model.Id" />
+
+        <div class="mb-3">
+            <label class="fw-bold">First Name</label>
+            <input class="form-control" name="firstName" value="@Model.firstName" />
+        </div>
+
+        <div class="mb-3">
+            <label class="fw-bold">Last Name</label>
+            <input class="form-control" name="lastName" value="@Model.lastName" />
+        </div>
+
+        <div class="mb-3">
+            <label class="fw-bold">Email</label>
+            <input class="form-control" name="email" value="@Model.email" />
+        </div>
+
+        <div class="mb-3">
+            <label class="fw-bold">Phone Number</label>
+            <input class="form-control" name="phoneNumber" value="@Model.phoneNumber" />
+        </div>
+        <div class="mb-3">
+            <label class="fw-bold">User Type</label>
+
+            <select name="type" class="form-select">
+                @foreach (var t in (List<Type1>)ViewBag.Types)
+                {
+                    <option 
+                        value="@t.Id" 
+                        selected="@(Model.type == t.Id ? "selected" : null)">
+                        @t.name
+                    </option>
+
+                }
+            </select>
+        </div>
+
+        <button class="btn btn-primary">Save</button>
+        <a href="/Admin/Users" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>

@@ -53,6 +53,14 @@ public class User
     
     
     public bool IsAvailable { get; set; }
+    
+    
+    public int inactive { get; set; }
+    
+    
+    public string typeName {get; set;}
+    
+    public int type {get; set;}
 }
 
 
