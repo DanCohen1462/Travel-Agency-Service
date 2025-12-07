@@ -1,0 +1,67 @@
+@* @model List<TravelAgency.Models.> *@
+
+@{
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+
+    <h2 class="fw-bold mb-4">User Management</h2>
+
+    <table class="table table-bordered table-hover shadow-sm">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th style="width: 200px;">Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var u in Model)
+            {
+                <tr>
+                    <td>@u.Id</td>
+                    <td>@u.firstName @u.lastName</td>
+                    <td>@u.email</td>
+                    <td>@u.phoneNumber</td>
+
+                    <td>
+                        <span class="badge bg-primary">@u.typeName</span> 
+                        
+  
+                    </td>
+
+                    <td>
+                        @if (u.inactive == 0)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+
+                    <td>
+                        <a class="btn btn-warning btn-sm" href="/Admin/EditUser/@u.Id">Edit</a>
+
+                        @* <a class="btn btn-info btn-sm" href="/Admin/ChangeType/@u.Id">Change Type</a> *@
+
+                        <form method="post" action="/Admin/DeactivateUser" style="display:inline;">
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <button onclick="return confirm('Deactivate this user?');"
+                                    class="btn btn-danger btn-sm">
+                                Deactivate
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -487,7 +487,130 @@ public class AdminController : Controller
         return RedirectToAction("PackageDetails", new { id = packageId });
     }
 
+    public IActionResult Users()
+    {
+        List<User> users = new List<User>();
 
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            // string query = @"SELECT Id, firstName, lastName, email, phoneNumber, type, inactive 
+            //              FROM Users 
+            //              ORDER BY Id";
+            string query = @"SELECT U.Id, U.firstName, U.lastName, U.email, U.phoneNumber, T.name as type, U.inactive 
+                         FROM Users U, types T
+                         where T.id=U.[type]
+                         ORDER BY Id";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            using (SqlDataReader r = cmd.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    users.Add(new User
+                    {
+                        Id = r.GetInt32(0),
+                        firstName = r.GetString(1),
+                        lastName = r.GetString(2),
+                        email = r.GetString(3),
+                        phoneNumber = r.GetString(4),
+                        typeName = r.GetString(5),
+                        // inactive = r.GetInt32(6)
+                    });
+                }
+            }
+        }
+
+        return View(users);
+    }
+
+    public IActionResult EditUser(int id)
+    {
+        User? user = null;
+
+        List<Type1> types = new List<Type1>();
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            // --- שליפת המשתמש ---
+            string q = @"SELECT Id, firstName, lastName, email, phoneNumber, type
+                     FROM Users WHERE Id = @id";
+
+            using (SqlCommand cmd = new SqlCommand(q, conn))
+            {
+                cmd.Parameters.AddWithValue("@id", id);
+
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    if (r.Read())
+                    {
+                        user = new User
+                        {
+                            Id = r.GetInt32(0),
+                            firstName = r.GetString(1),
+                            lastName = r.GetString(2),
+                            email = r.GetString(3),
+                            phoneNumber = r.GetString(4),
+                            type = r.GetInt32(5)
+                        };
+                    }
+                }
+            }
+
+            // --- שליפת כל סוגי המשתמשים ---
+            string q2 = @"SELECT Id, name FROM Types";
+
+            using (SqlCommand cmd = new SqlCommand(q2, conn))
+            using (SqlDataReader r = cmd.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    types.Add(new Type1
+                    {
+                        Id = r.GetInt32(0),
+                        name = r.GetString(1),
+                       // inActive = r.GetBoolean(2)
+
+                    });
+                }
+            }
+        }
+
+        // שולחים:
+        ViewBag.Types = types;
+
+        return View(user);
+    }
+
+    [HttpPost]
+    public IActionResult EditUser(User model)
+    {
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            string query = @"UPDATE Users
+                         SET firstName=@f, lastName=@l, email=@e, phoneNumber=@p,type=@t 
+                         WHERE Id = @id";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@f", model.firstName);
+                cmd.Parameters.AddWithValue("@l", model.lastName);
+                cmd.Parameters.AddWithValue("@e", model.email);
+                cmd.Parameters.AddWithValue("@p", model.phoneNumber);
+                cmd.Parameters.AddWithValue("@t", model.type);
+                cmd.Parameters.AddWithValue("@id", model.Id);
+
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        return RedirectToAction("Users");
+    }
 
 
 }
