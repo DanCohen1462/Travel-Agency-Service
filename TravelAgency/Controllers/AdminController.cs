@@ -17,7 +17,7 @@ public class AdminController : Controller
     // GET
     public IActionResult Index()
     {
-        return View();
+        return View("AdminHome");
     }
     public IActionResult CreatePackage()
     {
@@ -524,7 +524,7 @@ public class AdminController : Controller
 
         return View(users);
     }
-
+    
     public IActionResult EditUser(int id)
     {
         User? user = null;
@@ -612,5 +612,68 @@ public class AdminController : Controller
         return RedirectToAction("Users");
     }
 
+    public IActionResult Analytics()
+    {
+        Dictionary<string, int> usersByType = new();
+        Dictionary<string, int> packagesByCategory = new();
+        Dictionary<string, int> reservationsByMonth = new();
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            // ----- Users by Type -----
+            string q1 = @"SELECT T.name, COUNT(*) 
+                      FROM Users U
+                      JOIN Types T ON U.type = T.Id
+                      GROUP BY T.name";
+
+            using (SqlCommand cmd = new SqlCommand(q1, conn))
+            using (SqlDataReader r = cmd.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    usersByType[r.GetString(0)] = r.GetInt32(1);
+                }
+            }
+
+            // ----- Packages by Category -----
+            string q2 = @"SELECT C.name, COUNT(*)
+                      FROM Package P
+                      JOIN Category C ON P.idCategory = C.Id
+                      GROUP BY C.name";
+
+            using (SqlCommand cmd = new SqlCommand(q2, conn))
+            using (SqlDataReader r = cmd.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    packagesByCategory[r.GetString(0)] = r.GetInt32(1);
+                }
+            }
+
+            // ----- Reservations per Month -----
+            // string q3 = @"
+            // SELECT FORMAT(date,'yyyy-MM') AS Month, COUNT(*) 
+            // FROM HistoryReservation
+            // GROUP BY FORMAT(date,'yyyy-MM')
+            // ORDER BY Month";
+            //
+            // using (SqlCommand cmd = new SqlCommand(q3, conn))
+            // using (SqlDataReader r = cmd.ExecuteReader())
+            // {
+            //     while (r.Read())
+            //     {
+            //         reservationsByMonth[r.GetString(0)] = r.GetInt32(1);
+            //     }
+            // }
+        }
+
+        ViewBag.UsersByType = usersByType;
+        ViewBag.PackagesByCategory = packagesByCategory;
+        // ViewBag.ReservationsPerMonth = reservationsByMonth;
+
+        return View();
+    }
 
 }
