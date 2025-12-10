@@ -59,9 +59,9 @@ public class AdminController : Controller
             conn.Open();
 
             string query = @"INSERT INTO Package
-                        (destination, startDate, endDate, sum, ageLimit, image, numFreePlaces, idCategory, UserId, Information)
+                        (destination, startDate, endDate, sum, ageLimit, image, numFreePlaces, idCategory, UserId, Information,country)
                         VALUES
-                        (@dest, @start, @end, @sum, @age, @image, @free, @cat, 0, @info)";
+                        (@dest, @start, @end, @sum, @age, @image, @free, @cat, 0, @info, @country)";
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
@@ -75,6 +75,7 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@cat", model.idCategory);
                       // cmd.Parameters.AddWithValue("@user", HttpContext.Session.GetString("UserId"));
                 cmd.Parameters.AddWithValue("@info", model.information);
+                cmd.Parameters.AddWithValue("@country", model.country ?? (object)DBNull.Value);
 
                 cmd.ExecuteNonQuery();
             }
@@ -210,7 +211,8 @@ public class AdminController : Controller
                         FROM Discount d
                         WHERE d.packageId = p.Id
                         AND GETDATE() BETWEEN d.startDate AND d.endDate
-                    ) AS ActiveDiscount
+                    ) AS ActiveDiscount,
+                    p.country
                 FROM Package p
                 WHERE p.inactive = 0";
 
@@ -228,7 +230,9 @@ public class AdminController : Controller
                         StartDate = reader.GetDateTime(3),
                         EndDate = reader.GetDateTime(4),
                         sum = reader.GetInt32(5),
-                        ActiveDiscount = reader.IsDBNull(6) ? 0 : reader.GetInt32(6)
+                        ActiveDiscount = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
+                        country = reader.IsDBNull(7) ? null : reader.GetString(7),
+                        
 
                     });
                 }
@@ -267,7 +271,7 @@ public class AdminController : Controller
 
             string query = @"
                 SELECT p.Id, p.destination, p.image, p.StartDate, p.EndDate, p.sum, 
-                       p.ageLimit, p.numFreePlaces, p.information, p.UserId, c.name
+                       p.ageLimit, p.numFreePlaces, p.information, p.UserId, c.name,p.country
                 FROM Package p
                 JOIN Category c ON p.idCategory = c.Id
                 WHERE p.Id = @id AND p.inactive = 0";
@@ -291,7 +295,8 @@ public class AdminController : Controller
                             ageLimit = reader.GetInt32(6),
                             numFreePlaces = reader.GetInt32(7),
                             information = reader.GetString(8),
-                            UserId = reader.GetInt32(9)
+                            UserId = reader.GetInt32(9),
+                            country =  reader.IsDBNull(11) ? null : reader.GetString(11),
                         };
 
                         category = new Category
@@ -372,7 +377,7 @@ public class AdminController : Controller
             // --- שליפת חבילה ---
             string query = @"
                 SELECT Id, destination, StartDate, EndDate, sum, ageLimit, 
-                       numFreePlaces, image, idCategory, information 
+                       numFreePlaces, image, idCategory, information,country 
                 FROM Package 
                 WHERE Id = @id AND inactive = 0";
 
@@ -395,7 +400,9 @@ public class AdminController : Controller
                             numFreePlaces = reader.GetInt32(6),
                             image = reader.GetString(7),
                             idCategory = reader.GetInt32(8),
-                            information = reader.GetString(9)
+                            information = reader.GetString(9),
+                            country = reader.IsDBNull(10) ? null : reader.GetString(7),
+
                         };
                     }
                 }
@@ -441,7 +448,8 @@ public class AdminController : Controller
                 numFreePlaces = @free,
                 image = @image,
                 idCategory = @cat,
-                information = @info
+                information = @info,
+                country = @country
             WHERE Id = @id";
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
@@ -456,6 +464,8 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@cat", model.idCategory);
                 cmd.Parameters.AddWithValue("@info", model.information);
                 cmd.Parameters.AddWithValue("@id", model.Id);
+                cmd.Parameters.AddWithValue("@country", model.country );
+
 
                 cmd.ExecuteNonQuery();
             }
