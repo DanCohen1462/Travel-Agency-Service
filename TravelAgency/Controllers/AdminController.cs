@@ -49,19 +49,24 @@ public class AdminController : Controller
     }
     
     [HttpPost]
-    public IActionResult CreatePackage(Package model)
+    public IActionResult CreatePackage(Package model, List<IFormFile> images)
     {
         if (!ModelState.IsValid)
             return View(model);
+        int newPackageId = 0;
 
         using (SqlConnection conn = new SqlConnection(_connectionString))
         {
             conn.Open();
 
-            string query = @"INSERT INTO Package
-                        (destination, startDate, endDate, sum, ageLimit, image, numFreePlaces, idCategory, UserId, Information,country)
-                        VALUES
-                        (@dest, @start, @end, @sum, @age, @image, @free, @cat, 0, @info, @country)";
+            // string query = @"INSERT INTO Package
+            //             (destination, startDate, endDate, sum, ageLimit, numFreePlaces, idCategory, UserId, Information,country)
+            //             VALUES
+            //             (@dest, @start, @end, @sum, @age, @image, @free, @cat, 0, @info, @country)";
+            string query = @"
+                INSERT INTO Package (destination, startDate, endDate, sum, ageLimit, numFreePlaces, idCategory, UserId, Information, country)
+                
+                VALUES (@dest, @start, @end, @sum, @age, @free, @cat, 0, @info, @country)";
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
@@ -70,18 +75,37 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@end", model.EndDate);
                 cmd.Parameters.AddWithValue("@sum", model.sum);
                 cmd.Parameters.AddWithValue("@age", model.ageLimit);
-                cmd.Parameters.AddWithValue("@image", model.image);
                 cmd.Parameters.AddWithValue("@free", model.numFreePlaces);
                 cmd.Parameters.AddWithValue("@cat", model.idCategory);
-                      // cmd.Parameters.AddWithValue("@user", HttpContext.Session.GetString("UserId"));
                 cmd.Parameters.AddWithValue("@info", model.information);
                 cmd.Parameters.AddWithValue("@country", model.country ?? (object)DBNull.Value);
 
-                cmd.ExecuteNonQuery();
+                newPackageId = (int)cmd.ExecuteScalar();
             }
-        }
+            foreach (var img in images)
+            {
+                if (img.Length > 0)
+                {
+                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(img.FileName);
+                    string path = Path.Combine("wwwroot/uploads/packages/", fileName);
 
-        return RedirectToAction("Packages");
+                    using (var stream = new FileStream(path, FileMode.Create))
+                    {
+                        img.CopyTo(stream);
+                    }
+
+                    // שמירת נתיב התמונה בטבלה ImagesPackage
+                    string q2 = "INSERT INTO ImagesPackage (packageId, imageLocation) VALUES (@pid, @loc)";
+                    using (SqlCommand cmd2 = new SqlCommand(q2, conn))
+                    {
+                        cmd2.Parameters.AddWithValue("@pid", newPackageId);
+                        cmd2.Parameters.AddWithValue("@loc", "/uploads/packages/" + fileName);
+                        cmd2.ExecuteNonQuery();
+                    }
+                }
+            }
+            return RedirectToAction("Packages");
+        }
     }
 
     public IActionResult AssignGuide()
@@ -197,12 +221,11 @@ public class AdminController : Controller
         using (SqlConnection conn = new SqlConnection(_connectionString))
         {
             conn.Open();
-
+            
             string query = @"
                 SELECT 
                     p.Id,
                     p.destination,
-                    p.image,
                     p.StartDate,
                     p.EndDate,
                     p.sum,
@@ -226,17 +249,48 @@ public class AdminController : Controller
                     {
                         Id = reader.GetInt32(0),
                         destination = reader.GetString(1),
-                        image = reader.GetString(2),
-                        StartDate = reader.GetDateTime(3),
-                        EndDate = reader.GetDateTime(4),
-                        sum = reader.GetInt32(5),
-                        ActiveDiscount = reader.IsDBNull(6) ? 0 : reader.GetInt32(6),
-                        country = reader.IsDBNull(7) ? null : reader.GetString(7),
+                        //image = reader.GetString(2),
+                        StartDate = reader.GetDateTime(2),
+                        EndDate = reader.GetDateTime(3),
+                        sum = reader.GetInt32(4),
+                        ActiveDiscount = reader.IsDBNull(5) ? 0 : reader.GetInt32(5),
+                        country = reader.IsDBNull(6) ? null : reader.GetString(6),
                         
 
                     });
                 }
             }
+            foreach (var pkg in packages)
+            {
+                string q2 = @"SELECT TOP 5 imageLocation FROM ImagesPackage WHERE packageId = @pid";
+
+                List<string> imgs = new List<string>();
+
+                using (SqlCommand cmd2 = new SqlCommand(q2, conn))
+                {
+                    cmd2.Parameters.AddWithValue("@pid", pkg.Id);
+
+                    using (SqlDataReader r2 = cmd2.ExecuteReader())
+                    {
+                        while (r2.Read())
+                        {
+                            imgs.Add(r2.GetString(0));
+                        }
+                    }
+                }
+
+                // אם אין תמונות — נשים תמונה ברירת מחדל
+                if (imgs.Count == 0)
+                {
+                    pkg.RandomImage = "/images/default.jpg";  
+                }
+                else
+                {
+                    Random rand = new Random();
+                    pkg.RandomImage = imgs[rand.Next(imgs.Count)];
+                }
+            }
+        
         }
 
         return View(packages);
@@ -261,7 +315,7 @@ public class AdminController : Controller
     }
     public IActionResult PackageDetails(int id)
     {
-        Package package = null;
+        Package package = new Package();
         User guide = null;
         Category category = null;
 
@@ -270,7 +324,7 @@ public class AdminController : Controller
             conn.Open();
 
             string query = @"
-                SELECT p.Id, p.destination, p.image, p.StartDate, p.EndDate, p.sum, 
+                SELECT p.Id, p.destination, p.StartDate, p.EndDate, p.sum, 
                        p.ageLimit, p.numFreePlaces, p.information, p.UserId, c.name,p.country
                 FROM Package p
                 JOIN Category c ON p.idCategory = c.Id
@@ -288,26 +342,47 @@ public class AdminController : Controller
                         {
                             Id = reader.GetInt32(0),
                             destination = reader.GetString(1),
-                            image = reader.GetString(2),
-                            StartDate = reader.GetDateTime(3),
-                            EndDate = reader.GetDateTime(4),
-                            sum = reader.GetInt32(5),
-                            ageLimit = reader.GetInt32(6),
-                            numFreePlaces = reader.GetInt32(7),
-                            information = reader.GetString(8),
-                            UserId = reader.GetInt32(9),
-                            country =  reader.IsDBNull(11) ? null : reader.GetString(11),
+                            StartDate = reader.GetDateTime(2),
+                            EndDate = reader.GetDateTime(3),
+                            sum = reader.GetInt32(4),
+                            ageLimit = reader.GetInt32(5),
+                            numFreePlaces = reader.GetInt32(6),
+                            information = reader.IsDBNull(7) ? null : reader.GetString(7),
+                            UserId = reader.GetInt32(8),
+                            country = reader.IsDBNull(10) ? null : reader.GetString(10),
                         };
+
 
                         category = new Category
                         {
-                            name = reader.GetString(10)
+                            name = reader.GetString(9)
                         };
                     }
                 }
             }
+            List<string> packageImages = new List<string>();
 
-            // שולף מידע על המדריך
+            string imgQuery = @"SELECT imageLocation 
+                    FROM ImagesPackage 
+                    WHERE packageId = @pid";
+
+            using (SqlCommand cmd = new SqlCommand(imgQuery, conn))
+            {
+                cmd.Parameters.AddWithValue("@pid", id);
+
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        packageImages.Add(r.GetString(0));
+                    }
+                }
+            }
+
+            ViewBag.Images = packageImages;
+ 
+
+
             if (package != null && package.UserId != 0)
             {
                 string guideQuery = "SELECT firstName, lastName FROM Users WHERE Id = @uid";
@@ -365,19 +440,39 @@ public class AdminController : Controller
         ViewBag.Guide = guide;
         return View(package);
     }
-    public IActionResult EditPackage(int id)
+    [HttpPost]
+    public IActionResult DeleteImage(int imageId, int packageId)
     {
-        Package package = null;
-        List<Category> categories = new List<Category>();
+        Console.WriteLine(imageId);
 
         using (SqlConnection conn = new SqlConnection(_connectionString))
         {
             conn.Open();
 
-            // --- שליפת חבילה ---
+            string q = "DELETE FROM ImagesPackage WHERE Id = @id";
+            using (SqlCommand cmd = new SqlCommand(q, conn))
+            {
+                cmd.Parameters.AddWithValue("@id", imageId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        return RedirectToAction("EditPackage", new { id = packageId });
+    }
+    public IActionResult EditPackage(int id)    
+    {
+        Package package = null;
+        List<Category> categories = new List<Category>();
+        List<ImagePackage> packageImages = new();
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            // --- שליפת החבילה ---
             string query = @"
                 SELECT Id, destination, StartDate, EndDate, sum, ageLimit, 
-                       numFreePlaces, image, idCategory, information,country 
+                       numFreePlaces, idCategory, information, userid,country
                 FROM Package 
                 WHERE Id = @id AND inactive = 0";
 
@@ -398,18 +493,18 @@ public class AdminController : Controller
                             sum = reader.GetInt32(4),
                             ageLimit = reader.GetInt32(5),
                             numFreePlaces = reader.GetInt32(6),
-                            image = reader.GetString(7),
-                            idCategory = reader.GetInt32(8),
-                            information = reader.GetString(9),
-                            country = reader.IsDBNull(10) ? null : reader.GetString(7),
 
+                            idCategory = reader.GetInt32(7),                                  // int
+                            information = reader.IsDBNull(8) ? null : reader.GetString(8),   // string
+                            UserId = reader.IsDBNull(9) ? 0 : reader.GetInt32(9),            // int
+                            country = reader.IsDBNull(10) ? null : reader.GetString(10)      // string
                         };
+
+
                     }
                 }
             }
-
-            // --- שליפת קטגוריות ---
-            string queryCategories = "SELECT Id, name FROM Category WHERE inactive = 0";
+            string queryCategories = @"SELECT Id, name FROM Category WHERE inactive = 0";
 
             using (SqlCommand cmd = new SqlCommand(queryCategories, conn))
             using (SqlDataReader reader = cmd.ExecuteReader())
@@ -423,16 +518,114 @@ public class AdminController : Controller
                     });
                 }
             }
+            // --- שליפת תמונות ---
+            string imgQuery = @"SELECT Id, packageId, imageLocation 
+                                FROM ImagesPackage 
+                                WHERE packageId = @pid";
+
+            using (SqlCommand cmd = new SqlCommand(imgQuery, conn))
+            {
+                cmd.Parameters.AddWithValue("@pid", id);
+
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        packageImages.Add(new ImagePackage
+                        {
+                            Id = r.GetInt32(0),
+                            PackageId = r.GetInt32(1),
+                            ImageLocation = r.GetString(2)
+                        });
+                    }
+                }
+            }
+
+            // --- שליפת קטגוריות ---
+            
         }
 
+        ViewBag.Images = packageImages;
+        
         ViewBag.Categories = categories;
+        Console.WriteLine("CATEGORIES COUNT = " + categories.Count);
+
         return View(package);
     }
-    [HttpPost]
-    public IActionResult EditPackage(Package model)
+    
+    
+    
+    
+    
+    
+    
+    
+    [HttpPost] 
+    public IActionResult EditPackage(Package model,List<IFormFile> images)
     {
+        
         if (!ModelState.IsValid)
+        {   
+            Console.WriteLine("❌ MODEL STATE INVALID!");
+            foreach (var err in ModelState)
+            {
+                foreach (var e in err.Value.Errors)
+                {
+                    Console.WriteLine($"FIELD: {err.Key} → ERROR: {e.ErrorMessage}");
+                }
+            }
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+
+                // --- שליפת קטגוריות ---
+                List<Category> categories = new List<Category>();
+                string qCat = "SELECT Id, name FROM Category WHERE inactive = 0";
+
+                using (SqlCommand cmd = new SqlCommand(qCat, conn))
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        categories.Add(new Category
+                        {
+                            Id = reader.GetInt32(0),
+                            name = reader.GetString(1)
+                        });
+                    }
+                }
+
+                ViewBag.Categories = categories;
+
+                // --- שליפת תמונות של החבילה ---
+                List<ImagePackage> imgs = new List<ImagePackage>();
+                string qImg = "SELECT Id, packageId, imageLocation FROM ImagesPackage WHERE packageId = @pid";
+
+                using (SqlCommand cmd = new SqlCommand(qImg, conn))
+                {
+                    cmd.Parameters.AddWithValue("@pid", model.Id);
+
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            imgs.Add(new ImagePackage
+                            {
+                                Id = r.GetInt32(0),
+                                PackageId = r.GetInt32(1),
+                                ImageLocation = r.GetString(2)
+                            });
+                        }
+                    }
+                }
+
+                ViewBag.Images = imgs;
+            }
+
             return View(model);
+        }
+
+        
 
         using (SqlConnection conn = new SqlConnection(_connectionString))
         {
@@ -446,11 +639,11 @@ public class AdminController : Controller
                 sum = @sum,
                 ageLimit = @age,
                 numFreePlaces = @free,
-                image = @image,
                 idCategory = @cat,
                 information = @info,
                 country = @country
             WHERE Id = @id";
+           
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
@@ -460,15 +653,40 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@sum", model.sum);
                 cmd.Parameters.AddWithValue("@age", model.ageLimit);
                 cmd.Parameters.AddWithValue("@free", model.numFreePlaces);
-                cmd.Parameters.AddWithValue("@image", model.image);
+           
                 cmd.Parameters.AddWithValue("@cat", model.idCategory);
-                cmd.Parameters.AddWithValue("@info", model.information);
+                // cmd.Parameters.AddWithValue("@info", model.information);
+                cmd.Parameters.AddWithValue("@info", model.information ?? (object)DBNull.Value);
+
                 cmd.Parameters.AddWithValue("@id", model.Id);
                 cmd.Parameters.AddWithValue("@country", model.country );
 
 
                 cmd.ExecuteNonQuery();
             }
+            foreach (var file in images)
+            {
+                if (file.Length > 0)
+                {
+                    string fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
+                    string path = Path.Combine("wwwroot/uploads/packages/", fileName);
+
+                    using (var stream = new FileStream(path, FileMode.Create))
+                        file.CopyTo(stream);
+
+                    string insertImg = @"INSERT INTO ImagesPackage (packageId, imageLocation)
+                             VALUES (@pid, @loc)";
+
+                    using (SqlCommand cmd = new SqlCommand(insertImg, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@pid", model.Id);
+                        cmd.Parameters.AddWithValue("@loc", "/uploads/packages/" + fileName);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            
         }
 
         return RedirectToAction("PackageDetails", new { id = model.Id });

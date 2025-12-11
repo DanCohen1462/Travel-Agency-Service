@@ -98,7 +98,7 @@ public class AuthController : Controller
                     HttpContext.Session.SetString("UserType", userType.ToString());
 
                     if (userType == 1) // Admin
-                        return RedirectToAction("Dashboard", "Admin");
+                        return RedirectToAction("index", "Admin");
 
                     if (userType == 2) // Worker
                         return RedirectToAction("Panel", "Worker");
