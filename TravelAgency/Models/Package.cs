@@ -21,6 +21,8 @@ public class Package
     public string? country { get; set; }
     
     public string? RandomImage { get; set; }
+    
+    public int CancellationDay {get; set; }
 
     
 }

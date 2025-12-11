@@ -59,14 +59,12 @@ public class AdminController : Controller
         {
             conn.Open();
 
-            // string query = @"INSERT INTO Package
-            //             (destination, startDate, endDate, sum, ageLimit, numFreePlaces, idCategory, UserId, Information,country)
-            //             VALUES
-            //             (@dest, @start, @end, @sum, @age, @image, @free, @cat, 0, @info, @country)";
+          
             string query = @"
-                INSERT INTO Package (destination, startDate, endDate, sum, ageLimit, numFreePlaces, idCategory, UserId, Information, country)
-                
-                VALUES (@dest, @start, @end, @sum, @age, @free, @cat, 0, @info, @country)";
+    INSERT INTO Package (destination, startDate, endDate, sum, ageLimit, numFreePlaces, idCategory, UserId, Information, country, cancelationDays)
+    OUTPUT INSERTED.Id
+    VALUES (@dest, @start, @end, @sum, @age, @free, @cat, 0, @info, @country, @cancellationDay);";
+
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
@@ -79,7 +77,7 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@cat", model.idCategory);
                 cmd.Parameters.AddWithValue("@info", model.information);
                 cmd.Parameters.AddWithValue("@country", model.country ?? (object)DBNull.Value);
-
+                cmd.Parameters.AddWithValue("@cancellationDay", model.CancellationDay);
                 newPackageId = (int)cmd.ExecuteScalar();
             }
             foreach (var img in images)
@@ -472,7 +470,7 @@ public class AdminController : Controller
             // --- שליפת החבילה ---
             string query = @"
                 SELECT Id, destination, StartDate, EndDate, sum, ageLimit, 
-                       numFreePlaces, idCategory, information, userid,country
+                       numFreePlaces, idCategory, information, userid,country,cancelationDays
                 FROM Package 
                 WHERE Id = @id AND inactive = 0";
 
@@ -497,7 +495,8 @@ public class AdminController : Controller
                             idCategory = reader.GetInt32(7),                                  // int
                             information = reader.IsDBNull(8) ? null : reader.GetString(8),   // string
                             UserId = reader.IsDBNull(9) ? 0 : reader.GetInt32(9),            // int
-                            country = reader.IsDBNull(10) ? null : reader.GetString(10)      // string
+                            country = reader.IsDBNull(10) ? null : reader.GetString(10),      // string
+                            CancellationDay = reader.GetInt32(11),
                         };
 
 
@@ -548,17 +547,10 @@ public class AdminController : Controller
         ViewBag.Images = packageImages;
         
         ViewBag.Categories = categories;
-        Console.WriteLine("CATEGORIES COUNT = " + categories.Count);
+       
 
         return View(package);
     }
-    
-    
-    
-    
-    
-    
-    
     
     [HttpPost] 
     public IActionResult EditPackage(Package model,List<IFormFile> images)
@@ -641,7 +633,8 @@ public class AdminController : Controller
                 numFreePlaces = @free,
                 idCategory = @cat,
                 information = @info,
-                country = @country
+                country = @country,
+                CancelationDays = @CancellationDay
             WHERE Id = @id";
            
 
@@ -660,6 +653,7 @@ public class AdminController : Controller
 
                 cmd.Parameters.AddWithValue("@id", model.Id);
                 cmd.Parameters.AddWithValue("@country", model.country );
+                cmd.Parameters.AddWithValue("@CancellationDay", model.CancellationDay);
 
 
                 cmd.ExecuteNonQuery();

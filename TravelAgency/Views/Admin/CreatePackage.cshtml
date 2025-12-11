@@ -81,14 +81,17 @@
                             <label class="form-label fw-bold">Upload Images</label>
                             <input type="file" name="images" class="form-control" accept="image/*" multiple />
                         </div>
-
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"> Cancellation Day</label>
+                            <input name="CancellationDay" type="number" class="form-control" placeholder="" required />
+                        </div>
 
                         <!-- Information -->
                         <div class="mb-3">
                             <label class="form-label fw-bold">Description</label>
                             <textarea name="information" class="form-control" rows="3" placeholder="Short description of the trip..." required></textarea>
                         </div>
-
+        
                         <!-- Submit Button -->
                         <button class="btn btn-primary w-100 py-2 fw-bold mb-5" style="font-size: 1.1rem;">
                             Create Package
