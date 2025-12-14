@@ -70,6 +70,10 @@
                     <p><strong>Price:</strong> $@Model.sum</p>
                     <p><strong>Age Limit:</strong> @Model.ageLimit+</p>
                     <p><strong>Free Spots:</strong> @Model.numFreePlaces</p>
+                    <div class="alert alert-info mt-3">
+                        <strong>Total Registered:</strong> @ViewBag.RegisteredCount <br />
+                        <strong>Remaining Places:</strong> @ViewBag.RemainingPlaces
+                    </div>
 
                     <hr class="my-4">
 
@@ -103,28 +107,69 @@
             </div>
             <hr class="my-4" />
 
-            <h4 class="mb-3">Registered Participants</h4>
+          <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs mt-4" id="participantTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="registered-tab" data-bs-toggle="tab" data-bs-target="#registered" type="button" role="tab">
+                    Registered Participants
+                </button>
+            </li>
 
-            @if (ViewBag.Registered == null || ((List<User>)ViewBag.Registered).Count == 0)
-            {
-                <p class="text-muted">No participants registered yet.</p>
-            }
-            else
-            {
-                <ul class="list-group">
-                    @foreach (var u in (List<User>)ViewBag.Registered)
-                    {
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>
-                                <strong>@u.firstName @u.lastName</strong><br />
-                                <small class="text-muted">@u.email</small>
-                            </span>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="waiting-tab" data-bs-toggle="tab" data-bs-target="#waiting" type="button" role="tab">
+                    Waiting List
+                </button>
+            </li>
+        </ul>
 
-                            <span class="badge bg-primary rounded-pill">@u.Id</span>
-                        </li>
-                    }
-                </ul>
-            }
+        <!-- Tabs Content -->
+        <div class="tab-content mt-3" id="participantTabsContent">
+
+            <!-- Registered participants -->
+            <div class="tab-pane fade show active" id="registered" role="tabpanel">
+
+                @if (ViewBag.Registered == null || (ViewBag.Registered).Count == 0)
+                {
+                    <p class="text-muted">No participants registered yet.</p>
+                }
+                else
+                {
+                    <ul class="list-group">
+                        @foreach (var u in ViewBag.Registered)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <strong>@u.firstName @u.lastName -- amount: @u.numPersons </strong><br />
+                                    <small class="text-muted">@u.email</small>
+                                </span>
+                                <span class="badge bg-primary rounded-pill">@u.Id</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <!-- Waiting List -->
+            <div class="tab-pane fade" id="waiting" role="tabpanel">
+                @if (ViewBag.WaitingList != null && ViewBag.WaitingList.Count > 0)
+                {
+                    <ul class="list-group">
+                        @foreach (var user in ViewBag.WaitingList)
+                        {
+                            <li class="list-group-item">
+                                @user.firstName @user.lastName – @user.email - amount: @user.numPersons
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted">No users are currently on the waiting list.</p>
+                }
+            </div>
+
+        </div>
+
 
 
         </div>

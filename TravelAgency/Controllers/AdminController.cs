@@ -402,10 +402,35 @@ public class AdminController : Controller
                     }
                 }
             }
-            List<User> registeredUsers = new List<User>();
+
+            int registeredCount = 0;
+
+                    string queryAmountRegister = @"
+            SELECT COALESCE(SUM(numPersons), 0)
+            FROM HistoryReservation
+            WHERE packageId = @pid AND inactive = 0";
+
+                    using (SqlCommand cmd = new SqlCommand(queryAmountRegister, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@pid", id);
+
+                        object result = cmd.ExecuteScalar();
+                        registeredCount = (result == null || result == DBNull.Value) ? 0 : Convert.ToInt32(result);
+                    }
+
+        // מחשבים כמה מקומות נשארו
+                    int remainingPlaces = package.numFreePlaces - registeredCount;
+                    if (remainingPlaces < 0) remainingPlaces = 0;
+
+        // מעבירים ל־ViewBag
+                    ViewBag.RegisteredCount = registeredCount;
+                    ViewBag.RemainingPlaces = remainingPlaces;
+                    
+            
+            List<waitingList> registeredUsers = new List<waitingList>();
 
             string reservationsQuery = @"
-            SELECT u.Id, u.firstName, u.lastName, u.email
+            SELECT u.Id, u.firstName, u.lastName, u.email,h.numPersons
             FROM HistoryReservation h
             JOIN Users u ON h.userId = u.Id
             WHERE h.packageId = @pid";
@@ -418,18 +443,55 @@ public class AdminController : Controller
                 {
                     while (reader.Read())
                     {
-                        registeredUsers.Add(new User
+                        registeredUsers.Add(new waitingList
                         {
                             Id = reader.GetInt32(0),
                             firstName = reader.GetString(1),
                             lastName = reader.GetString(2),
-                            email = reader.GetString(3)
+                            email = reader.GetString(3),
+                            numPersons = reader.GetInt32(4),
                         });
                     }
                 }
             }
      
             ViewBag.Registered = registeredUsers;
+            
+            
+            
+            
+            List<waitingList> waitingList1 = new List<waitingList>();
+
+            string qWait = @"
+                SELECT u.Id, u.firstName, u.lastName, u.email, w.numPersons
+                FROM WaitingList w
+                JOIN Users u ON w.UserId = u.Id
+                
+                WHERE w.PackageId = @pid
+                ORDER BY w.JoinDate";
+
+            using (SqlCommand cmd = new SqlCommand(qWait, conn))
+            {
+                cmd.Parameters.AddWithValue("@pid", id);
+
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        waitingList1.Add(new waitingList
+                        {
+                            Id = r.GetInt32(0),
+                            firstName = r.GetString(1),
+                            lastName = r.GetString(2),
+                            email = r.GetString(3),
+                            numPersons=r.GetInt32(4)
+                        });
+                    }
+                }
+            }
+
+            ViewBag.WaitingList = waitingList1;
+
         
         }
         
