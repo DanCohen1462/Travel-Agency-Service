@@ -77,7 +77,7 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@cat", model.idCategory);
                 cmd.Parameters.AddWithValue("@info", model.information);
                 cmd.Parameters.AddWithValue("@country", model.country ?? (object)DBNull.Value);
-                cmd.Parameters.AddWithValue("@cancellationDay", model.CancellationDay);
+                cmd.Parameters.AddWithValue("@cancellationDay", (object?)model.cancelationDays ?? DBNull.Value);
                 newPackageId = (int)cmd.ExecuteScalar();
             }
             foreach (var img in images)
@@ -558,7 +558,7 @@ public class AdminController : Controller
                             information = reader.IsDBNull(8) ? null : reader.GetString(8),   // string
                             UserId = reader.IsDBNull(9) ? 0 : reader.GetInt32(9),            // int
                             country = reader.IsDBNull(10) ? null : reader.GetString(10),      // string
-                            CancellationDay = reader.GetInt32(11),
+                            cancelationDays = reader.IsDBNull(11) ? (int?)null : reader.GetInt32(11),
                         };
 
 
@@ -715,7 +715,7 @@ public class AdminController : Controller
 
                 cmd.Parameters.AddWithValue("@id", model.Id);
                 cmd.Parameters.AddWithValue("@country", model.country );
-                cmd.Parameters.AddWithValue("@CancellationDay", model.CancellationDay);
+                cmd.Parameters.AddWithValue("@CancellationDay", (object?)model.cancelationDays ?? DBNull.Value);
 
 
                 cmd.ExecuteNonQuery();
@@ -959,5 +959,4 @@ public class AdminController : Controller
 
         return View();
     }
-
 }

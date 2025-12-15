@@ -22,7 +22,10 @@ public class Package
     
     public string? RandomImage { get; set; }
     
-    public int CancellationDay {get; set; }
-
-    
+    public string? CategoryName { get; set; }
+    public int TotalBookings { get; set; }
+    public int? DiscountPercent { get; set; }
+    public string? ImageUrl { get; set; }
+    public int? cancelationDays { get; set; } 
+   
 }

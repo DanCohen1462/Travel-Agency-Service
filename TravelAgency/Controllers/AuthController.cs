@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using TravelAgency.Models;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration; 
+using Microsoft.AspNetCore.Http; 
+using System; 
+// ... (usings נוספים אם ישנם)
 
 public class AuthController : Controller
 {
@@ -8,12 +12,14 @@ public class AuthController : Controller
 
     public AuthController(IConfiguration config)
     {
-        _connectionString = config.GetConnectionString("DefaultConnection");
+        _connectionString = config.GetConnectionString("DefaultConnection")
+                            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
     }
 
-    // ---------- Register ----------
+    // ---------- Register (GET) ----------
     public IActionResult Register() => View();
 
+    // ---------- Register (POST) ----------
     [HttpPost]
     public IActionResult Register(User model)
     {
@@ -48,9 +54,9 @@ public class AuthController : Controller
                 cmd.Parameters.AddWithValue("@Username", model.Username);
                 cmd.Parameters.AddWithValue("@firstName", model.firstName);
                 cmd.Parameters.AddWithValue("@lastName", model.lastName);
-                cmd.Parameters.AddWithValue("@birthDate", model.birthDate);
-                cmd.Parameters.AddWithValue("@gender", model.gender);
-                cmd.Parameters.AddWithValue("@phoneNumber", model.phoneNumber);
+                cmd.Parameters.AddWithValue("@birthDate", (object?)model.birthDate ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@gender", (object?)model.gender ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@phoneNumber", (object?)model.phoneNumber ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@email", model.email);
                 cmd.Parameters.AddWithValue("@Password", model.Password);
 
@@ -61,9 +67,10 @@ public class AuthController : Controller
         return RedirectToAction("Login");
     }
 
-    // ---------- Login ----------
+    // ---------- Login (GET) ----------
     public IActionResult Login() => View();
 
+    // ---------- Login (POST) ----------
     [HttpPost]
     public IActionResult Login(string username, string password)
     {
@@ -72,7 +79,7 @@ public class AuthController : Controller
             conn.Open();
 
             string query =
-                "SELECT Id, type, firstName, lastName FROM Users WHERE Username = @Username AND Password = @Password";
+                "SELECT Id, type, firstName, lastName FROM Users WHERE Username = @Username AND Password = @Password AND inactive = 0";
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
@@ -103,8 +110,9 @@ public class AuthController : Controller
                     if (userType == 2) // Worker
                         return RedirectToAction("Panel", "Worker");
 
-                    // Customer
-                    return RedirectToAction("Gallery", "Package");
+                    // 🛑 התיקון: הפניה ל-Dashboard המלבנים במקום לגלריה
+                    // Customer (Type 3)
+                    return RedirectToAction("Dashboard", "Users");
                 }
             }
         }
