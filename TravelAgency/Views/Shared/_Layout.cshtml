@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Http
+﻿ @using Microsoft.AspNetCore.Http
 @inject IHttpContextAccessor HttpContextAccessor
 
 <!DOCTYPE html>
@@ -28,10 +28,8 @@
 
             @{
                 var userId = HttpContextAccessor.HttpContext?.Session.GetString("UserId");
-                
-                // --- הוספה קטנה 1: קריאת התפקיד ---
-                var userRole = HttpContextAccessor.HttpContext?.Session.GetString("Role"); 
-                // ----------------------------------
+                // שליפת סוג המשתמש (1=Admin, 2=Employee, 3=Customer)
+                var userType = HttpContextAccessor.HttpContext?.Session.GetString("UserType"); 
 
                 var fullName = HttpContextAccessor.HttpContext?.Session.GetString("FullName")
                                ?? HttpContextAccessor.HttpContext?.Session.GetString("Username")
@@ -42,54 +40,61 @@
             <div class="collapse navbar-collapse" id="navbarNav">
 
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    
                     @if (string.IsNullOrEmpty(userId))
                     {
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewData["Title"]=="Home" ? "active" : "")"
-                               asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewData["Title"]=="About" ? "active" : "")"
-                               asp-controller="Home" asp-action="AboutUs">About Us</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewData["Title"]=="Contact" ? "active" : "")"
-                               asp-controller="Home" asp-action="ContactUs">Contact Us</a>
-                        </li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="Index">Home</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="AboutUs">About Us</a></li>
+                        <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="ContactUs">Contact Us</a></li>
                     }
                     else
                     {
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewData["Title"]=="MyTrips" ? "active" : "")"
-                               asp-controller="Users" asp-action="MyTrips">My Trips</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewData["Title"]=="Profile" ? "active" : "")"
-                               asp-controller="Users" asp-action="Profile">Profile</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewData["Title"]=="Travel Packages" ? "active" : "")"
-                               asp-controller="Package" asp-action="Gallery">Search Trip</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewData["Title"]=="Notifications" ? "active" : "")"
-                               asp-controller="Notifications" asp-action="Index">Notifications</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewData["Title"]=="Contact" ? "active" : "")"
-                               asp-controller="Home" asp-action="ContactUs">Contact Us</a>
-                        </li>
+                        // בדיקה: איזה סוג משתמש זה?
 
-                        @if (userRole == "Employee")
+                        if (userType == "2") 
                         {
+                            // 1. רשימת חבילות שהוא שייך אליהן
                             <li class="nav-item">
-                                <a class="nav-link fw-bold text-warning" 
-                                   asp-controller="Employee" asp-action="EmployeeHome">
-                                    אתר עובד
+                                <a class="nav-link fw-bold" asp-controller="Package" asp-action="Index">
+                                    My Packages
+                                </a>
+                            </li>
+
+                            // 2. הודעות
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Notifications" asp-action="Index">
+                                    Notifications
+                                </a>
+                            </li>
+
+                            // 3. יצירת קשר
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Home" asp-action="ContactUs">
+                                    Contact Us
+                                </a>
+                            </li>
+                            
+                            // 4. פרופיל
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Users" asp-action="Profile">
+                                    Profile
                                 </a>
                             </li>
                         }
+                        else if (userType == "1")
+                        {
+                            <li class="nav-item"><a class="nav-link text-danger" asp-controller="Admin" asp-action="Dashboard">Admin Dashboard</a></li>
+                             <li class="nav-item"><a class="nav-link" asp-controller="Package" asp-action="Index">Manage Packages</a></li>
                         }
+                        else
+                        {
+                            <li class="nav-item"><a class="nav-link" asp-controller="Users" asp-action="MyTrips">My Trips</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Users" asp-action="Profile">Profile</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Package" asp-action="Gallery">Search Trip</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Notifications" asp-action="Index">Notifications</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="ContactUs">Contact Us</a></li>
+                        }
+                    }
                 </ul>
 
                 <ul class="navbar-nav ms-auto align-items-center">

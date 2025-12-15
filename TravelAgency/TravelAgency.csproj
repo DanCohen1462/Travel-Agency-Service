@@ -22,6 +22,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Views\Employee\" />
       <Folder Include="wwwroot\uploads\packages\" />
     </ItemGroup>
 
