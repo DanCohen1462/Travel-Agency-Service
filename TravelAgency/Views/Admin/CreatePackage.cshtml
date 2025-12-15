@@ -64,7 +64,7 @@
                             <label class="form-label fw-bold">Category</label>
                             <select name="idCategory" class="form-select" required>
                                 <option selected disabled>Select a category...</option>
-
+                        
                                 @foreach (var cat in ViewBag.Categories)
                                 {
                                     <option value="@cat.Id">@cat.name</option>
@@ -73,9 +73,17 @@
                         </div>
 
                         <!-- Image Upload -->
+                        @* <div class="mb-3"> *@
+                        @*     <label class="form-label fw-bold">Package Image (URL)</label> *@
+                        @*     <input name="image" class="form-control" placeholder="https://image-url.com" required /> *@
+                        @* </div> *@
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Package Image (URL)</label>
-                            <input name="image" class="form-control" placeholder="https://image-url.com" required />
+                            <label class="form-label fw-bold">Upload Images</label>
+                            <input type="file" name="images" class="form-control" accept="image/*" multiple />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"> Cancellation Day</label>
+                            <input name="CancellationDay" type="number" class="form-control" placeholder="" required />
                         </div>
 
                         <!-- Information -->
@@ -83,7 +91,7 @@
                             <label class="form-label fw-bold">Description</label>
                             <textarea name="information" class="form-control" rows="3" placeholder="Short description of the trip..." required></textarea>
                         </div>
-
+        
                         <!-- Submit Button -->
                         <button class="btn btn-primary w-100 py-2 fw-bold mb-5" style="font-size: 1.1rem;">
                             Create Package

@@ -1,4 +1,5 @@
 @model TravelAgency.Models.Package
+@using TravelAgency.Models
 
 @{
     Layout = "_Layout";
@@ -14,84 +15,166 @@
 
             <div class="card-body p-4">
 
-                <form method="post" asp-action="EditPackage">
+                <form method="post"
+                      asp-action="EditPackage"
+                      enctype="multipart/form-data">
 
                     <input type="hidden" name="Id" value="@Model.Id" />
 
                     <!-- Destination -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Destination</label>
-                        <input name="destination" class="form-control" value="@Model.destination" required />
+                        <input name="destination"
+                               class="form-control"
+                               value="@Model.destination"
+                               required />
                     </div>
+
+                    <!-- Country -->
                     <div class="mb-3">
-                        <label class="fw-bold">Country</label>
-                        <input class="form-control" name="country" value="@Model.country" />
+                        <label class="form-label fw-bold">Country</label>
+                        <input name="country"
+                               class="form-control"
+                               value="@Model.country" />
                     </div>
 
                     <!-- Dates -->
                     <div class="row">
                         <div class="col">
                             <label class="form-label fw-bold">Start Date</label>
-                            <input type="date" name="StartDate" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" required />
+                            <input type="date"
+                                   name="StartDate"
+                                   class="form-control"
+                                   value="@Model.StartDate.ToString("yyyy-MM-dd")"
+                                   required />
                         </div>
+
                         <div class="col">
                             <label class="form-label fw-bold">End Date</label>
-                            <input type="date" name="EndDate" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-dd")" required />
+                            <input type="date"
+                                   name="EndDate"
+                                   class="form-control"
+                                   value="@Model.EndDate.ToString("yyyy-MM-dd")"
+                                   required />
                         </div>
                     </div>
 
                     <!-- Price -->
                     <div class="mb-3 mt-3">
                         <label class="form-label fw-bold">Price ($)</label>
-                        <input name="sum" type="number" class="form-control" value="@Model.sum" required />
+                        <input name="sum"
+                               type="number"
+                               class="form-control"
+                               value="@Model.sum"
+                               required />
                     </div>
 
                     <!-- Age Limit -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Age Limit</label>
-                        <input name="ageLimit" type="number" class="form-control" value="@Model.ageLimit" required />
+                        <input name="ageLimit"
+                               type="number"
+                               class="form-control"
+                               value="@Model.ageLimit"
+                               required />
                     </div>
 
                     <!-- Free Places -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Available Spots</label>
-                        <input name="numFreePlaces" type="number" class="form-control" value="@Model.numFreePlaces" required />
+                        <input name="numFreePlaces"
+                               type="number"
+                               class="form-control"
+                               value="@Model.numFreePlaces"
+                               required />
+                    </div>
+
+                    <!-- Cancellation Days -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Cancellation Days</label>
+                        <input name="cancelationDays"
+                               type="number"
+                               class="form-control"
+                               value="@Model.cancelationDays" />
                     </div>
 
                     <!-- Category -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Category</label>
-                        <select name="idCategory" class="form-select" required>
+                        <select name="idCategory"
+                                class="form-select"
+                                required>
                             @foreach (var cat in ViewBag.Categories)
                             {
-                                <option value="@cat.Id" selected="@(cat.Id == Model.idCategory)">
+                                <option value="@cat.Id"
+                                        selected="@(cat.Id == Model.idCategory)">
                                     @cat.name
                                 </option>
-
                             }
                         </select>
                     </div>
 
-                    <!-- Image -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Image URL</label>
-                        <input name="image" class="form-control" value="@Model.image" required />
+                    <!-- Existing Images -->
+                    @if (ViewBag.Images != null)
+                    {
+                        <div class="row mt-4">
+                            @foreach (var img in (List<ImagePackage>)ViewBag.Images)
+                            {
+                                <div class="col-md-3 text-center mb-3">
+                                    <img src="@img.ImageLocation"
+                                         class="img-fluid rounded"
+                                         style="height:120px;object-fit:cover;" />
+
+                                    <button type="button"
+                                            class="btn btn-danger btn-sm mt-2"
+                                            onclick="deleteImage(@img.Id, @Model.Id)">
+                                        Delete
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <!-- Upload Images -->
+                    <div class="mb-3 mt-3">
+                        <label class="form-label fw-bold">Upload Images</label>
+                        <input type="file"
+                               name="images"
+                               multiple
+                               class="form-control" />
                     </div>
 
-                    <!-- Information -->
+                    <!-- Description -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Description</label>
-                        <textarea name="information" class="form-control" rows="3">@Model.information</textarea>
+                        <textarea name="information"
+                                  class="form-control"
+                                  rows="3">@Model.information</textarea>
                     </div>
 
-                    <button class="btn btn-warning text-white w-100 fw-bold">Save Changes</button>
+                    <button class="btn btn-warning text-white w-100 fw-bold">
+                        Save Changes
+                    </button>
 
                 </form>
 
             </div>
         </div>
 
-        <a href="/Admin/PackageDetails/@Model.Id" class="btn btn-secondary mt-3 mb-5">Back</a>
+        <a href="/Admin/PackageDetails/@Model.Id"
+           class="btn btn-secondary mt-3 mb-5">
+            Back
+        </a>
 
     </div>
 </div>
+
+<script>
+    function deleteImage(imageId, packageId) {
+        fetch('/Admin/DeleteImage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `imageId=${imageId}&packageId=${packageId}`
+        }).then(() => location.reload());
+    }
+</script>

@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using TravelAgency.Models;
+using Microsoft.Extensions.Configuration; 
+using Microsoft.AspNetCore.Http; 
+using System;
+using System.Collections.Generic;
 
 namespace TravelAgency.Controllers
 {
@@ -10,9 +14,58 @@ namespace TravelAgency.Controllers
 
         public UsersController(IConfiguration config)
         {
-            _connectionString = config.GetConnectionString("DefaultConnection");
+            _connectionString = config.GetConnectionString("DefaultConnection")
+                                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         }
 
+        // ---------- Dashboard (GET) - דף נחיתה ללקוח רגיל (המלבנים) ----------
+        [HttpGet]
+        public IActionResult Dashboard()
+        {
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdStr))
+            {
+                // אם אין סשן, הפנה להתחברות
+                return RedirectToAction("Login", "Auth");
+            }
+
+            // קריאה ל-DB כדי לקבל את סוג המשתמש (למקרה שהסשן לא עדכני)
+            int userType = 0;
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+                string sql = "SELECT type FROM Users WHERE Id = @Id AND inactive = 0";
+
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Id", int.Parse(userIdStr));
+                    var result = cmd.ExecuteScalar();
+                    if (result != null)
+                    {
+                        userType = (int)result;
+                    }
+                }
+            }
+
+            // אם אדמין (type=1), שלח אותו ללוח הבקרה של אדמין
+            if (userType == 1)
+            {
+                return RedirectToAction("Dashboard", "Admin");
+            }
+            
+            // אם עובד (type=2), שלח אותו ללוח הבקרה של עובד
+            if (userType == 2)
+            {
+                return RedirectToAction("Panel", "Worker");
+            }
+
+            // אם לקוח (type=3), נציג את דף המלבנים
+            ViewData["Title"] = "Customer Dashboard";
+            HttpContext.Session.SetString("UserType", userType.ToString()); 
+
+            return View();
+        }
+        
         // ---------- Profile (GET) ----------
         [HttpGet]
         public IActionResult Profile()
@@ -21,7 +74,7 @@ namespace TravelAgency.Controllers
             if (string.IsNullOrEmpty(userIdStr))
                 return RedirectToAction("Login", "Auth");
 
-            var model = new UserProfileViewModel();
+            var model = new UserProfileViewModel(); // בהנחה ש-UserProfileViewModel מוגדר
 
             using (var conn = new SqlConnection(_connectionString))
             {
@@ -43,7 +96,6 @@ namespace TravelAgency.Controllers
 
                         int type = reader.GetInt32(8);
 
-                        // אדמין לא עורך פרופיל – מפנים אותו לדשבורד
                         if (type == 1)
                         {
                             return RedirectToAction("Dashboard", "Admin");
@@ -88,7 +140,6 @@ namespace TravelAgency.Controllers
             {
                 conn.Open();
 
-                // בודקים שכינוי לא כפול למשתמש אחר
                 string checkSql = @"SELECT COUNT(*) FROM Users
                                     WHERE Username = @Username AND Id <> @Id AND inactive = 0";
 
@@ -106,7 +157,6 @@ namespace TravelAgency.Controllers
                     }
                 }
 
-                // מעדכנים רק Worker / Customer, לא אדמין
                 string sql = @"
                     UPDATE Users
                     SET Username   = @Username,
@@ -133,7 +183,6 @@ namespace TravelAgency.Controllers
                 }
             }
 
-            // מעדכן סשן
             HttpContext.Session.SetString("Username", model.Username);
             HttpContext.Session.SetString("FullName", model.FirstName + " " + model.LastName);
 
@@ -149,7 +198,7 @@ namespace TravelAgency.Controllers
             if (HttpContext.Session.GetString("UserId") == null)
                 return RedirectToAction("Login", "Auth");
 
-            // בהמשך תטעני כאן את הטיולים של המשתמש מהדאטהבייס
+            ViewData["Title"] = "MyTrips";
             return View();
         }
     }

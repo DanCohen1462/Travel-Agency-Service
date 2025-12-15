@@ -24,7 +24,6 @@
                 <div class="card-body p-4">
 
                     <h2 class="fw-bold mb-3">@Model.destination</h2>
-                    <p><strong>Country:</strong> @Model.country</p>
 
                     <span class="badge bg-primary me-2">@category</span>
 
@@ -68,85 +67,15 @@
                         <a href="/Admin/EditPackage/@Model.Id" class="btn btn-warning text-white">
                             Edit Package
                         </a>
-                        <button class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#addDiscountModal">
-                            Add Discount
-                        </button>
 
 
                     </div>
 
                 </div>
             </div>
-            <hr class="my-4" />
-
-            <h4 class="mb-3">Registered Participants</h4>
-
-            @if (ViewBag.Registered == null || ((List<User>)ViewBag.Registered).Count == 0)
-            {
-                <p class="text-muted">No participants registered yet.</p>
-            }
-            else
-            {
-                <ul class="list-group">
-                    @foreach (var u in (List<User>)ViewBag.Registered)
-                    {
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>
-                                <strong>@u.firstName @u.lastName</strong><br />
-                                <small class="text-muted">@u.email</small>
-                            </span>
-
-                            <span class="badge bg-primary rounded-pill">@u.Id</span>
-                        </li>
-                    }
-                </ul>
-            }
-
 
         </div>
     </div>
 
-    <a href="/Admin/Packages" class="btn btn-secondary mb-5">Back to Packages</a>
-</div>
-<!-- Modal: Add Discount -->
-<div class="modal fade" id="addDiscountModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-
-            <form method="post" action="/Admin/AddDiscount">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Discount to Package</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-
-                    <input type="hidden" name="packageId" value="@Model.Id" />
-
-                    <div class="mb-3">
-                        <label class="form-label">Discount %</label>
-                        <input type="number" name="discountPercent" class="form-control" min="1" max="90" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Start Date</label>
-                        <input type="date" name="startDate" class="form-control" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">End Date</label>
-                        <input type="date" name="endDate" class="form-control" required />
-                    </div>
-
-                </div>
-
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Save Discount</button>
-                </div>
-
-            </form>
-
-        </div>
-    </div>
+    <a href="/Admin/Packages" class="btn btn-secondary">Back to Packages</a>
 </div>

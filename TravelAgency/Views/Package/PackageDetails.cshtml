@@ -1,182 +1,205 @@
+@using TravelAgency.Models
 @model TravelAgency.Models.PackageDetailsViewModel
 
 @{
-    Layout = "_Layout";
-    var pkg = Model.Package;
+ViewData["Title"] = Model.Package.destination;
+Layout = "_Layout";
+
+var pkg = Model.Package;
+
+// Price calc
+var finalPrice = pkg.sum;
+var discountedPrice = Model.DiscountedPrice;
+
+// ✅ Read passengers from querystring (coming from Gallery)
+int qAdults = 1;
+int qChildren = 0;
+int.TryParse(Context.Request.Query["adults"], out qAdults);
+int.TryParse(Context.Request.Query["children"], out qChildren);
+
+int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
 }
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-    body {
-        background: #F6F7FB;
-    }
+    body { background: #F6F7FB; }
+    .header-img { width: 100%; height: 380px; object-fit: cover; border-radius: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); margin-bottom: 30px; }
+    .info-box { background: white; padding: 25px; border-radius: 18px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); margin-bottom: 30px; }
+    .details-title { font-size: 32px; font-weight: 700; }
+    .details-label { font-weight: 600; color: #1C6DD0; }
+    .tag { background: #EEF1F6; padding: 6px 12px; border-radius: 12px; margin-right: 6px; display: inline-block; font-size: 14px; }
+    .description-box { background: white; padding: 25px; border-radius: 18px; box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    .price-display { display: flex; align-items: center; margin-top: 5px; margin-bottom: 5px; flex-wrap:wrap; gap:10px; }
+    .price-display .regular-price { color: #1C6DD0; font-size: 30px; font-weight: 700; }
+    .price-display .original-price { text-decoration: line-through; color: #888; font-size: 18px; font-weight: 500; }
+    .price-display .discounted-price { color: #dc3545; font-size: 30px; font-weight: 700; }
+    .btn-row { display: flex; gap: 10px; margin-top: 12px; }
+    /* ===== BOOK / BUY BUTTONS – SAME SIZE ALWAYS ===== */
 
-    .header-img {
-        width: 100%;
-        height: 380px;
-        object-fit: cover;
-        border-radius: 20px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.15);
-        margin-bottom: 30px;
-    }
-
-    .info-box {
-        background: white;
-        padding: 25px;
-        border-radius: 18px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-        margin-bottom: 30px;
-    }
-
-    .details-title {
-        font-size: 32px;
-        font-weight: 700;
-    }
-
-    .details-label {
-        font-weight: 600;
-        color: #1C6DD0;
-    }
-
-    .tag {
-        background: #EEF1F6;
-        padding: 6px 12px;
-        border-radius: 12px;
-        margin-right: 6px;
-        display: inline-block;
-        font-size: 14px;
-    }
-
-    .description-box {
-        background: white;
-        padding: 25px;
-        border-radius: 18px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-    }
-
-    /* ===== כפתורים ===== */
-    .btn-row {
+    .btn-row{
         display: flex;
-        gap: 10px;
-        margin-top: 12px;
+        gap: 12px;
+        width: 100%;
+        margin-top: 16px;
     }
 
+    .btn-row > form,
+    .btn-row > a{
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .btn-row > form{
+        display: flex;
+    }
+
+    .btn-row > form > button{
+        width: 100%;
+    }
+
+    /* same look */
     .btn-book,
-    .btn-buy {
+    .btn-buy{
+        height: 56px;
+        border-radius: 14px;
+        font-size: 18px;
+        font-weight: 800;
+        border: none;
+        color: #fff;
+        background: #6A1B9A; /* 👈 סגול לדוגמה */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+
+    .btn-book:hover,
+    .btn-buy:hover{
+        filter: brightness(1.05);
+    }
+
+    .btn-book { background: #1C6DD0; color: white; }
+    .btn-book:hover { background: #155BB4; }
+    .btn-buy { background: #28A745; color: white; }
+    .btn-buy:hover { background: #1E7E34; }
+    .badge-leftover { display: inline-block; background: rgba(220, 53, 69, 0.9); color: #fff; border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; font-weight: 600; margin-left: 8px; }
+    .btn-back { display: inline-block; margin-top: 15px; background: #e9ecf2; color: #1C6DD0; padding: 10px 18px; border-radius: 10px; font-size: 17px; font-weight: 600; text-decoration: none; transition: 0.2s; }
+    /* ===== Unified buttons (same size + same color) ===== */
+    /* ===== Buttons (Admin-like size, same color, not bubble) ===== */
+    .btn-row { display:flex; gap: 12px; margin-top: 12px; }
+
+    .btn-book, .btn-buy{
         flex: 1;
-        border-radius: 12px;
-        padding: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        height: 38px;              /* כמו btn רגיל של Bootstrap */
+        padding: 0 16px;
+        border-radius: 6px;         /* לא בועתי */
         font-size: 16px;
         font-weight: 600;
-        border: none;
-        transition: 0.2s;
-        white-space: nowrap;   /* שלא ישברו לשתי שורות */
-        text-align: center;
+
+        background: #5A189A;        /* ✅ צבע חדש (סגול) - תשני אם בא לך */
+        color: #fff !important;
+        border: 1px solid #5A189A;
+
+        text-decoration: none !important;
+        white-space: nowrap;
     }
 
-    .btn-book {
-        background: #1C6DD0;
-        color: white;
+    .btn-book:hover, .btn-buy:hover{
+        background: #4B147F;
+        border-color: #4B147F;
     }
 
-    .btn-book:hover {
-        background: #155BB4;
-    }
+    .btn-book:hover, .btn-buy:hover { filter: brightness(1.03); }
 
-    .btn-buy {
-        background: #28A745;
-        color: white;
-    }
+    .btn-back:hover { background: #d7dbe3; color: #124f9e; }
 
-    .btn-buy:hover {
-        background: #1E7E34;
-    }
-
-    .badge-leftover {
-        display: inline-block;
-        background: rgba(220, 53, 69, 0.9);
-        color: #fff;
-        border-radius: 999px;
-        padding: 4px 12px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        margin-left: 8px;
-    }
-
-    .btn-back {
-        display: inline-block;
-        margin-top: 15px;
-        background: #e9ecf2;
-        color: #1C6DD0;
-        padding: 10px 18px;
-        border-radius: 10px;
-        font-size: 17px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: 0.2s;
-    }
-
-    .btn-back:hover {
-        background: #d7dbe3;
-        color: #124f9e;
+    /* ✅✅ הוספה: כדי ש-Enter מה-DB יופיע באתר */
+    .trip-info {
+        white-space: pre-line;
     }
 </style>
 
 <div class="container mt-5 mb-5">
 
-    <!-- תמונת כותרת -->
-    <img src="@pkg.image" class="header-img" alt="@pkg.destination" />
+    @{
+    var imgs = ViewBag.Images as List<string> ?? new List<string>();
+    if (imgs.Count == 0)
+    imgs.Add(pkg.ImageUrl ?? "/images/default.jpg");
 
-    <!-- כותרת + קטגוריה + מצב מקומות -->
+    string carouselId = "detailsCarousel";
+    }
+
+    <div id="@carouselId" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            @for (int i = 0; i < imgs.Count; i++)
+            {
+            <div class="carousel-item @(i == 0 ? "active" : "")">
+                <img src="@imgs[i]" class="header-img" alt="@pkg.destination" />
+            </div>
+            }
+        </div>
+
+        @if (imgs.Count > 1)
+        {
+        <button class="carousel-control-prev" type="button" data-bs-target="#@carouselId" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#@carouselId" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+        }
+    </div>
+
+
     <h2 class="details-title">
         @pkg.destination
 
         @if (!string.IsNullOrEmpty(Model.CategoryName))
         {
-            <span class="tag">@Model.CategoryName</span>
+        <span class="tag">@Model.CategoryName</span>
         }
 
         @if (Model.IsAlmostFull)
         {
-            <span class="badge-leftover">
-                נשארו רק @pkg.numFreePlaces מקומות
-            </span>
+        <span class="badge-leftover">Only @pkg.numFreePlaces places left</span>
         }
         else if (Model.IsFull)
         {
-            <span class="badge-leftover">
-                הטיול מלא
-            </span>
+        <span class="badge-leftover">FULL</span>
         }
     </h2>
 
     <div class="row mt-4">
 
-        <!-- LEFT: תיאור -->
         <div class="col-md-8">
             <div class="description-box">
                 <h4 class="mb-3">About this trip</h4>
-                <p style="font-size: 17px; line-height: 1.6;">
+
+                <!-- ✅✅ שינוי קטן: הוספתי class="trip-info" כדי לשמור ירידות שורה -->
+                <p class="trip-info" style="font-size: 17px; line-height: 1.6;">
                     @pkg.information
                 </p>
 
-                <span class="tag">Age limit: @pkg.ageLimit+</span>
-                <span class="tag">
-                    Dates: @pkg.StartDate.ToString("dd/MM/yyyy")
-                    -
-                    @pkg.EndDate.ToString("dd/MM/yyyy")
-                </span>
-                <span class="tag">
-                    Rooms left:
-                    @(Model.IsFull ? "Full" : pkg.numFreePlaces.ToString())
-                </span>
+                <span class="tag">Min age: @pkg.ageLimit+</span>
+                <span class="tag">Travel dates: @pkg.StartDate.ToString("dd/MM/yyyy") - @pkg.EndDate.ToString("dd/MM/yyyy")</span>
+                @* <span class="tag">Rooms left: @(Model.IsFull ? "Full" : pkg.numFreePlaces.ToString())</span> *@
+
             </div>
         </div>
 
-        <!-- RIGHT: סיכום + כפתורים -->
         <div class="col-md-4">
             <div class="info-box">
+                @if (!string.IsNullOrEmpty(pkg.country))
+                {
+                <p class="details-label">Country:</p>
+                <p>@pkg.country</p>
+                }
+
                 <p class="details-label">Destination:</p>
                 <p>@pkg.destination</p>
 
@@ -186,46 +209,122 @@
                 <p class="details-label">End Date:</p>
                 <p>@pkg.EndDate.ToString("dd/MM/yyyy")</p>
 
-                <p class="details-label">Price:</p>
-                <p style="font-size: 26px; font-weight: 700;">
-                    $@pkg.sum
-                </p>
-
-                @if (Model.IsFull)
+                @if (pkg.cancelationDays.HasValue)
                 {
-                    <!-- טיול מלא – רק רשימת המתנה -->
-                    <form method="post"
-                          asp-controller="Booking"
-                          asp-action="JoinWaitlist"
-                          class="mt-3">
-                        <input type="hidden" name="packageId" value="@pkg.Id" />
-                        <button type="submit"
-                                class="btn btn-outline-secondary w-100"
-                                onclick="return confirm('להצטרף לרשימת ההמתנה לטיול הזה?');">
-                            Join Waitlist
-                        </button>
-                    </form>
+                <p class="details-label">Cancellation Policy:</p>
+                <p>Up to @pkg.cancelationDays.Value days before departure</p>
+                }
+
+                <p class="details-label mt-3">Price:</p>
+                <div class="price-display">
+                    @if (pkg.DiscountPercent.HasValue && pkg.DiscountPercent.Value > 0)
+                    {
+                    <span class="original-price">$@finalPrice</span>
+                    <span class="discounted-price">$@discountedPrice</span>
+                    <span class="badge bg-danger">@pkg.DiscountPercent.Value% OFF</span>
+                    }
+                    else
+                    {
+                    <span class="regular-price">$@finalPrice</span>
+                    }
+                </div>
+
+                <p class="details-label mt-3">Rating:</p>
+                @if (Model.TotalReviews > 0)
+                {
+                <div class="d-flex align-items-center">
+                    <span style="font-size: 24px; font-weight: 700; color: gold;">★</span>
+                    <span style="font-size: 20px; font-weight: 600; margin-left: 5px;">@Model.AverageRating</span>
+                    <span class="text-muted ms-2">(@Model.TotalReviews reviews)</span>
+                </div>
                 }
                 else
                 {
-                    <!-- טיול לא מלא – שני כפתורים זה לצד זה -->
-                    <div class="btn-row">
-                        <form method="post"
-                              asp-controller="Cart"
-                              asp-action="Add"
-                              class="m-0 flex-fill">
-                            <input type="hidden" name="packageId" value="@pkg.Id" />
-                            <button type="submit" class="btn-book">
-                                Add to Cart
-                            </button>
-                        </form>
+                <p class="text-muted">No reviews yet. Be the first!</p>
+                }
 
-                        <a asp-controller="Home"
-                           asp-action="Payment"
-                           class="btn-buy text-decoration-none">
-                            Go to Payment
-                        </a>
-                    </div>
+                <!-- ✅ Buttons logic EXACTLY as requested -->
+                @if (Model.IsFull)
+                {
+                <!-- Open modal (not direct join) -->
+                <button type="button"
+                        class="btn btn-outline-secondary w-100 fw-bold mt-3"
+                        data-bs-toggle="modal"
+                        data-bs-target="#waitlistModalDetails"
+                        data-package-id="@pkg.Id"
+                        data-num-persons="@totalPassengers">
+                    Join Waitlist
+                </button>
+                }
+                else
+                {
+                <div class="btn-row">
+
+                    <form method="post"
+                          asp-controller="Cart"
+                          asp-action="Add"
+                          class="m-0 flex-grow-1">
+                        <input type="hidden" name="packageId" value="@pkg.Id" />
+                        <input type="hidden" name="adults" value="@qAdults" />
+                        <input type="hidden" name="children" value="@qChildren" />
+                        <button type="submit" class="btn-book w-100">
+                            Book Trip
+                        </button>
+                    </form>
+
+                    <form method="post"
+                          asp-controller="Cart"
+                          asp-action="BuyNow"
+                          class="m-0 flex-grow-1">
+                        <input type="hidden" name="packageId" value="@pkg.Id" />
+                        <input type="hidden" name="adults" value="@qAdults" />
+                        <input type="hidden" name="children" value="@qChildren" />
+                        <button type="submit" class="btn-buy w-100">
+                            Buy Now
+                        </button>
+                    </form>
+
+                </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Reviews -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="description-box">
+                <h4 class="mb-4">Customer Reviews (@Model.Reviews.Count)</h4>
+
+                @if (Model.Reviews != null && Model.Reviews.Any())
+                {
+                <ul class="list-unstyled">
+                    @foreach (var review in Model.Reviews.OrderByDescending(r => r.Id))
+                    {
+                    <li class="mb-4 pb-4 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <strong>@review.UserFullName</strong>
+                            </h6>
+                            <div>
+                                @for (int i = 0; i < review.Rate; i++)
+                                {
+                                <span style="color: gold;">★</span>
+                                }
+                                @for (int i = review.Rate; i < 5; i++)
+                                {
+                                <span style="color: lightgray;">★</span>
+                                }
+                            </div>
+                        </div>
+                        <p class="mt-2 mb-0">@review.Description</p>
+                    </li>
+                    }
+                </ul>
+                }
+                else
+                {
+                <p class="text-muted">No reviews yet. Write the first one!</p>
                 }
             </div>
         </div>
@@ -235,3 +334,75 @@
         ← Back to Packages
     </a>
 </div>
+
+<!-- ✅ DETAILS MODAL -->
+<div class="modal fade" id="waitlistModalDetails" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Join Waiting List</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <p class="mb-2" id="wlDLine1">There are 0 users waiting ahead of you.</p>
+                <p class="mb-0" id="wlDLine2">Estimated availability: approximately 0 days.</p>
+
+            </div>
+
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary fw-bold" data-bs-dismiss="modal">Cancel</button>
+
+
+                <form method="post" asp-controller="Waitlist" asp-action="Join" class="m-0">
+                    <input type="hidden" name="packageId" id="wlDPackageId" value="" />
+                    <input type="hidden" name="numPersons" id="wlDNumPersons" value="" />
+                    <button type="submit" class="btn btn-primary fw-bold">Join</button>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    const waitlistModalDetails = document.getElementById('waitlistModalDetails');
+    if (waitlistModalDetails) {
+        waitlistModalDetails.addEventListener('show.bs.modal', async function (event) {
+            const btn = event.relatedTarget;
+
+            const packageId = btn.getAttribute('data-package-id');
+            const numPersons = btn.getAttribute('data-num-persons');
+
+            document.getElementById('wlDPackageId').value = packageId;
+            document.getElementById('wlDNumPersons').value = numPersons;
+
+            document.getElementById('wlDLine1').textContent = "Loading...";
+            document.getElementById('wlDLine2').textContent = "";
+
+            try {
+                const res = await fetch(`/Waitlist/Info?packageId=${encodeURIComponent(packageId)}`);
+                if (!res.ok) throw new Error("Failed to load waitlist info");
+
+                const data = await res.json();
+                const ahead = data.usersAhead ?? 0;
+                const days = data.estimatedDays ?? 0;
+
+                document.getElementById('wlDLine1').textContent =
+                    `There are ${ahead} users waiting ahead of you.`;
+                document.getElementById('wlDLine2').textContent =
+                    `Estimated availability: approximately ${days} days.`;
+            } catch (e) {
+                document.getElementById('wlDLine1').textContent =
+                    "Could not load waitlist info right now.";
+                document.getElementById('wlDLine2').textContent = "";
+            }
+        });
+    }
+</script>
+
+}
