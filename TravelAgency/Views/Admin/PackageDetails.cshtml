@@ -14,41 +14,16 @@
         <div class="row g-0">
 
             <!-- תמונה -->
-            @if (ViewBag.Images != null && ((List<string>)ViewBag.Images).Count > 0)
-            {
-                var imgs = (List<string>)ViewBag.Images;
-                <div id="packageCarousel" class="carousel slide" data-bs-ride="carousel">
-        
-                    <div class="carousel-inner">
-                        @for (int i = 0; i < imgs.Count; i++)
-                        {
-                            <div class="carousel-item @(i == 0 ? "active" : "")">
-                                <img src="@imgs[i]" class="d-block w-100" style="height:350px; object-fit:cover;">
-                            </div>
-                        }
-                    </div>
-
-                    <button class="carousel-control-prev" type="button" data-bs-target="#packageCarousel" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon"></span>
-                    </button>
-
-                    <button class="carousel-control-next" type="button" data-bs-target="#packageCarousel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon"></span>
-                    </button>
-                </div>
-            }
-            else
-            {
-                <img src="https://via.placeholder.com/600x350?text=No+Images" class="img-fluid rounded">
-            }
-
+            <div class="col-md-5">
+                <img src="@Model.image" class="img-fluid rounded-start" 
+                     style="height: 100%; object-fit: cover;">
+            </div>
 
             <!-- מידע -->
             <div class="col-md-7">
                 <div class="card-body p-4">
 
                     <h2 class="fw-bold mb-3">@Model.destination</h2>
-                    <p><strong>Country:</strong> @Model.country</p>
 
                     <span class="badge bg-primary me-2">@category</span>
 
@@ -70,10 +45,6 @@
                     <p><strong>Price:</strong> $@Model.sum</p>
                     <p><strong>Age Limit:</strong> @Model.ageLimit+</p>
                     <p><strong>Free Spots:</strong> @Model.numFreePlaces</p>
-                    <div class="alert alert-info mt-3">
-                        <strong>Total Registered:</strong> @ViewBag.RegisteredCount <br />
-                        <strong>Remaining Places:</strong> @ViewBag.RemainingPlaces
-                    </div>
 
                     <hr class="my-4">
 
@@ -96,126 +67,15 @@
                         <a href="/Admin/EditPackage/@Model.Id" class="btn btn-warning text-white">
                             Edit Package
                         </a>
-                        <button class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#addDiscountModal">
-                            Add Discount
-                        </button>
 
 
                     </div>
 
                 </div>
             </div>
-            <hr class="my-4" />
-
-          <!-- Tabs Navigation -->
-        <ul class="nav nav-tabs mt-4" id="participantTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="registered-tab" data-bs-toggle="tab" data-bs-target="#registered" type="button" role="tab">
-                    Registered Participants
-                </button>
-            </li>
-
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="waiting-tab" data-bs-toggle="tab" data-bs-target="#waiting" type="button" role="tab">
-                    Waiting List
-                </button>
-            </li>
-        </ul>
-
-        <!-- Tabs Content -->
-        <div class="tab-content mt-3" id="participantTabsContent">
-
-            <!-- Registered participants -->
-            <div class="tab-pane fade show active" id="registered" role="tabpanel">
-
-                @if (ViewBag.Registered == null || (ViewBag.Registered).Count == 0)
-                {
-                    <p class="text-muted">No participants registered yet.</p>
-                }
-                else
-                {
-                    <ul class="list-group">
-                        @foreach (var u in ViewBag.Registered)
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>
-                                    <strong>@u.firstName @u.lastName -- amount: @u.numPersons </strong><br />
-                                    <small class="text-muted">@u.email</small>
-                                </span>
-                                <span class="badge bg-primary rounded-pill">@u.Id</span>
-                            </li>
-                        }
-                    </ul>
-                }
-            </div>
-
-            <!-- Waiting List -->
-            <div class="tab-pane fade" id="waiting" role="tabpanel">
-                @if (ViewBag.WaitingList != null && ViewBag.WaitingList.Count > 0)
-                {
-                    <ul class="list-group">
-                        @foreach (var user in ViewBag.WaitingList)
-                        {
-                            <li class="list-group-item">
-                                @user.firstName @user.lastName – @user.email - amount: @user.numPersons
-                            </li>
-                        }
-                    </ul>
-                }
-                else
-                {
-                    <p class="text-muted">No users are currently on the waiting list.</p>
-                }
-            </div>
-
-        </div>
-
-
 
         </div>
     </div>
 
-    <a href="/Admin/Packages" class="btn btn-secondary mb-5">Back to Packages</a>
-</div>
-<!-- Modal: Add Discount -->
-<div class="modal fade" id="addDiscountModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-
-            <form method="post" action="/Admin/AddDiscount">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Discount to Package</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-
-                    <input type="hidden" name="packageId" value="@Model.Id" />
-
-                    <div class="mb-3">
-                        <label class="form-label">Discount %</label>
-                        <input type="number" name="discountPercent" class="form-control" min="1" max="90" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Start Date</label>
-                        <input type="date" name="startDate" class="form-control" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">End Date</label>
-                        <input type="date" name="endDate" class="form-control" required />
-                    </div>
-
-                </div>
-
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Save Discount</button>
-                </div>
-
-            </form>
-
-        </div>
-    </div>
+    <a href="/Admin/Packages" class="btn btn-secondary">Back to Packages</a>
 </div>

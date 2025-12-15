@@ -1,0 +1,43 @@
+﻿@{
+    ViewData["Title"] = "Website Feedback";
+    Layout = "_Layout";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<div class="container mt-5" style="max-width:650px;">
+    <h2 class="fw-bold mb-3">Rate your experience</h2>
+    <p class="text-muted">This feedback is about the website (not the trip).</p>
+
+    @if (TempData["FeedbackError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["FeedbackError"]</div>
+    }
+    @if (TempData["FeedbackSuccess"] != null)
+    {
+        <div class="alert alert-success">@TempData["FeedbackSuccess"]</div>
+    }
+
+    <div class="card shadow-sm" style="border-radius:16px;">
+        <div class="card-body">
+            <form method="post" asp-controller="Feedback" asp-action="Website">
+                <label class="form-label fw-bold">Rate (1–5)</label>
+                <select class="form-select" name="rate" required>
+                    <option value="">Choose...</option>
+                    <option value="1">1 - Bad</option>
+                    <option value="2">2</option>
+                    <option value="3">3 - OK</option>
+                    <option value="4">4</option>
+                    <option value="5">5 - Excellent</option>
+                </select>
+
+                <label class="form-label fw-bold mt-3">Tell us more (optional)</label>
+                <textarea class="form-control" name="description" rows="4" placeholder="Write your feedback..."></textarea>
+
+                <button type="submit" class="btn btn-primary w-100 mt-4 fw-bold">
+                    Submit Feedback
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

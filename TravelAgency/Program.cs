@@ -50,6 +50,7 @@ app.UseAuthorization();
 app.UseSession();
 
 // Routing
+// 🛑 התיקון: ניתוב ברירת המחדל הוא עכשיו Home/Index (דף הבית הציבורי)
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

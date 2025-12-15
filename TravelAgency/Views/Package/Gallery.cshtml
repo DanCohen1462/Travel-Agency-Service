@@ -2,454 +2,855 @@
 @model List<TravelAgency.Models.Package>
 
 @{
-    ViewBag.Title = "Travel Packages";
+    ViewData["Title"] = "Results";
     Layout = "_Layout";
+
+    string searchText = ViewBag.SearchText as string ?? "";
+    string destination = ViewBag.Destination as string ?? "";
+    string country = ViewBag.Country as string ?? "";
+    int? categoryId = ViewBag.CategoryId as int?;
+
+    int adults = (int)(ViewBag.Adults ?? 1);
+    int children = (int)(ViewBag.Children ?? 0);
+    int? youngestAge = ViewBag.YoungestAge as int?;
+
+    int? month = ViewBag.Month as int?;
+    int? year = ViewBag.Year as int?;
+
+    string priceRange = ViewBag.PriceRange as string ?? "";
+    string sortBy = ViewBag.SortBy as string ?? "travelDate";
+    bool onSaleOnly = (bool)(ViewBag.OnSaleOnly ?? false);
+
+    var imagesByPackage = ViewBag.ImagesByPackage as Dictionary<int, List<string>> ?? new Dictionary<int, List<string>>();
+
+    // ✅ NEW
+    var waitingCountByPackage = ViewBag.WaitingCountByPackage as Dictionary<int, int> ?? new Dictionary<int, int>();
+
+    int totalPassengers = adults + children;
+
+    string[] months = new[]
+    {
+        "January","February","March","April","May","June",
+        "July","August","September","October","November","December"
+    };
+
+    int currentYear = DateTime.Now.Year;
+
+    string youngestVal = youngestAge.HasValue ? youngestAge.Value.ToString() : "";
 }
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
 <style>
-    body {
-        background: #F6F7FB;
+    body { background:#F6F7FB; }
+
+    /* ===== SearchStart-like box ===== */
+    .search-shell{
+        background:#fff;
+        border-radius:28px;
+        padding:24px 22px;
+        box-shadow:0 18px 45px rgba(0,0,0,0.10);
+        border:3px solid rgba(19,184,166,0.45);
     }
 
-    .package-card {
-        background: #fff;
-        border-radius: 18px;
-        padding: 0;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        transition: 0.3s;
-        position: relative;          /* חשוב לעיגול האדום */
+    .search-grid{
+        display:grid;
+        grid-template-columns: 2.4fr 1fr 1fr 1fr 1fr 1fr auto;
+        gap:14px;
+        align-items:end;
     }
 
-    .package-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 14px 40px rgba(0,0,0,0.12);
+    .field-label{
+        font-weight:800;
+        color:#0B4255;
+        margin-bottom:8px;
+        font-size:18px;
     }
 
-    /* כרטיס של טיול מלא (אין מקומות) */
-    .package-card-full {
-        filter: grayscale(0.7);
-        opacity: 0.75;
+    .control{
+        border-radius:16px;
+        padding:14px 16px;
+        height:56px;
+        border:1px solid #e4e9f2;
+        font-size:16px;
     }
 
-    .package-img {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
+    .btn-search{
+        height:56px;
+        border-radius:18px;
+        padding:0 26px;
+        font-weight:800;
+        font-size:20px;
+        background: linear-gradient(90deg, #13B8A6, #0F6E8C);
+        border:none;
+        color:#fff;
+        min-width:190px;
     }
 
-    .package-body {
-        padding: 20px;
+    /* suggestions dropdown */
+    .search-wide { position:relative; }
+    .suggestions{
+        position:absolute;
+        top: calc(100% + 8px);
+        left:0;
+        right:0;
+        background:#fff;
+        border:1px solid #e3e6ef;
+        border-radius:16px;
+        box-shadow:0 14px 34px rgba(0,0,0,0.14);
+        z-index:99999;
+        overflow:hidden;
+        display:none;
+        max-height:280px;
+        overflow-y:auto;
+    }
+    .suggestion-item{
+        padding:12px 14px;
+        cursor:pointer;
+        font-size:14px;
+        border-bottom:1px solid #f1f3f8;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    }
+    .suggestion-item:hover{ background:#F3F6FF; }
+
+    /* ===== Filters (NEW compact layout) ===== */
+    .filters-bar{
+        margin-top:14px;
+        background: transparent;
+        border:none;
+        box-shadow:none;
     }
 
-    .badge-category {
-        padding: 6px 12px;
-        font-size: 14px;
-        border-radius: 10px;
-        font-weight: 600;
+    .results-pill{
+        width:100%;
+        background: rgba(255,255,255,0.65);
+        border:1px solid rgba(11,66,85,0.10);
+        border-radius:18px;
+        padding:10px 14px;
+        backdrop-filter: blur(6px);
+        font-weight:800;
+        color:#6c757d;
     }
 
-    .category-badge {
-        background: #FFE08A;
-        color: #333;
-        padding: 6px 14px;
-        border-radius: 12px;
-        font-size: 14px;
-        font-weight: 700;
-        display: inline-block;
-        margin-bottom: 10px;
+    .filters-row{
+        width:100%;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        flex-wrap:wrap;
+        margin-top:10px;
     }
 
-    .tag {
-        background: #EDF0F5;
-        padding: 5px 10px;
-        border-radius: 12px;
-        font-size: 14px;
-        margin-right: 5px;
-        display: inline-block;
+    .filter-group{
+        flex:1 1 0;
+        min-width:220px;
     }
 
-    .price {
-        font-size: 24px;
-        font-weight: 700;
-        color: #1C6DD0;
+    .filter-group.center{
+        flex:1.1 1 0;
     }
 
-    .btn-details {
-        width: 100%;
-        margin-top: 10px;
-        border-radius: 10px;
-        padding: 10px;
-        font-size: 17px;
-        font-weight: 600;
-        background: #1C6DD0;
-        color: white;
-        border: none;
-        text-align: center;
-        display: block;
-        text-decoration: none;
+    .filter-right{
+        display:flex;
+        align-items:center;
+        justify-content:flex-end;
+        gap:10px;
+        flex:1 1 0;
+        min-width:240px;
     }
 
-    .btn-details:hover {
-        background: #155BB4;
-        color: white;
+    .mini-select{
+        border-radius:14px;
+        height:42px;
+        padding:6px 12px;
+        border:1px solid rgba(11,66,85,0.12);
+        background: rgba(255,255,255,0.92);
+        width:100%;
     }
 
-    /* עיגול אדום – נשארו מעט מקומות */
-    .badge-leftover {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        background: rgba(220, 53, 69, 0.88); /* אדום שקוף */
-        color: #fff;
-        border-radius: 999px;
-        padding: 6px 14px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    .mini-check{
+        display:flex;
+        align-items:center;
+        gap:8px;
+        font-weight:900;
+        color:#0B4255;
+
+        background: rgba(255,255,255,0.65);
+        border:1px solid rgba(11,66,85,0.10);
+        border-radius:999px;
+        padding:8px 12px;
+        backdrop-filter: blur(6px);
+        height:42px;
+        white-space:nowrap;
     }
 
-    .filter-bar {
-        position: relative;
+    .btn-apply{
+        height:42px;
+        border-radius:14px;
+        padding:0 16px;
+        font-weight:900;
+        border:none;
+        color:#fff;
+        background: #0B4255;
+        box-shadow:0 10px 20px rgba(11,66,85,0.22);
+    }
+    .btn-apply:hover{ filter: brightness(1.03); }
+
+    /* ===== Cards ===== */
+    .cardx{
+        background:#fff;
+        border-radius:18px;
+        overflow:hidden;
+        box-shadow:0 10px 26px rgba(0,0,0,0.08);
+        transition:.2s;
+        height:100%;
+    }
+    .cardx:hover{ transform:translateY(-4px); box-shadow:0 14px 32px rgba(0,0,0,0.12); }
+
+    .carousel-item img{
+        width:100%;
+        height:190px;
+        object-fit:cover;
+        background:#e9ecef;
     }
 
-    .search-suggestions {
-        position: absolute;
-        right: 0;
-        top: 100%;
-        margin-top: 4px;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-        max-height: 220px;
-        overflow-y: auto;
-        z-index: 1000;
-        width: 220px;
+    .bodyx{ padding:14px; }
+
+    .pill{
+        background:#EEF1F6;
+        padding:6px 10px;
+        border-radius:999px;
+        display:inline-block;
+        font-size:13px;
+        margin-right:6px;
+        margin-bottom:6px;
     }
 
-    .search-suggestions-item {
-        padding: 6px 10px;
-        cursor: pointer;
-        font-size: 14px;
+    .meta-line{
+        margin-top:6px;
+        color:#4d5562;
+        font-size:13px;
+        font-weight:700;
+    }
+    .meta-line span{
+        color:#0B4255;
+        font-weight:900;
     }
 
-    .search-suggestions-item:hover {
-        background: #F2F4F8;
+    .price-row{ display:flex; align-items:baseline; gap:10px; margin-top:10px; flex-wrap:wrap; }
+    .price{ font-size:22px; font-weight:900; color:#1C6DD0; }
+    .old-price{ color:#8a8f99; text-decoration:line-through; font-weight:700; }
+    .sale-badge{ font-size:12px; font-weight:900; }
+
+    .badge-left{
+        position:absolute;
+        top:12px;
+        right:12px;
+        background:rgba(220,53,69,0.95);
+        color:#fff;
+        padding:6px 10px;
+        border-radius:999px;
+        font-weight:900;
+        font-size:12px;
+        box-shadow:0 8px 20px rgba(0,0,0,0.18);
+        z-index:5;
+    }
+    .badge-full{
+        position:absolute;
+        top:12px;
+        left:12px;
+        background:rgba(0,0,0,0.55);
+        color:#fff;
+        padding:6px 12px;
+        border-radius:999px;
+        font-weight:900;
+        font-size:12px;
+        z-index:5;
     }
 
+    .card-disabled{
+        background:#C9CED6;
+        filter: grayscale(95%);
+        box-shadow:none;
+    }
+    .card-disabled:hover{
+        transform:none;
+        box-shadow:none;
+    }
+
+    .card-disabled .btn-outline-primary,
+    .card-disabled .btn-outline-secondary{
+        background:#8C95A3 !important;
+        border-color:#8C95A3 !important;
+        color:#fff !important;
+        font-weight:900;
+    }
+    .card-disabled .btn-outline-primary:hover,
+    .card-disabled .btn-outline-secondary:hover{
+        filter: brightness(0.95);
+    }
+
+    @@media (max-width: 1200px){
+        .search-grid{ grid-template-columns: 1fr 1fr; }
+        .btn-search{ width:100%; min-width:unset; }
+    }
+
+    @@media (max-width: 992px){
+        .filter-right{ justify-content:flex-start; }
+    }
 </style>
 
-<div class="container mt-5 mb-5">
-    <h2 class="mb-4 fw-bold">Available Travel Packages</h2>
+<div class="container mt-3 mb-5">
 
-    @if (!string.IsNullOrEmpty(Context.Request.Query["destination"]))
+    @if (TempData["SearchError"] != null)
     {
-        <p class="text-muted mb-4">
-            Showing results for:
-            <strong>@Context.Request.Query["destination"]</strong>
-        </p>
+        <div class="alert alert-danger">@TempData["SearchError"]</div>
     }
 
-    <!-- ==================== FILTER BAR ==================== -->
-    <div class="filter-bar d-flex align-items-center gap-3 mb-4">
+    <!-- ============ SEARCH (same idea as SearchStart) ============ -->
+    <div class="search-shell">
+        <form method="get" asp-controller="Package" asp-action="Gallery" id="gallerySearchForm">
 
-        <!-- Destination Filter -->
-        <select id="filterDestination" class="form-select" style="max-width: 180px;">
-            <option value="">Destination</option>
-            @foreach (var dest in ViewBag.Destinations)
-            {
-                <option value="@dest">@dest</option>
-            }
-        </select>
+            <input type="hidden" name="destination" id="destination" value="@destination" />
+            <input type="hidden" name="country" id="country" value="@country" />
+            <input type="hidden" name="categoryId" id="categoryId" value="@(categoryId.HasValue ? categoryId.Value.ToString() : "")" />
 
-        <!-- Category Filter -->
-        <select id="filterCategory" class="form-select" style="max-width: 180px;">
-            <option value="">Category</option>
-            @foreach (var cat in ViewBag.Categories)
-            {
-                <option value="@cat.Id">@cat.name</option>
-            }
-        </select>
+            <!-- keep filter/sort values -->
+            <input type="hidden" name="priceRange" value="@priceRange" />
+            <input type="hidden" name="sortBy" value="@sortBy" />
+            <input type="hidden" name="onSaleOnly" value="@(onSaleOnly ? "true" : "false")" />
 
-        <!-- Price Filter -->
-        <select id="filterPrice" class="form-select" style="max-width: 160px;">
-            <option value="">Price</option>
-            <option value="1">Under $500</option>
-            <option value="2">$500 - $1000</option>
-            <option value="3">Above $1000</option>
-        </select>
+            <div class="search-grid">
 
-        <!-- Min Free Spots Filter -->
-        <select id="filterSpots" class="form-select" style="max-width: 170px;">
-            <option value="">Min Spots</option>
-            <option value="1">1+</option>
-            <option value="5">5+</option>
-            <option value="10">10+</option>
-        </select>
+                <div class="search-wide">
+                    <div class="field-label">Search</div>
+                    <input class="form-control control"
+                           type="text"
+                           id="searchText"
+                           name="searchText"
+                           value="@searchText"
+                           autocomplete="off" />
+                    <div id="suggestions" class="suggestions"></div>
+                </div>
 
-        <!-- Free Search + suggestions -->
-        <div style="position: relative;">
-            <input id="filterSearch" type="text" class="form-control"
-                   placeholder="Search trips..." style="max-width: 220px;"/>
-
-            <div id="searchSuggestions" class="search-suggestions"></div>
-        </div>
-
-        <button id="btnSearch" class="btn btn-primary" style="height: 38px;">
-            Search
-        </button>
-    </div>
-    <!-- ===================================================== -->
-
-    <div class="row g-4">
-
-        @foreach (var pkg in Model)
-        {
-            var cats = ViewBag.Categories as List<Category>;
-            var cat = cats?.FirstOrDefault(c => c.Id == pkg.idCategory);
-
-            bool isFull = pkg.numFreePlaces <= 0;
-            bool isAlmostFull = pkg.numFreePlaces > 0 && pkg.numFreePlaces <= 5;
-
-
-
-            <div class="col-md-4 package-item"
-                 data-destination="@pkg.destination"
-                 data-category="@(cat != null ? cat.Id.ToString() : "")"
-                 data-categoryname="@(cat != null ? cat.name : "")"
-                 data-spots="@pkg.numFreePlaces"
-                 data-price="@pkg.sum"
-                 data-text="@(pkg.destination + " " + (cat != null ? cat.name + " " : "") + pkg.information)">
-
-                <div class="package-card @(isFull ? "package-card-full" : "")">
-                    <img src="@pkg.image" class="package-img" alt="@pkg.destination" />
-
-                    <div class="package-body">
-
-                        @* עיגול אדום – מעט מקומות *@
-                        @if (isAlmostFull)
+                <div>
+                    <div class="field-label">Month</div>
+                    <select class="form-select control" name="month" id="month">
+                        @if (!month.HasValue)
                         {
-                            <div class="badge-leftover">
-                                נשארו רק @pkg.numFreePlaces מקומות פנויים
-                            </div>
-                        }
-
-                        @* מציגים קטגוריה רק אם יש *@
-                        @if (cat != null)
-                        {
-                            <span class="category-badge">@cat.name</span>
-                        }
-
-                        <h4 class="mt-3">
-                            Package #@pkg.Id — @pkg.destination
-                        </h4>
-
-                        <p class="tag">
-                            Start: @pkg.StartDate.ToString("dd/MM/yyyy")
-                        </p>
-                        <p class="tag">
-                            End: @pkg.EndDate.ToString("dd/MM/yyyy")
-                        </p>
-
-                        <p>
-                            <strong>Age Limit:</strong> @pkg.ageLimit+
-                        </p>
-
-                        <p>
-                            <strong>Rooms Left:</strong>
-                            @if (isFull)
-                            {
-                                <span class="text-danger fw-semibold">Full</span>
-                            }
-                            else
-                            {
-                                @pkg.numFreePlaces
-                            }
-                        </p>
-
-                        <p class="price">$@pkg.sum</p>
-
-                        @* אם הטיול מלא – כפתור רשימת המתנה *@
-                        @if (isFull)
-                        {
-                            <form method="post"
-                                  asp-controller="Booking"
-                                  asp-action="JoinWaitlist"
-                                  class="mt-2">
-                                <input type="hidden" name="packageId" value="@pkg.Id" />
-                                <button type="submit"
-                                        class="btn btn-outline-secondary w-100"
-                                        onclick="return confirm('את/ה בטוח/ה שברצונך להצטרף לרשימת ההמתנה לטיול זה?');">
-                                    הצטרף לרשימת המתנה
-                                </button>
-                            </form>
-
-                            <a href="/Package/PackageDetails/@pkg.Id"
-                               class="btn btn-details mt-2"
-                               style="background:#6c757d;">
-                                View Details
-                            </a>
+                            <option value="" selected>Any</option>
                         }
                         else
                         {
-                            <a href="/Package/PackageDetails/@pkg.Id" class="btn-details">
-                                View Details
-                            </a>
-
-                            @* כפתור הוספה לעגלה – הלוגיקה ב-Controller נעשה בשלב הבא *@
-                            <form method="post"
-                                  asp-controller="Cart"
-                                  asp-action="Add"
-                                  class="mt-2">
-                                <input type="hidden" name="packageId" value="@pkg.Id" />
-                                <button type="submit" class="btn btn-success w-100">
-                                    Add to Cart
-                                </button>
-                            </form>
+                            <option value="">Any</option>
                         }
-                    </div>
+
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            if (month.HasValue && month.Value == i)
+                            {
+                                <option value="@i" selected>@months[i - 1]</option>
+                            }
+                            else
+                            {
+                                <option value="@i">@months[i - 1]</option>
+                            }
+                        }
+                    </select>
+
                 </div>
+
+                <div>
+                    <div class="field-label">Year</div>
+                    <select class="form-select control" name="year" id="year">
+                        @if (!year.HasValue)
+                        {
+                            <option value="" selected>Any</option>
+                        }
+                        else
+                        {
+                            <option value="">Any</option>
+                        }
+
+                        @for (int y = currentYear; y <= currentYear + 6; y++)
+                        {
+                            if (year.HasValue && year.Value == y)
+                            {
+                                <option value="@y" selected>@y</option>
+                            }
+                            else
+                            {
+                                <option value="@y">@y</option>
+                            }
+                        }
+                    </select>
+
+                </div>
+
+                <div>
+                    <div class="field-label">Adults (18+)</div>
+                    <input class="form-control control"
+                           type="number" name="adults" id="adults"
+                           min="1" value="@adults" required />
+                </div>
+
+                <div>
+                    <div class="field-label">Children (0–17)</div>
+                    <input class="form-control control"
+                           type="number" name="children" id="children"
+                           min="0" value="@children" required />
+                </div>
+
+                <div>
+                    <div class="field-label">Youngest age</div>
+                    <input class="form-control control"
+                           type="number" name="youngestAge" id="youngestAge"
+                           min="0" max="17"
+                           value="@youngestVal"
+                           placeholder="Only if children" />
+                </div>
+
+                <div>
+                    <div class="field-label">&nbsp;</div>
+                    <button type="submit" class="btn-search">Search</button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+    <!-- ============ FILTERS + SORT (NEW layout) ============ -->
+    <div class="filters-bar">
+
+        <div class="results-pill">
+            Showing results for <strong>@totalPassengers</strong> passengers
+            (@adults adults, @children children)
+        </div>
+
+        <div class="filters-row">
+            <form method="get" asp-controller="Package" asp-action="Gallery" class="w-100 d-flex gap-3 flex-wrap">
+
+                <!-- keep search state -->
+                <input type="hidden" name="searchText" value="@searchText" />
+                <input type="hidden" name="destination" value="@destination" />
+                <input type="hidden" name="country" value="@country" />
+                <input type="hidden" name="categoryId" value="@(categoryId.HasValue ? categoryId.Value.ToString() : "")" />
+                <input type="hidden" name="month" value="@(month.HasValue ? month.Value.ToString() : "")" />
+                <input type="hidden" name="year" value="@(year.HasValue ? year.Value.ToString() : "")" />
+                <input type="hidden" name="adults" value="@adults" />
+                <input type="hidden" name="children" value="@children" />
+                <input type="hidden" name="youngestAge" value="@youngestVal" />
+
+                <!-- LEFT -->
+                <div class="filter-group">
+                    <select class="form-select mini-select" name="priceRange">
+                        @if (string.IsNullOrEmpty(priceRange))
+                        {
+                            <option value="" selected>Price range (Any)</option>
+                        }
+                        else
+                        {
+                            <option value="">Price range (Any)</option>
+                        }
+
+                        @if (priceRange == "low")
+                        {
+                            <option value="low" selected>Low (&lt; $500)</option>
+                        }
+                        else
+                        {
+                            <option value="low">Low (&lt; $500)</option>
+                        }
+
+                        @if (priceRange == "mid")
+                        {
+                            <option value="mid" selected>Mid ($500–$3000)</option>
+                        }
+                        else
+                        {
+                            <option value="mid">Mid ($500–$3000)</option>
+                        }
+
+                        @if (priceRange == "high")
+                        {
+                            <option value="high" selected>High (&gt; $3000)</option>
+                        }
+                        else
+                        {
+                            <option value="high">High (&gt; $3000)</option>
+                        }
+                    </select>
+
+                </div>
+
+                <!-- CENTER -->
+                <div class="filter-group center">
+                    <select class="form-select mini-select" name="sortBy">
+                        @if (sortBy == "travelDate")
+                        {
+                            <option value="travelDate" selected>Sort: Travel date</option>
+                        }
+                        else
+                        {
+                            <option value="travelDate">Sort: Travel date</option>
+                        }
+
+                        @if (sortBy == "priceAsc")
+                        {
+                            <option value="priceAsc" selected>Sort: Price (low→high)</option>
+                        }
+                        else
+                        {
+                            <option value="priceAsc">Sort: Price (low→high)</option>
+                        }
+
+                        @if (sortBy == "priceDesc")
+                        {
+                            <option value="priceDesc" selected>Sort: Price (high→low)</option>
+                        }
+                        else
+                        {
+                            <option value="priceDesc">Sort: Price (high→low)</option>
+                        }
+
+                        @if (sortBy == "popular")
+                        {
+                            <option value="popular" selected>Sort: Most popular</option>
+                        }
+                        else
+                        {
+                            <option value="popular">Sort: Most popular</option>
+                        }
+
+                        @if (sortBy == "category")
+                        {
+                            <option value="category" selected>Sort: Category</option>
+                        }
+                        else
+                        {
+                            <option value="category">Sort: Category</option>
+                        }
+                    </select>
+
+                </div>
+
+                <!-- RIGHT -->
+                <div class="filter-right">
+
+                    <!-- ✅ FIX: always send false if unchecked -->
+                    <input type="hidden" name="onSaleOnly" value="false" />
+
+                    <label class="mini-check">
+                        <input type="checkbox" name="onSaleOnly" value="true" @(onSaleOnly ? "checked" : "") />
+                        On sale only
+                    </label>
+
+                    <button class="btn-apply" type="submit">Apply</button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        @if (Model == null || !Model.Any())
+        {
+            <div class="alert alert-warning">No trips found for your search.</div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var p in Model)
+                {
+                    var imgs = imagesByPackage.ContainsKey(p.Id) ? imagesByPackage[p.Id] : new List<string>();
+                    if (imgs.Count == 0)
+                        imgs = new List<string> { p.ImageUrl ?? "/images/default.jpg" };
+
+                    bool isOnSale = p.DiscountPercent.HasValue && p.DiscountPercent.Value > 0;
+
+                    int originalPrice = p.sum;
+                    int finalPrice = isOnSale
+                        ? (int)Math.Round(originalPrice * (1 - (p.DiscountPercent!.Value / 100.0)))
+                        : originalPrice;
+
+                    bool isUnavailable = p.numFreePlaces <= 0 || p.numFreePlaces < totalPassengers;
+                    bool isAlmostFull = p.numFreePlaces > 0 && p.numFreePlaces <= 5;
+
+                    int waitingCount = waitingCountByPackage.ContainsKey(p.Id) ? waitingCountByPackage[p.Id] : 0;
+
+                    string carouselId = $"car_{p.Id}";
+
+                    <div class="col-lg-4 col-md-6">
+                        <div class="cardx position-relative @(isUnavailable ? "card-disabled" : "")">
+
+                            @if (isAlmostFull && !isUnavailable)
+                            {
+                                <div class="badge-left">Only @p.numFreePlaces places left</div>
+                            }
+
+                            @if (isUnavailable)
+                            {
+                                <div class="badge-full">FULL</div>
+                            }
+
+                            <div id="@carouselId"
+                                 class="carousel slide"
+                                 data-bs-ride="carousel"
+                                 data-bs-interval="3500"
+                                 data-bs-pause="hover">
+                                <div class="carousel-inner">
+                                    @for (int i = 0; i < imgs.Count; i++)
+                                    {
+                                        <div class="carousel-item @(i == 0 ? "active" : "")">
+                                            <img src="@imgs[i]" alt="Package image" />
+                                        </div>
+                                    }
+                                </div>
+
+                                @if (imgs.Count > 1)
+                                {
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#@carouselId" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#@carouselId" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon"></span>
+                                    </button>
+                                }
+                            </div>
+
+                            <div class="bodyx">
+                                <div class="fw-bold" style="font-size:18px;">@p.destination</div>
+                                <div class="text-muted">@p.country</div>
+
+                                <div class="mt-2">
+                                    <span class="pill">@p.CategoryName</span>
+
+                                    <div class="meta-line">Travel dates: <span>@p.StartDate.ToString("dd/MM/yyyy") – @p.EndDate.ToString("dd/MM/yyyy")</span></div>
+                                    <div class="meta-line">Min age: <span>@p.ageLimit+</span></div>
+                                </div>
+
+                                <div class="price-row">
+                                    @if (isOnSale)
+                                    {
+                                        <span class="price text-danger">$@finalPrice</span>
+                                        <span class="old-price">$@originalPrice</span>
+                                        <span class="badge bg-danger sale-badge">@p.DiscountPercent% OFF</span>
+                                        <span class="text-muted">per person</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="price">$@finalPrice</span>
+                                        <span class="text-muted">per person</span>
+                                    }
+                                </div>
+
+                                <a class="btn btn-outline-primary w-100 mt-3 fw-bold"
+                                   href="/Package/PackageDetails/@p.Id?adults=@adults&children=@children&searchText=@(Uri.EscapeDataString(searchText))&destination=@(Uri.EscapeDataString(destination))&country=@(Uri.EscapeDataString(country))&categoryId=@(categoryId.HasValue ? categoryId.Value.ToString() : "")&month=@(month.HasValue ? month.Value.ToString() : "")&year=@(year.HasValue ? year.Value.ToString() : "")&youngestAge=@(youngestVal)">
+                                    View Details
+                                </a>
+
+                                                   
+                                @if (isUnavailable)
+                                {
+                                    <button type="button"
+                                            class="btn btn-outline-secondary w-100 fw-bold mt-2"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#waitlistModal"
+                                            data-package-id="@p.Id"
+                                            data-num-persons="@totalPassengers"
+                                            data-waiting-count="@waitingCount">
+                                        Waiting List
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
         }
     </div>
+
+    <!-- ✅ ONE GLOBAL MODAL (used by all packages) -->
+    <div class="modal fade" id="waitlistModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:16px;">
+
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Join Waiting List</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="mb-2" id="wlLine1">
+                        There are 0 users waiting ahead of you.
+                    </p>
+
+                    <p class="mb-2" id="wlLine2">
+                        Estimated availability: approximately 0 days.
+                    </p>
+
+                    <p class="fw-bold mt-3">
+                        Would you like to join the waiting list?
+                    </p>
+                </div>
+
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary fw-bold" data-bs-dismiss="modal">Cancel</button>
+
+                    <form method="post" asp-controller="Waitlist" asp-action="Join" class="m-0">
+                        <input type="hidden" name="packageId" id="wlPackageId" value="" />
+                        <input type="hidden" name="numPersons" id="wlNumPersons" value="" />
+                        <button type="submit" class="btn btn-primary fw-bold">Join</button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
 </div>
 
+
+
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const btnSearch = document.getElementById("btnSearch");
-            const selDestination = document.getElementById("filterDestination");
-            const selCategory = document.getElementById("filterCategory");
-            const selPrice = document.getElementById("filterPrice");
-            const selSpots = document.getElementById("filterSpots");
-            const txtSearch = document.getElementById("filterSearch");
-            const suggestionBox = document.getElementById("searchSuggestions");
+        (function () {
+            const searchInput = document.getElementById("searchText");
+            const box = document.getElementById("suggestions");
 
-            const cards = document.querySelectorAll(".package-item");
+            const hiddenDestination = document.getElementById("destination");
+            const hiddenCountry = document.getElementById("country");
+            const hiddenCategoryId = document.getElementById("categoryId");
 
-            function normalize(str) {
-                return (str || "")
-                    .toLowerCase()
-                    .replace(/,/g, " ")
-                    .replace(/\s+/g, " ")
-                    .trim();
+            const childrenInput = document.getElementById("children");
+            const youngestInput = document.getElementById("youngestAge");
+
+            function updateYoungestRequired() {
+                const c = parseInt(childrenInput.value || "0");
+                if (c > 0) {
+                    youngestInput.required = true;
+                } else {
+                    youngestInput.required = false;
+                    youngestInput.value = "";
+                }
+            }
+            updateYoungestRequired();
+            childrenInput.addEventListener("input", updateYoungestRequired);
+
+            function clearHidden() {
+                hiddenDestination.value = "";
+                hiddenCountry.value = "";
+                hiddenCategoryId.value = "";
             }
 
-            function applyFilter() {
-                const dest = normalize(selDestination.value);
-                const cat = (selCategory.value || "").trim();
-                const priceFilter = selPrice.value;
-                const minSpots = selSpots.value ? parseInt(selSpots.value) : 0;
-                const text = normalize(txtSearch.value);
+            let lastQuery = "";
+            let controller = null;
 
-                cards.forEach(card => {
-                    const cardDest = normalize(card.dataset.destination || "");
-                    const cardCat = (card.dataset.category || "");
-                    const cardSpots = parseInt(card.dataset.spots || "0");
-                    const cardPrice = parseInt(card.dataset.price || "0");
-                    const cardText = normalize(card.dataset.text || "");
-
-                    let show = true;
-
-                    if (dest && !cardDest.includes(dest)) {
-                        show = false;
-                    }
-
-                    if (show && cat && cardCat !== cat) {
-                        show = false;
-                    }
-
-                    if (show && priceFilter) {
-                        if (priceFilter === "1" && cardPrice >= 500) show = false;
-                        if (priceFilter === "2" && (cardPrice < 500 || cardPrice > 1000)) show = false;
-                        if (priceFilter === "3" && cardPrice <= 1000) show = false;
-                    }
-
-                    if (show && minSpots && (isNaN(cardSpots) || cardSpots < minSpots)) {
-                        show = false;
-                    }
-
-                    if (show && text && !cardText.includes(text)) {
-                        show = false;
-                    }
-
-                    card.style.display = show ? "" : "none";
-                });
+            function closeBox() {
+                box.style.display = "none";
+                box.innerHTML = "";
             }
 
-            btnSearch.addEventListener("click", function () {
-                applyFilter();
-                suggestionBox.innerHTML = "";
-                suggestionBox.style.display = "none";
-            });
+            async function fetchSuggestions(q) {
+                if (controller) controller.abort();
+                controller = new AbortController();
 
-            function buildSuggestions() {
-                const query = normalize(txtSearch.value);
+                const url = `/Package/Suggest?q=${encodeURIComponent(q)}`;
+                const res = await fetch(url, { signal: controller.signal });
+                if (!res.ok) return [];
+                return await res.json();
+            }
 
-                if (!query || query.length < 2) {
-                    suggestionBox.innerHTML = "";
-                    suggestionBox.style.display = "none";
+            function render(items) {
+                if (!items || items.length === 0) {
+                    closeBox();
                     return;
                 }
 
-                const suggestionsSet = new Set();
-
-                cards.forEach(card => {
-                    const rawDest = card.dataset.destination || "";
-                    const rawCatName = card.dataset.categoryname || "";
-
-                    const destLower = normalize(rawDest);
-                    const catLower = normalize(rawCatName);
-
-                    if (destLower.includes(query)) {
-                        suggestionsSet.add(rawDest);
-                    }
-
-                    if (catLower.includes(query)) {
-                        suggestionsSet.add(rawCatName);
-                    }
-
-                    if (rawDest && rawCatName &&
-                        (destLower.includes(query) || catLower.includes(query))) {
-                        suggestionsSet.add(`${rawDest}, ${rawCatName}`);
-                    }
-                });
-
-                const suggestions = Array.from(suggestionsSet).slice(0, 8);
-
-                if (suggestions.length === 0) {
-                    suggestionBox.innerHTML = "";
-                    suggestionBox.style.display = "none";
-                    return;
-                }
-
-                suggestionBox.innerHTML = "";
-                suggestions.forEach(s => {
+                box.innerHTML = "";
+                items.forEach(it => {
                     const div = document.createElement("div");
-                    div.className = "search-suggestions-item";
-                    div.dataset.value = s;
-                    div.textContent = s;
-                    suggestionBox.appendChild(div);
+                    div.className = "suggestion-item";
+                    div.textContent = it.displayText;
+
+                    div.addEventListener("click", () => {
+                        searchInput.value = it.displayText;
+                        hiddenDestination.value = it.destination || "";
+                        hiddenCountry.value = it.country || "";
+                        hiddenCategoryId.value = (it.categoryId == null) ? "" : String(it.categoryId);
+                        closeBox();
+                    });
+
+                    box.appendChild(div);
                 });
-                suggestionBox.style.display = "block";
+
+                box.style.display = "block";
             }
 
-            txtSearch.addEventListener("input", function () {
-                buildSuggestions();
+            let timer = null;
+            searchInput.addEventListener("input", () => {
+                const q = (searchInput.value || "").trim();
+                clearHidden();
+
+                if (timer) clearTimeout(timer);
+                if (q.length < 2) { closeBox(); return; }
+
+                timer = setTimeout(async () => {
+                    if (q === lastQuery) return;
+                    lastQuery = q;
+                    const items = await fetchSuggestions(q);
+                    render(items);
+                }, 150);
             });
 
-            suggestionBox.addEventListener("click", function (e) {
-                const item = e.target.closest(".search-suggestions-item");
-                if (!item) return;
-
-                const label = item.dataset.value || "";
-                txtSearch.value = label;
-                suggestionBox.innerHTML = "";
-                suggestionBox.style.display = "none";
+            document.addEventListener("click", (e) => {
+                if (!box.contains(e.target) && e.target !== searchInput) {
+                    closeBox();
+                }
             });
-        });
+        })();
     </script>
+
+    <script>
+    const waitlistModal = document.getElementById('waitlistModal');
+    if (waitlistModal) {
+        waitlistModal.addEventListener('show.bs.modal', async function (event) {
+            const btn = event.relatedTarget;
+
+            const packageId = btn.getAttribute('data-package-id');
+            const numPersons = btn.getAttribute('data-num-persons');
+
+            document.getElementById('wlPackageId').value = packageId;
+            document.getElementById('wlNumPersons').value = numPersons;
+
+            document.getElementById('wlLine1').textContent = "Loading...";
+            document.getElementById('wlLine2').textContent = "";
+
+            try {
+                const res = await fetch(`/Waitlist/Info?packageId=${encodeURIComponent(packageId)}`);
+                if (!res.ok) throw new Error("Failed to load waitlist info");
+
+                const data = await res.json();
+                const ahead = data.usersAhead ?? 0;
+                const days = data.estimatedDays ?? 0;
+
+                document.getElementById('wlLine1').textContent =
+                    `There are ${ahead} users waiting ahead of you.`;
+                document.getElementById('wlLine2').textContent =
+                    `Estimated availability: approximately ${days} days.`;
+            } catch (e) {
+                document.getElementById('wlLine1').textContent =
+                    "Could not load waitlist info right now.";
+                document.getElementById('wlLine2').textContent = "";
+            }
+        });
+    }
+</script>
+
 }
