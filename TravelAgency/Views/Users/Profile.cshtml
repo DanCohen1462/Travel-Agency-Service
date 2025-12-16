@@ -5,71 +5,109 @@
     Layout = "_Layout";
 }
 
-<div class="container mt-4">
-    <h2 class="mb-4">My Profile</h2>
-
-    @if (ViewBag.Success != null)
-    {
-        <div class="alert alert-success">@ViewBag.Success</div>
-    }
-
-    <form asp-action="Profile" method="post" class="card p-4" style="max-width: 700px;">
-        @Html.AntiForgeryToken()
-
-        @Html.HiddenFor(m => m.Id)
-        @Html.HiddenFor(m => m.Type)
-
-        <div class="mb-3">
-            <label asp-for="Username" class="form-label"></label>
-            <input asp-for="Username" class="form-control" />
-            <span asp-validation-for="Username" class="text-danger"></span>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="FirstName" class="form-label"></label>
-            <input asp-for="FirstName" class="form-control" />
-            <span asp-validation-for="FirstName" class="text-danger"></span>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="LastName" class="form-label"></label>
-            <input asp-for="LastName" class="form-control" />
-            <span asp-validation-for="LastName" class="text-danger"></span>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="BirthDate" class="form-label"></label>
-            <input asp-for="BirthDate" class="form-control" type="date" />
-            <span asp-validation-for="BirthDate" class="text-danger"></span>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="Gender" class="form-label"></label>
-            <input asp-for="Gender" class="form-control" />
-            <span asp-validation-for="Gender" class="text-danger"></span>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="PhoneNumber" class="form-label"></label>
-            <input asp-for="PhoneNumber" class="form-control" />
-            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="Email" class="form-label"></label>
-            <input asp-for="Email" class="form-control" />
-            <span asp-validation-for="Email" class="text-danger"></span>
-        </div>
-
-        <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
             
-            @* 🔴 תיקון: החלפת btn-outline-secondary ב-btn-primary *@
-            <a asp-controller="Auth" asp-action="ChangePassword" class="btn btn-primary">
-                Change Password
-            </a>
+            <div class="text-center mb-4">
+                <h2 class="fw-bold text-primary">My Profile</h2>
+                <p class="text-muted">Manage your account settings and personal information</p>
+            </div>
+
+            @if (ViewBag.Success != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i> @ViewBag.Success
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary bg-gradient p-3"></div>
+                
+                <div class="card-body p-4 p-md-5">
+                    
+                    <div class="text-center mt-n5 mb-4 position-relative">
+                        <div class="bg-white rounded-circle shadow p-1 d-inline-block">
+                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="text-secondary" viewBox="0 0 16 16">
+                                    <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                                    <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form asp-action="Profile" method="post">
+                        @Html.AntiForgeryToken()
+                        @Html.HiddenFor(m => m.Id)
+                        @Html.HiddenFor(m => m.Type)
+
+                        <h5 class="text-muted mb-3 border-bottom pb-2">Account Details</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label asp-for="Username" class="form-label fw-semibold text-secondary small">Username</label>
+                                <input asp-for="Username" class="form-control bg-light" readonly />
+                                <span asp-validation-for="Username" class="text-danger small"></span>
+                                <div class="form-text text-muted" style="font-size: 0.8rem;">Username cannot be changed.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Email" class="form-label fw-semibold text-secondary small">Email Address</label>
+                                <input asp-for="Email" class="form-control" placeholder="name@example.com" />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <h5 class="text-muted mb-3 border-bottom pb-2">Personal Information</h5>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="FirstName" class="form-label fw-semibold text-secondary small">First Name</label>
+                                <input asp-for="FirstName" class="form-control" />
+                                <span asp-validation-for="FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="LastName" class="form-label fw-semibold text-secondary small">Last Name</label>
+                                <input asp-for="LastName" class="form-control" />
+                                <span asp-validation-for="LastName" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label asp-for="PhoneNumber" class="form-label fw-semibold text-secondary small">Phone Number</label>
+                                <input asp-for="PhoneNumber" class="form-control" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="BirthDate" class="form-label fw-semibold text-secondary small">Date of Birth</label>
+                                <input asp-for="BirthDate" class="form-control" type="date" />
+                                <span asp-validation-for="BirthDate" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Gender" class="form-label fw-semibold text-secondary small">Gender</label>
+                                <select asp-for="Gender" class="form-select">
+                                    <option value="">Select...</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <span asp-validation-for="Gender" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top">
+                            <a asp-controller="Auth" asp-action="ChangePassword" class="btn btn-outline-primary px-4">
+                                <i class="bi bi-key me-1"></i> Change Password
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-    </form>
+    </div>
 </div>
 
 @section Scripts {

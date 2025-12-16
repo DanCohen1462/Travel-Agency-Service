@@ -17,9 +17,23 @@
     <nav class="navbar navbar-expand-lg navbar-custom mb-3">
         <div class="container">
 
-            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                TravelAgency
-            </a>
+            @{
+                // בדיקה מהירה: מי המשתמש, כדי לדעת לאן הלוגו צריך לקחת אותו
+                var logoUserType = HttpContextAccessor.HttpContext?.Session.GetString("UserType");
+            }
+
+            @if (logoUserType == "2")
+            {
+                <a class="navbar-brand fw-bold" asp-controller="Employee" asp-action="EmployeeDashboard">
+                    TravelAgency
+                </a>
+            }
+            else
+            {
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+                    TravelAgency
+                </a>
+            }
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarNav">
@@ -79,6 +93,7 @@
                                     Profile
                                 </a>
                             </li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Package" asp-action="Gallery">Search Trip</a></li>
                         }
                         else if (userType == "1")
                         {
