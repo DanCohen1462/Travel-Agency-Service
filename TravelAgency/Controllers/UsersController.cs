@@ -192,7 +192,7 @@ namespace TravelAgency.Controllers
             return View(model);
         }
 
-        // ---------- MyTrips ----------
+       // ---------- MyTrips (מחובר לדאטה בייס) ----------
         public IActionResult MyTrips()
         {
             // 1. בדיקת התחברות
@@ -252,7 +252,9 @@ namespace TravelAgency.Controllers
             }
 
             ViewData["Title"] = "MyTrips";
-            return View();
+            return View(myTrips);
         }
+        
     }
+    
 }
