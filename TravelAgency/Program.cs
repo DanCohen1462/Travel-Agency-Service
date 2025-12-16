@@ -41,13 +41,13 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
+// Sessions
+app.UseSession();
 // Auth
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Sessions
-app.UseSession();
+
 
 // Routing
 // 🛑 התיקון: ניתוב ברירת המחדל הוא עכשיו Home/Index (דף הבית הציבורי)

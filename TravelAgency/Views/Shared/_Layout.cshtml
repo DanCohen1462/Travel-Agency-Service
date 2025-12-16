@@ -83,8 +83,12 @@
                         }
                         else if (userType == "1")
                         {
-                            <li class="nav-item"><a class="nav-link text-danger" asp-controller="Admin" asp-action="Dashboard">Admin Dashboard</a></li>
-                             <li class="nav-item"><a class="nav-link" asp-controller="Package" asp-action="Index">Manage Packages</a></li>
+                            <li class="nav-item"><a class="nav-link text-danger" asp-controller="Admin" asp-action="index">Admin Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Admin" asp-action="Packages">Manage Packages</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Admin" asp-action="Users">Manage Users</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Admin" asp-action="CreatePackage">new Package</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Admin" asp-action="AssignGuide">Manage Guide</a></li>
+                            
                         }
                         else
                         {
