@@ -713,6 +713,81 @@ namespace TravelAgency.Controllers
             
             return View("~/Views/Employee/MyManagedPackages.cshtml", myPackages);
         }
+        public IActionResult ViewTravelers(int id)
+{
+    // --- 1. שומר הסף: בדיקת הרשאות ---
+    var userType = HttpContext.Session.GetString("UserType");
+
+    // אם המשתמש הוא לא אדמין (1) וגם לא עובד (2)
+    if (userType != "1" && userType != "2")
+    {
+        // תעיף אותו לדף הבית או להתחברות
+        return RedirectToAction("Index", "Home"); 
+    }
+
+    // --- 2. המשך הקוד הרגיל (רק למורשים) ---
+    List<TravelerViewModel> travelers = new List<TravelerViewModel>();
+    string packageName = "";
+    DateTime startDate = DateTime.MinValue;
+
+    using (var conn = new SqlConnection(_connectionString))
+    {
+        conn.Open();
+
+        // שליפת שם החבילה
+        string pkgSql = "SELECT destination, startDate FROM Package WHERE Id = @Id";
+        using (var cmd = new SqlCommand(pkgSql, conn))
+        {
+            cmd.Parameters.AddWithValue("@Id", id);
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    packageName = reader["destination"].ToString();
+                    startDate = Convert.ToDateTime(reader["startDate"]);
+                }
+            }
+        }
+
+        // שליפת הנוסעים
+        string sql = @"
+            SELECT 
+                u.firstName, 
+                u.lastName, 
+                u.phoneNumber, 
+                h.numPersons, 
+                h.Id as OrderId
+            FROM HistoryReservation h
+            INNER JOIN Users u ON h.UserId = u.Id
+            WHERE h.PackageId = @PkgId AND h.inactive = 0";
+
+        using (var cmd = new SqlCommand(sql, conn))
+        {
+            cmd.Parameters.AddWithValue("@PkgId", id);
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var t = new TravelerViewModel();
+                    t.FirstName = reader["firstName"].ToString();
+                    t.LastName = reader["lastName"].ToString();
+                    
+                    // טיפול בערכי NULL בטלפון
+                    t.PhoneNumber = reader.IsDBNull(reader.GetOrdinal("phoneNumber")) ? "N/A" : reader["phoneNumber"].ToString();
+                    
+                    t.PartySize = reader.GetInt32(reader.GetOrdinal("numPersons"));
+                    t.OrderId = reader.GetInt32(reader.GetOrdinal("OrderId"));
+
+                    travelers.Add(t);
+                }
+            }
+        }
+    }
+
+    ViewBag.PackageName = packageName;
+    ViewBag.StartDate = startDate;
+    return View(travelers);
+}
     } // <--- זה הסוגר שסוגר את ה-Controller (הפונקציה חייבת להיות מעליו!)
 }
     
