@@ -12,13 +12,20 @@ html {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+/* --- תיקון מבנה הדף (Flexbox Sticky Footer) --- */
+html, body {
+    height: 100%;
+    margin: 0;
 }
 
 body {
-  margin-bottom: 60px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* זה גורם לתוכן הראשי לדחוף את הפוטר למטה */
+.container, main {
+    flex: 1 0 auto;
 }
 /* NAVBAR PREMIUM DESIGN */
 .navbar-custom {
@@ -66,4 +73,59 @@ body {
 .nav-login-btn:hover {
     background: #1C6DD0;
     color: white !important;
+}
+/* --- עיצוב הפוטר החדש --- */
+.footer-custom {
+    background-color: #212529; /* רקע כהה */
+    color: #adb5bd; /* טקסט אפור */
+    padding-top: 3rem;
+    padding-bottom: 1.5rem;
+    margin-top: auto; /* מוודא היצמדות למטה */
+    width: 100%;
+}
+
+.footer-custom h5 {
+    color: #fff;
+    font-weight: 700;
+    margin-bottom: 1.2rem;
+}
+
+.footer-link {
+    color: #adb5bd;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.footer-link:hover {
+    color: #0d6efd; /* כחול בריחוף */
+    padding-left: 5px; /* תזוזה קטנה */
+}
+
+.social-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    margin-right: 10px;
+    transition: all 0.3s;
+    text-decoration: none;
+}
+
+.social-icon:hover {
+    background: #0d6efd;
+    color: #fff;
+    transform: translateY(-3px);
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 1.5rem;
+    margin-top: 2rem;
+    font-size: 0.9rem;
 }
