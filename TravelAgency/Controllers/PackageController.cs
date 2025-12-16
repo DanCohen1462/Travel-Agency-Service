@@ -662,5 +662,60 @@ namespace TravelAgency.Controllers
 
 
         }
-    }
-} 
+       
+        public IActionResult MyManagedPackages()
+        {
+            // בדיקת אבטחה: האם המשתמש הוא עובד?
+            var userType = HttpContext.Session.GetString("UserType");
+            if (userType != "2") return RedirectToAction("Index", "Home");
+
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdStr)) return RedirectToAction("Login", "Auth");
+            int employeeId = int.Parse(userIdStr);
+
+            List<Package> myPackages = new List<Package>();
+
+            using (SqlConnection conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+                // שליפה לפי העמודות בתמונה שלך
+                string sql = "SELECT * FROM Package WHERE UserId = @EmpId AND inactive = 0";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@EmpId", employeeId);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            Package pkg = new Package();
+                            pkg.Id = reader.GetInt32(reader.GetOrdinal("Id"));
+                            pkg.destination = reader.GetString(reader.GetOrdinal("destination"));
+                            pkg.sum = reader.GetInt32(reader.GetOrdinal("sum"));
+                            
+                            if (!reader.IsDBNull(reader.GetOrdinal("Information")))
+                                pkg.information = reader.GetString(reader.GetOrdinal("Information"));
+                            else 
+                                pkg.information = "";
+
+                            pkg.ImageUrl = "/images/default.jpg"; 
+                            
+                            // תאריכים
+                            pkg.StartDate = reader.GetDateTime(reader.GetOrdinal("startDate"));
+                            pkg.EndDate = reader.GetDateTime(reader.GetOrdinal("endDate"));
+
+                            myPackages.Add(pkg);
+                        }
+                    }
+                }
+            }
+
+            
+            return View("~/Views/Employee/MyManagedPackages.cshtml", myPackages);
+        }
+    } // <--- זה הסוגר שסוגר את ה-Controller (הפונקציה חייבת להיות מעליו!)
+}
+    
+
+
+

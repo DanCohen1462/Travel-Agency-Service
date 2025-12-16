@@ -108,7 +108,7 @@ public class AuthController : Controller
                         return RedirectToAction("index", "Admin");
 
                     if (userType == 2) // Worker
-                        return RedirectToAction("index", "Home");
+                        return RedirectToAction("EmployeeDashboard", "Employee");
 
                     // 🛑 התיקון: הפניה ל-Dashboard המלבנים במקום לגלריה
                     // Customer (Type 3)

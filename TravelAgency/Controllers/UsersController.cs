@@ -195,8 +195,61 @@ namespace TravelAgency.Controllers
         // ---------- MyTrips ----------
         public IActionResult MyTrips()
         {
-            if (HttpContext.Session.GetString("UserId") == null)
+            // 1. בדיקת התחברות
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdStr))
                 return RedirectToAction("Login", "Auth");
+
+            int userId = int.Parse(userIdStr);
+            List<UserTripViewModel> myTrips = new List<UserTripViewModel>();
+
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+
+                // שאילתה שמחברת בין טבלת ההזמנות (h) לטבלת החבילות (p)
+                // ולוקחת את המחיר וכמות האנשים מההזמנה, ואת היעד והתאריכים מהחבילה
+                string sql = @"
+                    SELECT 
+                        h.Id AS ReservationId,
+                        h.numPersons,
+                        h.sum,
+                        p.destination,
+                        p.startDate,
+                        p.endDate
+                    FROM HistoryReservation h
+                    INNER JOIN Package p ON h.PackageId = p.Id
+                    WHERE h.UserId = @UserId AND h.inactive = 0";
+
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@UserId", userId);
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var trip = new UserTripViewModel();
+
+                            // מילוי הנתונים מהדאטה-בייס
+                            trip.ReservationId = reader.GetInt32(reader.GetOrdinal("ReservationId"));
+                            
+                            // בדיקת NULLים ליתר ביטחון
+                            trip.NumPersons = reader.IsDBNull(reader.GetOrdinal("numPersons")) ? 1 : reader.GetInt32(reader.GetOrdinal("numPersons"));
+                            trip.TotalPrice = reader.IsDBNull(reader.GetOrdinal("sum")) ? 0 : reader.GetInt32(reader.GetOrdinal("sum"));
+                            
+                            trip.Destination = reader.GetString(reader.GetOrdinal("destination"));
+                            trip.StartDate = reader.GetDateTime(reader.GetOrdinal("startDate"));
+                            trip.EndDate = reader.GetDateTime(reader.GetOrdinal("endDate"));
+
+                            // תמונה דיפולטיבית (כי אין בטבלה הזו תמונה)
+                            trip.ImageUrl = "/images/default.jpg";
+
+                            myTrips.Add(trip);
+                        }
+                    }
+                }
+            }
 
             ViewData["Title"] = "MyTrips";
             return View();
