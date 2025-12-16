@@ -1,0 +1,124 @@
+﻿@model List<TravelAgency.Models.UserTripViewModel>
+
+@{
+ViewData["Title"] = "My Trips";
+Layout = "_Layout";
+}
+
+<style>
+    body { background-color: #f0f2f5; }
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .trip-card {
+        background: #fff; border: none; border-radius: 16px; overflow: hidden;
+        transition: all 0.3s; box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: 100%;
+        display: flex; flex-direction: column;
+    }
+    .trip-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.15); }
+    .trip-img-container { position: relative; height: 180px; overflow: hidden; }
+    .trip-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+    .trip-card:hover .trip-img { transform: scale(1.05); }
+    .price-tag {
+        position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7);
+        color: #fff; padding: 5px 12px; border-radius: 20px; font-weight: bold;
+    }
+    .status-badge {
+        position: absolute; top: 10px; left: 10px; padding: 5px 12px;
+        border-radius: 8px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+    }
+    .status-future { background-color: #d1e7dd; color: #0f5132; }
+    .status-past { background-color: #e2e3e5; color: #41464b; }
+    .card-body { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
+    .trip-title { font-weight: 700; font-size: 1.25rem; margin-bottom: 0.5rem; color: #2c3e50; }
+    .trip-meta { color: #6c757d; font-size: 0.9rem; margin-bottom: 0.5rem; gap: 8px; display: flex; align-items: center;}
+
+    /* לשוניות */
+    .nav-pills .nav-link { color: #555; border-radius: 50px; padding: 10px 25px; margin-right: 10px; font-weight: 600; cursor: pointer; }
+    .nav-pills .nav-link.active { background-color: #1C6DD0; color: white; }
+</style>
+
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">My Journeys</h1>
+        <p class="opacity-75 lead">Track your past adventures and upcoming trips</p>
+    </div>
+</div>
+
+<div class="container pb-5">
+
+    @if (!Model.Any())
+    {
+    <div class="text-center py-5">
+        <h3 class="text-muted">You haven't booked any trips yet.</h3>
+        <a asp-controller="Package" asp-action="Gallery" class="btn btn-primary mt-3">Find a Trip</a>
+    </div>
+    }
+    else
+    {
+    <ul class="nav nav-pills mb-4 justify-content-center" id="pills-tab" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="pills-upcoming-tab" data-bs-toggle="pill" data-bs-target="#pills-upcoming" type="button">
+                Upcoming Trips
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="pills-history-tab" data-bs-toggle="pill" data-bs-target="#pills-history" type="button">
+                Trip History
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="pills-tabContent">
+
+        <div class="tab-pane fade show active" id="pills-upcoming">
+            <div class="row g-4">
+                @foreach (var item in Model.Where(t => t.IsUpcoming))
+                {
+                <div class="col-md-6 col-lg-4">
+                    <div class="trip-card">
+                        <div class="trip-img-container">
+                            <span class="status-badge status-future">Booked</span>
+                            <img src="@item.ImageUrl" class="trip-img" alt="@item.Destination">
+                            <div class="price-tag">$@item.TotalPrice</div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="trip-title">@item.Destination</h5>
+                            <div class="trip-meta"><i class="bi bi-calendar-event"></i> @item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</div>
+                            <div class="trip-meta"><i class="bi bi-people"></i> @item.NumPersons People</div>
+                        </div>
+                    </div>
+                </div>
+                }
+                @if (!Model.Any(t => t.IsUpcoming)) { <div class="text-center w-100 text-muted p-4">No upcoming trips planned.</div> }
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-history">
+            <div class="row g-4">
+                @foreach (var item in Model.Where(t => !t.IsUpcoming))
+                {
+                <div class="col-md-6 col-lg-4">
+                    <div class="trip-card">
+                        <div class="trip-img-container">
+                            <span class="status-badge status-past">Completed</span>
+                            <img src="@item.ImageUrl" class="trip-img" alt="@item.Destination">
+                            <div class="price-tag">$@item.TotalPrice</div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="trip-title">@item.Destination</h5>
+                            <div class="trip-meta"><i class="bi bi-calendar-check"></i> @item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</div>
+                            <div class="trip-meta"><i class="bi bi-people"></i> @item.NumPersons People</div>
+                        </div>
+                    </div>
+                </div>
+                }
+                @if (!Model.Any(t => !t.IsUpcoming)) { <div class="text-center w-100 text-muted p-4">No past trips found.</div> }
+            </div>
+        </div>
+
+    </div>
+    }
+</div>
