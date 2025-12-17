@@ -3,19 +3,12 @@
 
 @{
     ViewData["Title"] = "Employee Workspace";
-
-    // שליפת השם המלא מתוך ה-Session
-    // אם אין שם ב-Session, הוא יציג "Employee" כברירת מחדל
     var fullName = HttpContextAccessor.HttpContext?.Session.GetString("FullName") ?? "Employee";
 }
 
 <style>
-    /* רקע כללי עדין */
-    body {
-        background-color: #f8f9fa;
-    }
+    body { background-color: #f8f9fa; }
 
-    /* כרטיס הבסיס */
     .feature-card {
         border: none;
         border-radius: 16px;
@@ -27,13 +20,11 @@
         box-shadow: 0 4px 6px rgba(0,0,0,0.02);
     }
 
-    /* אפקט ריחוף */
     .feature-card:hover {
         transform: translateY(-8px);
         box-shadow: 0 15px 30px rgba(0,0,0,0.1);
     }
 
-    /* עיגול האייקון */
     .icon-wrapper {
         width: 70px;
         height: 70px;
@@ -47,25 +38,19 @@
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
-    /* צבעי גרדיאנט לאייקונים */
+    /* צבעים */
     .gradient-blue { background: linear-gradient(135deg, #0d6efd, #0dcaf0); }
     .gradient-red { background: linear-gradient(135deg, #dc3545, #ff6b6b); }
     .gradient-green { background: linear-gradient(135deg, #198754, #20c997); }
     .gradient-yellow { background: linear-gradient(135deg, #ffc107, #ff9800); }
     .gradient-purple { background: linear-gradient(135deg, #6f42c1, #a645b7); }
-
-    .card-title {
-        font-weight: 700;
-        font-size: 1.2rem;
-        color: #2c3e50;
-    }
     
-    .card-desc {
-        color: #6c757d;
-        font-size: 0.9rem;
-        line-height: 1.5;
-    }
+    /* צבע חדש לקובייה של הטיולים שלי */
+    .gradient-teal { background: linear-gradient(135deg, #20c997, #0dcaf0); }
 
+    .card-title { font-weight: 700; font-size: 1.2rem; color: #2c3e50; }
+    .card-desc { color: #6c757d; font-size: 0.9rem; line-height: 1.5; }
+    
     .action-link {
         margin-top: 1rem;
         font-weight: 600;
@@ -75,12 +60,8 @@
         display: flex;
         align-items: center;
     }
+    .feature-card:hover .action-link { color: #0d6efd; }
 
-    .feature-card:hover .action-link {
-        color: #0d6efd;
-    }
-
-    /* באנר עליון */
     .hero-banner {
         background: linear-gradient(120deg, #2b32b2, #1488cc);
         color: white;
@@ -104,79 +85,82 @@
         </div>
     </div>
 
-    <div class="row g-4 justify-content-center">
+    <div class="row g-4 row-cols-1 row-cols-md-2 row-cols-lg-3">
 
-        <div class="col-md-6 col-lg-4 col-xl-3">
+        <div class="col">
             <a asp-controller="Package" asp-action="MyManagedPackages" class="text-decoration-none">
                 <div class="feature-card p-4">
                     <div class="icon-wrapper gradient-blue">
-                        <i class="bi bi-box-seam"></i>
+                        <i class="bi bi-briefcase"></i>
                     </div>
-                    <h5 class="card-title">My Packages</h5>
-                    <p class="card-desc">Manage inventory, track status, and update package details.</p>
-                    <div class="action-link">
-                        Access Now <i class="bi bi-arrow-right ms-2"></i>
-                    </div>
+                    <h5 class="card-title">Managed Packages</h5>
+                    <p class="card-desc">Manage packages assigned to you as an employee.</p>
+                    <div class="action-link">Manage Now <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-3">
+        <div class="col">
+            <a asp-controller="Users" asp-action="MyTrips" class="text-decoration-none">
+                <div class="feature-card p-4">
+                    <div class="icon-wrapper gradient-teal">
+                        <i class="bi bi-airplane"></i>
+                    </div>
+                    <h5 class="card-title">My Trips</h5>
+                    <p class="card-desc">View your personal booking history and vacations.</p>
+                    <div class="action-link">View My Trips <i class="bi bi-arrow-right ms-2"></i></div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col">
             <a asp-controller="Package" asp-action="Gallery" class="text-decoration-none">
                 <div class="feature-card p-4">
                     <div class="icon-wrapper gradient-purple">
                         <i class="bi bi-search"></i>
                     </div>
                     <h5 class="card-title">Search Trip</h5>
-                    <p class="card-desc">Browse the full gallery of available trips and destinations.</p>
-                    <div class="action-link">
-                        Start Searching <i class="bi bi-arrow-right ms-2"></i>
-                    </div>
+                    <p class="card-desc">Browse the full gallery to book a new trip.</p>
+                    <div class="action-link">Start Searching <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-3">
+        <div class="col">
             <a asp-controller="Notifications" asp-action="Index" class="text-decoration-none">
                 <div class="feature-card p-4">
                     <div class="icon-wrapper gradient-red">
                         <i class="bi bi-bell"></i>
                     </div>
                     <h5 class="card-title">Notifications</h5>
-                    <p class="card-desc">Check system alerts, messages, and important updates.</p>
-                    <div class="action-link">
-                        View Alerts <i class="bi bi-arrow-right ms-2"></i>
-                    </div>
+                    <p class="card-desc">System alerts and updates regarding your work.</p>
+                    <div class="action-link">View Alerts <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-3">
+        <div class="col">
             <a asp-controller="Users" asp-action="Profile" class="text-decoration-none">
                 <div class="feature-card p-4">
                     <div class="icon-wrapper gradient-yellow">
                         <i class="bi bi-person-circle"></i>
                     </div>
                     <h5 class="card-title">My Profile</h5>
-                    <p class="card-desc">Update your personal info, password, and settings.</p>
-                    <div class="action-link">
-                        Edit Profile <i class="bi bi-arrow-right ms-2"></i>
-                    </div>
+                    <p class="card-desc">Update your personal info and password.</p>
+                    <div class="action-link">Edit Profile <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-4 col-xl-3">
+        <div class="col">
             <a asp-controller="Home" asp-action="ContactUs" class="text-decoration-none">
                 <div class="feature-card p-4">
                     <div class="icon-wrapper gradient-green">
                         <i class="bi bi-headset"></i>
                     </div>
                     <h5 class="card-title">Support</h5>
-                    <p class="card-desc">Contact the admin team or technical support center.</p>
-                    <div class="action-link">
-                        Get Help <i class="bi bi-arrow-right ms-2"></i>
-                    </div>
+                    <p class="card-desc">Contact admin or technical support.</p>
+                    <div class="action-link">Get Help <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>

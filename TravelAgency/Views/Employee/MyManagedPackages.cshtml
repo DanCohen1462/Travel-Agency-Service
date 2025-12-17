@@ -178,8 +178,13 @@
                             </p>
 
                             <a asp-controller="Package" asp-action="PackageDetails" asp-route-id="@pkg.Id" 
-                               class="btn btn-manage">
+                               class="btn btn-manage mb-2">
                                 <i class="fa-solid fa-gear me-2"></i> Manage Details
+                            </a>
+
+                            <a asp-controller="Package" asp-action="ViewTravelers" asp-route-id="@pkg.Id" 
+                               class="btn btn-manage" style="background-color: #17a2b8;">
+                                <i class="fa-solid fa-users me-2"></i> Travelers List
                             </a>
                         </div>
                     </div>

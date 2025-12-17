@@ -1,0 +1,91 @@
+@model List<TravelAgency.Models.TravelerViewModel>
+
+@{
+    ViewData["Title"] = "Passenger List";
+    Layout = "_Layout";
+    int totalPeople = Model.Sum(x => x.PartySize);
+}
+
+<div class="container py-5">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <div>
+            <h6 class="text-uppercase text-muted mb-1">Trip Manifest</h6>
+            <h2 class="fw-bold text-primary">@ViewBag.PackageName</h2>
+            <p class="mb-0"><i class="bi bi-calendar-event me-2"></i>Departure: @ViewBag.StartDate.ToString("MMMM dd, yyyy")</p>
+        </div>
+        <div class="text-end">
+            <div class="display-6 fw-bold">@totalPeople</div>
+            <div class="text-muted small">Total Travelers</div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <button class="btn btn-outline-secondary me-2" onclick="window.print()">
+            <i class="bi bi-printer me-2"></i>Print List
+        </button>
+        <a asp-action="MyManagedPackages" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Packages
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-secondary">
+                    <tr>
+                        <th class="ps-4"># Order ID</th>
+                        <th>Traveler Name</th>
+                        <th>Phone</th>
+                        <th>Party Size</th>
+                        <th class="text-end pe-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-people display-4 d-block mb-3"></i>
+                                No travelers have booked this trip yet.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-bold text-muted">#@item.OrderId</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; font-weight: bold;">
+                                            @item.FirstName.Substring(0,1)
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">@item.FullName</div>
+                                            <div class="small text-muted">Primary Guest</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="tel:@item.PhoneNumber" class="text-decoration-none text-dark">
+                                        <i class="bi bi-telephone me-1 text-primary"></i> @item.PhoneNumber
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info text-dark rounded-pill px-3">
+                                        <i class="bi bi-person-fill"></i> @item.PartySize
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">Confirmed</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
