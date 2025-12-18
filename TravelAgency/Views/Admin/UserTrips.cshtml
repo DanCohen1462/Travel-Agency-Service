@@ -1,0 +1,59 @@
+@model List<TravelAgency.Models.UserTripViewModel>
+
+<h2 class="mb-4">User Trips</h2>
+
+@if (Model.Count == 0)
+{
+    <p class="text-muted">This user has no reservations.</p>
+}
+
+<!-- Upcoming trips -->
+<h4>Upcoming Trips</h4>
+<div class="row">
+    @foreach (var t in Model.Where(x => x.IsUpcoming))
+    {
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm">
+                <img class="card-img-top" src="@t.ImageUrl" style="height: 180px; object-fit: cover;" />
+
+                <div class="card-body">
+                    <h5>@t.Destination</h5>
+                    <p class="text-muted">
+                        @t.StartDate.ToShortDateString() – @t.EndDate.ToShortDateString()
+                    </p>
+
+                    <p><strong>People:</strong> @t.NumPersons</p>
+                    <p><strong>Total Price:</strong> $@t.TotalPrice</p>
+
+                    <a href="/Admin/PackageDetails/@t.ReservationId" class="btn btn-primary">View Package</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Past trips -->
+<h4 class="mt-5">Past Trips</h4>
+<div class="row">
+    @foreach (var t in Model.Where(x => !x.IsUpcoming))
+    {
+        <div class="col-md-4">
+            <div class="card mb-4 shadow-sm border-secondary">
+                <img class="card-img-top" src="@t.ImageUrl" style="height: 180px; object-fit: cover;" />
+
+                <div class="card-body">
+                    <h5>@t.Destination</h5>
+
+                    <p class="text-muted">
+                        @t.StartDate.ToShortDateString() – @t.EndDate.ToShortDateString()
+                    </p>
+
+                    <p><strong>People:</strong> @t.NumPersons</p>
+                    <p><strong>Total Price:</strong> $@t.TotalPrice</p>
+
+                    <span class="badge bg-secondary">Completed</span>
+                </div>
+            </div>
+        </div>
+    }
+</div>

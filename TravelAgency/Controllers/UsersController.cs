@@ -51,7 +51,7 @@ namespace TravelAgency.Controllers
             // אם אדמין (type=1), שלח אותו ללוח הבקרה של אדמין
             if (userType == 1)
             {
-                return RedirectToAction("Dashboard", "Admin");
+                return RedirectToAction("index", "Admin");
             }
 
             // אם עובד (type=2), שלח אותו ללוח הבקרה של עובד

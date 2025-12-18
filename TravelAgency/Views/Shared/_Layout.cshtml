@@ -28,6 +28,11 @@
                     TravelAgency
                 </a>
             }
+            else if (logoUserType == "2"){
+                <a class="navbar-brand fw-bold" asp-controller="Admin" asp-action="Index">
+                    TravelAgency
+                </a>
+            }
             else
             {
                 <a class="navbar-brand" asp-controller="Home" asp-action="Index">
@@ -181,7 +186,7 @@
              else if (fUserType == "1") // אדמין
             {
                 fHomeController = "Admin";
-                fHomeAction = "Dashboard"; // או Index, תלוי איך קראת לזה
+                fHomeAction = "index"; // או Index, תלוי איך קראת לזה
             }
         }
 

@@ -959,4 +959,60 @@ public class AdminController : Controller
 
         return View();
     }
+    
+    
+    
+    public IActionResult UserTrips(int id) // id = userId
+    {
+        List<UserTripViewModel> trips = new();
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            string query = @"
+            SELECT 
+                h.Id AS ReservationId,
+                p.destination,
+                p.StartDate,
+                p.EndDate,
+                h.numPersons,
+                h.sum,(
+            SELECT TOP 1 imageLocation 
+            FROM ImagesPackage 
+            WHERE packageId = p.Id
+        ) AS ImageUrl
+                
+            FROM HistoryReservation h
+            JOIN Package p ON h.packageId = p.Id
+            WHERE h.userId = @uid
+            ORDER BY p.StartDate DESC";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@uid", id);
+
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        trips.Add(new UserTripViewModel
+                        {
+                            ReservationId = r.GetInt32(0),
+                            Destination = r.GetString(1),
+                            StartDate = r.GetDateTime(2),
+                            EndDate = r.GetDateTime(3),
+                            NumPersons = r.GetInt32(4),
+                            TotalPrice = r.GetInt32(5),
+                            ImageUrl = r.IsDBNull(6) ? "/images/default.jpg" : r.GetString(6)
+                        });
+                    }
+                }
+            }
+        }
+
+        ViewBag.UserId = id;
+        return View(trips);
+    }
+
 }
