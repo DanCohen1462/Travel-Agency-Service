@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
 using System.Security.Cryptography;
 using System.Text;
 using TravelAgency.Models;
+
 using Microsoft.Data.SqlClient; // <<< חשוב!
 
 namespace TravelAgency.Controllers;
@@ -12,6 +15,25 @@ public class AdminController : Controller
     public AdminController(IConfiguration config)
     {
         _connectionString = config.GetConnectionString("DefaultConnection");
+    }
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        // אם אין סשן משתמש — שלח לדף התחברות
+        if (HttpContext.Session.GetInt32("UserId") == null)
+        {
+            context.Result = RedirectToAction("Login", "Auth");
+            return;
+        }
+
+        // אם המשתמש לא אדמין – חסום גישה
+        int userType = HttpContext.Session.GetInt32("UserType") ?? 0;
+        if (userType != 1) // נניח: 1 = Admin
+        {
+            context.Result = RedirectToAction("AccessDenied", "Auth");
+            return;
+        }
+
+        base.OnActionExecuting(context);
     }
 
     // GET
@@ -102,6 +124,23 @@ public class AdminController : Controller
                     }
                 }
             }
+            
+            var duplicatedImagePaths = Request.Form["duplicateImgPaths"];
+
+            foreach (var imgPath in duplicatedImagePaths)
+            {
+                string insert = @"INSERT INTO ImagesPackage (packageId, imageLocation)
+                      VALUES (@pid, @loc)";
+
+                using (SqlCommand cmd = new SqlCommand(insert, conn))
+                {
+                    cmd.Parameters.AddWithValue("@pid", newPackageId);
+                    cmd.Parameters.AddWithValue("@loc", imgPath);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+
             return RedirectToAction("Packages");
         }
     }
@@ -1014,5 +1053,83 @@ public class AdminController : Controller
         ViewBag.UserId = id;
         return View(trips);
     }
+    public IActionResult DuplicatePackage(int id)
+    {
+        Package package = null;
+        List<Category> categories = new();
+        List<ImagePackage> images = new();
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            // --- שליפת החבילה המקורית ---
+            string query = @"
+                SELECT Id, destination, country, sum, ageLimit, numFreePlaces, 
+                       idCategory, information, cancelationDays
+                FROM Package
+                WHERE Id = @id";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@id", id);
+
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    if (r.Read())
+                    {
+                        package = new Package
+                        {
+                            destination = r.GetString(1),
+                            country = r.IsDBNull(2) ? null : r.GetString(2),
+                            sum = r.GetInt32(3),
+                            ageLimit = r.GetInt32(4),
+                            numFreePlaces = r.GetInt32(5),
+                            idCategory = r.GetInt32(6),
+                            information = r.GetString(7),
+                            cancelationDays = r.IsDBNull(8) ? null : r.GetInt32(8),
+
+                            // חשוב – התאריכים לא מועתקים
+                            StartDate = DateTime.MinValue,
+                            EndDate = DateTime.MinValue
+                        };
+                    }
+                }
+            }
+
+            // --- קטגוריות ---
+            string qCat = @"SELECT Id, name FROM Category WHERE inactive = 0";
+            using (SqlCommand cmd = new SqlCommand(qCat, conn))
+            using (SqlDataReader r = cmd.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    categories.Add(new Category { Id = r.GetInt32(0), name = r.GetString(1) });
+                }
+            }
+
+            // --- שליפת תמונות ---
+            string qImg = @"SELECT imageLocation FROM ImagesPackage WHERE packageId = @pid";
+            using (SqlCommand cmd = new SqlCommand(qImg, conn))
+            {
+                cmd.Parameters.AddWithValue("@pid", id);
+
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        images.Add(new ImagePackage { ImageLocation = r.GetString(0) });
+                    }
+                }
+            }
+        }
+
+        ViewBag.Categories = categories;
+        ViewBag.Images = images;    // להצגה בטופס ושכפול בהמשך
+        ViewBag.Duplicated = true;  // כדי להציג הודעה מיוחדת בטופס
+
+        return View("CreatePackage", package);
+    }
+
 
 }

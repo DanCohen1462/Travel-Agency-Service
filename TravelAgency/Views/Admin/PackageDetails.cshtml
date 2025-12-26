@@ -93,6 +93,15 @@
                                 Delete Package
                             </button>
                         </form>
+                        <form method="get" action="/Admin/DuplicatePackage">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button class="btn btn-warning"
+                                    onclick="return confirm('Duplicate this package?');">
+                                Duplicate Package
+                            </button>
+                        </form>
+
+                        
                         <a href="/Admin/EditPackage/@Model.Id" class="btn btn-warning text-white">
                             Edit Package
                         </a>

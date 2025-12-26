@@ -21,10 +21,17 @@ public class AuthController : Controller
 
     // ---------- Register (POST) ----------
     [HttpPost]
-    public IActionResult Register(User model)
+    public IActionResult Register(UserView model)
     {
         if (!ModelState.IsValid)
         {
+            foreach (var kvp in ModelState)
+            {
+                foreach (var error in kvp.Value.Errors)
+                {
+                    Console.WriteLine($"❌ FIELD: {kvp.Key} → ERROR: {error.ErrorMessage}");
+                }
+            }
             return View(model);
         }
 
@@ -63,7 +70,7 @@ public class AuthController : Controller
                 cmd.ExecuteNonQuery();
             }
         }
-
+       
         return RedirectToAction("Login");
     }
 
@@ -177,6 +184,13 @@ public class AuthController : Controller
 
         ViewBag.Success = "Password changed successfully.";
         return View(new ChangePasswordViewModel());
+    }
+    
+    
+    
+    public IActionResult AccessDenied()
+    {
+        return View();
     }
 
     // ---------- Logout ----------
