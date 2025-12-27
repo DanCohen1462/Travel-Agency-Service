@@ -6,39 +6,59 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>@ViewData["Title"] - TravelAgency</title>
+    <title>TravelAgency</title>
+
 
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="icon" type="image/png" href="@Url.Content("~/icons/airplane.png")" />
     <link rel="stylesheet" href="~/TravelAgency.styles.css" asp-append-version="true"/>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    
 </head>
 <body>
 <header>
     <nav class="navbar navbar-expand-lg navbar-custom mb-3">
         <div class="container">
+            
 
             @{
-                // בדיקה מהירה: מי המשתמש, כדי לדעת לאן הלוגו צריך לקחת אותו
                 var logoUserType = HttpContextAccessor.HttpContext?.Session.GetString("UserType");
+
+                string logoController = "Home";
+                string logoAction = "Index";
+
+                if (logoUserType == "2")
+                {
+                    logoController = "Employee";
+                    logoAction = "EmployeeDashboard";
+                }
+                else if (logoUserType == "1")
+                {
+                    logoController = "Admin";
+                    logoAction = "Index";
+                }
+                else if (logoUserType == "3")
+                {
+                    logoController = "Users";
+                    logoAction = "Dashboard";
+                }
+                
             }
 
-            @if (logoUserType == "2")
-            {
-                <a class="navbar-brand fw-bold" asp-controller="Employee" asp-action="EmployeeDashboard">
-                    TravelAgency
-                </a>
-            }
-            else if (logoUserType == "2"){
-                <a class="navbar-brand fw-bold" asp-controller="Admin" asp-action="Index">
-                    TravelAgency
-                </a>
-            }
-            else
-            {
-                <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                    TravelAgency
-                </a>
-            }
+            <a class="navbar-brand d-flex align-items-center gap-2"
+               asp-controller="@logoController" asp-action="@logoAction">
+                <span class="fw-bold">TravelAgency</span>
+
+                <img src="@Url.Content("~/icons/airplane.png")"
+                     alt="Logo"
+                     style="height:26px;width:auto;display:inline-block;vertical-align:middle;" />
+
+
+
+            </a>
+
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarNav">
@@ -54,6 +74,8 @@
                                ?? HttpContextAccessor.HttpContext?.Session.GetString("Username")
                                ?? "";
                 var cartCount = HttpContextAccessor.HttpContext?.Session.GetInt32("CartCount") ?? 0;
+                var notifCount = HttpContextAccessor.HttpContext?.Session.GetInt32("NotifCount") ?? 0;
+
             }
 
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -80,10 +102,18 @@
 
                             // 2. הודעות
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Notifications" asp-action="Index">
+                                <a class="nav-link d-flex align-items-center" asp-controller="Notifications" asp-action="Index">
                                     Notifications
+                                    <span class="notifBadge badge rounded-pill bg-danger ms-2"
+                                          style="display:@(notifCount > 0 ? "inline-block" : "none")">
+                                        @notifCount
+                                    </span>
+
+
                                 </a>
                             </li>
+
+
 
                             // 3. יצירת קשר
                             <li class="nav-item">
@@ -98,7 +128,7 @@
                                     Profile
                                 </a>
                             </li>
-                            <li class="nav-item"><a class="nav-link" asp-controller="Package" asp-action="Gallery">Search Trip</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Package" asp-action="SearchStart">Search Trip</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Users" asp-action="MyTrips">My Trips</a></li>
 
                         }
@@ -115,8 +145,19 @@
                         {
                             <li class="nav-item"><a class="nav-link" asp-controller="Users" asp-action="MyTrips">My Trips</a></li>
                             <li class="nav-item"><a class="nav-link" asp-controller="Users" asp-action="Profile">Profile</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-controller="Package" asp-action="Gallery">Search Trip</a></li>
-                            <li class="nav-item"><a class="nav-link" asp-controller="Notifications" asp-action="Index">Notifications</a></li>
+                            <li class="nav-item"><a class="nav-link" asp-controller="Package" asp-action="SearchStart">Search Trip</a></li>
+                            <li class="nav-item">
+                                <a class="nav-link d-flex align-items-center" asp-controller="Notifications" asp-action="Index">
+                                    Notifications
+                                    <span class="notifBadge badge rounded-pill bg-danger ms-2"
+                                          style="display:@(notifCount > 0 ? "inline-block" : "none")">
+                                        @notifCount
+                                    </span>
+
+                                </a>
+                            </li>
+
+
                             <li class="nav-item"><a class="nav-link" asp-controller="Home" asp-action="ContactUs">Contact Us</a></li>
                         }
                     }
@@ -132,10 +173,15 @@
                     else
                     {
                         <li class="nav-item me-3">
-                            <a class="nav-link d-flex align-items-center" asp-controller="Cart" asp-action="Index">
+                            <a class="nav-link d-flex align-items-center" asp-controller="Cart" asp-action="Cart">
                                 <span class="me-1">&#128722;</span> Cart
-                                <span class="badge rounded-pill bg-danger ms-1">@cartCount</span>
+                                <span id="cartBadge" class="badge rounded-pill bg-danger ms-1"
+                                      style="display:@(cartCount > 0 ? "inline-block" : "none")">
+                                    @cartCount
+                                </span>
+
                             </a>
+
                         </li>
 
                         <li class="nav-item me-3">
@@ -183,7 +229,7 @@
                 fHomeController = "Users";
                 fHomeAction = "Dashboard";
             }
-             else if (fUserType == "1") // אדמין
+            else if (fUserType == "1") // אדמין
             {
                 fHomeController = "Admin";
                 fHomeAction = "index"; // או Index, תלוי איך קראת לזה
@@ -268,6 +314,163 @@
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
+
+
+<script>
+    async function pollBadgesOnly() {
+        try {
+            const res = await fetch('/Cart/BadgeCounts', {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            if (!res.ok) return;
+
+            const data = await res.json();
+
+            // update cart badge
+            const cartBadge = document.getElementById('cartBadge');
+            if (cartBadge && typeof data.cartCount === 'number') {
+                if (data.cartCount > 0) {
+                    cartBadge.style.display = 'inline-block';
+                    cartBadge.textContent = data.cartCount;
+                } else {
+                    cartBadge.style.display = 'none';
+                    cartBadge.textContent = '';
+                }
+            }
+
+            // ✅ update notifications badge (יכול להיות שיש כמה)
+            document.querySelectorAll('.notifBadge').forEach(nb => {
+                if (nb && typeof data.notifCount === 'number') {
+                    if (data.notifCount > 0) {
+                        nb.style.display = 'inline-block';
+                        nb.textContent = data.notifCount;
+                    } else {
+                        nb.style.display = 'none';
+                        nb.textContent = '';
+                    }
+                }
+            });
+
+        } catch (e) {
+            // silent
+        }
+    }
+
+    pollBadgesOnly();               // ✅ ריצה פעם אחת מיד
+    setInterval(pollBadgesOnly, 5000);
+</script>
+
+
+
+<!-- ✅ Toasts container: top-right under navbar -->
+<div id="toastArea"
+     style="position:fixed; top:90px; right:24px; z-index:99999;
+            display:flex; flex-direction:column; gap:10px; min-width:320px;">
+</div>
+<script>
+    function showToast(msg, kind) {
+        const area = document.getElementById("toastArea");
+        if (!area) return;
+
+        const div = document.createElement("div");
+
+        // צבע פס צד לפי סוג
+        let accent = "#175CD3"; // info default
+        let icon = "ℹ️";
+
+        if (kind === "success") { accent = "#1A7F37"; icon = "✅"; }
+        if (kind === "error")   { accent = "#B42318"; icon = "⚠️"; }
+        if (kind === "warning") { accent = "#B54708"; icon = "⚠️"; }
+
+        div.style.cssText =
+            "background:#FFFFFF; color:#111827; padding:14px 16px; border-radius:14px;" +
+            "border:1px solid #E5E7EB; box-shadow:0 10px 24px rgba(0,0,0,0.12);" +
+            "display:flex; gap:10px; align-items:flex-start;" +
+            "border-right:6px solid " + accent + ";";
+
+        div.innerHTML =
+            `<div style="font-size:18px;line-height:1;margin-top:1px;">${icon}</div>` +
+            `<div style="font-weight:700;">${msg}</div>`;
+
+        area.appendChild(div);
+        setTimeout(() => div.remove(), 2500);
+    }
+</script>
+
+
+@if (TempData["BookToast"] != null)
+{
+    <script>
+        showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["BookToast"])), "success");
+    </script>
+}
+@if (TempData["CartError"] != null)
+{
+    <script>
+        showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["CartError"])), "error");
+    </script>
+}
+@if (TempData["PaymentToastError"] != null)
+{
+    <script>
+        showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["PaymentToastError"])), "error");
+    </script>
+}
+@if (TempData["PaymentToastSuccess"] != null)
+{
+    <script>
+        showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["PaymentToastSuccess"])), "success");
+    </script>
+}
+@if (TempData["WaitlistToast"] != null)
+{
+    <script>
+        showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["WaitlistToast"])), "info");
+    </script>
+}
+@if (TempData["Success"] != null)
+{
+    <script>
+        showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["Success"])), "success");
+    </script>
+}
+@if (TempData["Error"] != null)
+{
+    <script>
+        showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["Error"])), "error");
+    </script>
+}
+@if (TempData["WelcomeToast"] != null)
+{
+    <script>
+        showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["WelcomeToast"])), "success");
+    </script>
+}
+
+
+
 @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
+<script>
+  (function () {
+    // 1) before any form submit - remember scroll
+    document.addEventListener('submit', function () {
+      try {
+        sessionStorage.setItem('scrollY', String(window.scrollY || 0));
+      } catch (e) {}
+    }, true);
+
+    // 2) after page load - restore scroll
+    window.addEventListener('load', function () {
+      try {
+        const y = parseInt(sessionStorage.getItem('scrollY') || "0");
+        if (y > 0) window.scrollTo(0, y);
+        sessionStorage.removeItem('scrollY');
+      } catch (e) {}
+    });
+  })();
+</script>

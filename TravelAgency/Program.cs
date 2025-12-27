@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TravelAgency.Models;
+using TravelAgency.Services; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddHttpContextAccessor();
+
+
 
 // Sessions (required for cart, login temp data, booking progress)
 builder.Services.AddDistributedMemoryCache();
@@ -16,7 +19,9 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
-
+builder.Services.AddScoped<TravelAgency.Services.NotificationService>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddHostedService<TravelAgency.Services.CartCleanupHostedService>();
 // DB Connection
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -29,6 +34,7 @@ builder.Services.AddAuthentication();
 // builder.Services.AddTransient<IEmailSender, MyEmailSender>();
 
 var app = builder.Build();
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 // Error handling
 if (!app.Environment.IsDevelopment())
@@ -43,6 +49,8 @@ app.UseStaticFiles();
 app.UseRouting();
 // Sessions
 app.UseSession();
+app.UseMiddleware<TravelAgency.Middleware.BadgeCountsMiddleware>();
+
 // Auth
 app.UseAuthentication();
 app.UseAuthorization();

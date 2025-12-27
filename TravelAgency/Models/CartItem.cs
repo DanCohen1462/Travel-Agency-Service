@@ -8,6 +8,10 @@
     public int Quantity { get; set; }       // numPersons
     public string ImageUrl { get; set; } = "/images/default.jpg";
 
+    public string Country { get; set; }
+
+    public DateTime ExpiresAt { get; set; }
+
     public int ShoppingCartRowId { get; set; } // row id in shoppingcart
     public int TotalSum { get; set; }          // total price for that row
 }

@@ -25,6 +25,7 @@
 
     // ✅ NEW
     var waitingCountByPackage = ViewBag.WaitingCountByPackage as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var hasActiveOfferByPackage = ViewBag.HasActiveOfferByPackage as Dictionary<int, bool> ?? new Dictionary<int, bool>();
 
     int totalPassengers = adults + children;
 
@@ -42,162 +43,219 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 
 <style>
-    body { background:#F6F7FB; }
+    body { background: #F8FAFC; font-family: 'Segoe UI', system-ui, sans-serif; }
 
-    /* ===== SearchStart-like box ===== */
-    .search-shell{
-        background:#fff;
-        border-radius:28px;
-        padding:24px 22px;
-        box-shadow:0 18px 45px rgba(0,0,0,0.10);
-        border:3px solid rgba(19,184,166,0.45);
+    /* ===== SEARCH SHELL (Modernized) ===== */
+    .search-shell {
+        background: #fff;
+        border-radius: 28px;
+        padding: 35px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.06);
+        border: 1px solid #e2e8f0;
+        position: relative;
+        overflow: visible;
+        margin-bottom: 20px;
     }
 
-    .search-grid{
-        display:grid;
-        grid-template-columns: 2.4fr 1fr 1fr 1fr 1fr 1fr auto;
-        gap:14px;
-        align-items:end;
+    /* פס טורקיז עליון */
+    .search-shell::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 5px;
+        background: #13B8A6;
+        border-radius: 28px 28px 0 0;
     }
 
-    .field-label{
-        font-weight:800;
-        color:#0B4255;
-        margin-bottom:8px;
-        font-size:18px;
+    .search-grid {
+        display: grid;
+        grid-template-columns: 2.2fr 1fr 1fr 0.8fr 0.8fr 0.8fr auto;
+        gap: 15px;
+        align-items: end;
+        width: 100%;
     }
 
-    .control{
-        border-radius:16px;
-        padding:14px 16px;
-        height:56px;
-        border:1px solid #e4e9f2;
-        font-size:16px;
+    .field-label {
+        font-weight: 700;
+        color: #0B4255;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
     }
 
-    .btn-search{
-        height:56px;
-        border-radius:18px;
-        padding:0 26px;
-        font-weight:800;
-        font-size:20px;
-        background: linear-gradient(90deg, #13B8A6, #0F6E8C);
-        border:none;
-        color:#fff;
-        min-width:190px;
+    .field-label i { color: #13B8A6; opacity: 0.8; }
+
+    .control {
+        border-radius: 14px;
+        height: 56px;
+        border: 1px solid #cbd5e1;
+        background-color: #FBFDFE;
+        font-size: 15px;
+        font-weight: 500;
+        padding: 14px 16px;
+        transition: all 0.2s ease;
     }
 
-    /* suggestions dropdown */
-    .search-wide { position:relative; }
-    .suggestions{
-        position:absolute;
-        top: calc(100% + 8px);
-        left:0;
-        right:0;
-        background:#fff;
-        border:1px solid #e3e6ef;
-        border-radius:16px;
-        box-shadow:0 14px 34px rgba(0,0,0,0.14);
-        z-index:99999;
-        overflow:hidden;
-        display:none;
-        max-height:280px;
-        overflow-y:auto;
-    }
-    .suggestion-item{
-        padding:12px 14px;
-        cursor:pointer;
-        font-size:14px;
-        border-bottom:1px solid #f1f3f8;
-        white-space:nowrap;
-        overflow:hidden;
-        text-overflow:ellipsis;
-    }
-    .suggestion-item:hover{ background:#F3F6FF; }
-
-    /* ===== Filters (NEW compact layout) ===== */
-    .filters-bar{
-        margin-top:14px;
-        background: transparent;
-        border:none;
-        box-shadow:none;
+    .control:focus {
+        background-color: #ffffff;
+        border-color: #13B8A6;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(19, 184, 166, 0.1) !important;
     }
 
-    .results-pill{
-        width:100%;
-        background: rgba(255,255,255,0.65);
-        border:1px solid rgba(11,66,85,0.10);
-        border-radius:18px;
-        padding:10px 14px;
-        backdrop-filter: blur(6px);
-        font-weight:800;
-        color:#6c757d;
-    }
-
-    .filters-row{
-        width:100%;
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:12px;
-        flex-wrap:wrap;
-        margin-top:10px;
-    }
-
-    .filter-group{
-        flex:1 1 0;
-        min-width:220px;
-    }
-
-    .filter-group.center{
-        flex:1.1 1 0;
-    }
-
-    .filter-right{
-        display:flex;
-        align-items:center;
-        justify-content:flex-end;
-        gap:10px;
-        flex:1 1 0;
-        min-width:240px;
-    }
-
-    .mini-select{
-        border-radius:14px;
-        height:42px;
-        padding:6px 12px;
-        border:1px solid rgba(11,66,85,0.12);
-        background: rgba(255,255,255,0.92);
-        width:100%;
-    }
-
-    .mini-check{
-        display:flex;
-        align-items:center;
-        gap:8px;
-        font-weight:900;
-        color:#0B4255;
-
-        background: rgba(255,255,255,0.65);
-        border:1px solid rgba(11,66,85,0.10);
-        border-radius:999px;
-        padding:8px 12px;
-        backdrop-filter: blur(6px);
-        height:42px;
-        white-space:nowrap;
-    }
-
-    .btn-apply{
-        height:42px;
-        border-radius:14px;
-        padding:0 16px;
-        font-weight:900;
-        border:none;
-        color:#fff;
+    .btn-search {
+        height: 56px;
+        border-radius: 14px;
+        padding: 0 30px;
+        font-weight: 800;
+        font-size: 18px;
+        color: #fff;
+        border: none;
         background: #0B4255;
-        box-shadow:0 10px 20px rgba(11,66,85,0.22);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-width: 160px;
     }
-    .btn-apply:hover{ filter: brightness(1.03); }
+
+    .btn-search:hover {
+        background: #13B8A6;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(19, 184, 166, 0.2);
+    }
+
+    /* Suggestions */
+    .search-wide { position:relative; }
+    .suggestions {
+        position: absolute;
+        top: calc(100% + 10px);
+        left: 0; right: 0;
+        background: #fff;
+        border-radius: 15px;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        z-index: 99999;
+        display: none;
+        border: none;
+        overflow-y: auto;
+        max-height: 280px;
+    }
+    .suggestion-item {
+        padding: 14px 18px;
+        cursor: pointer;
+        transition: 0.2s;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 14px;
+    }
+    .suggestion-item:hover { background: #F0FDFA; color: #13B8A6; }
+
+    /* ===== FILTERS BAR UPGRADE ===== */
+    .filters-bar {
+        margin: 30px 0;
+        padding: 20px 25px;
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        border: 1px solid #e2e8f0;
+    }
+
+    .results-info {
+        font-size: 15px;
+        color: #64748b;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .results-info strong {
+        color: #0B4255;
+    }
+
+    .filters-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    /* עיצוב ה-Select הקטן */
+    .mini-select-wrapper {
+        position: relative;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .mini-select {
+        height: 45px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background-color: #f8fafc;
+        font-size: 14px;
+        font-weight: 600;
+        color: #0B4255;
+        padding: 0 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        appearance: none; /* מסיר את החץ המקורי */
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230B4255'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='C19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px;
+    }
+
+    .mini-select:hover {
+        border-color: #13B8A6;
+        background-color: #ffffff;
+    }
+
+    /* כפתור ה-"On Sale" כסוויץ' מודרני */
+    .on-sale-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #fff;
+        border: 1px solid #cbd5e1;
+        padding: 8px 18px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 700;
+        font-size: 14px;
+        color: #0B4255;
+        user-select: none;
+        height: 45px;
+    }
+
+    .on-sale-toggle:has(input:checked) {
+        background: #FEF2F2;
+        border-color: #EF4444;
+        color: #DC2626;
+    }
+
+    .on-sale-toggle input {
+        accent-color: #DC2626;
+        width: 17px;
+        height: 17px;
+    }
+
+    .btn-clear-filters {
+        color: #64748b;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        transition: 0.2s;
+    }
+
+    .btn-clear-filters:hover {
+        color: #EF4444;
+    }
 
     /* ===== Cards ===== */
     .cardx{
@@ -311,14 +369,13 @@
     }
 
     <!-- ============ SEARCH (same idea as SearchStart) ============ -->
-    <div class="search-shell">
+ <div class="search-shell">
         <form method="get" asp-controller="Package" asp-action="Gallery" id="gallerySearchForm">
 
             <input type="hidden" name="destination" id="destination" value="@destination" />
             <input type="hidden" name="country" id="country" value="@country" />
             <input type="hidden" name="categoryId" id="categoryId" value="@(categoryId.HasValue ? categoryId.Value.ToString() : "")" />
 
-            <!-- keep filter/sort values -->
             <input type="hidden" name="priceRange" value="@priceRange" />
             <input type="hidden" name="sortBy" value="@sortBy" />
             <input type="hidden" name="onSaleOnly" value="@(onSaleOnly ? "true" : "false")" />
@@ -326,234 +383,122 @@
             <div class="search-grid">
 
                 <div class="search-wide">
-                    <div class="field-label">Search</div>
+                    <label class="field-label"><i class="fa-solid fa-magnifying-glass"></i> Explore</label>
                     <input class="form-control control"
                            type="text"
                            id="searchText"
                            name="searchText"
                            value="@searchText"
-                           autocomplete="off" />
+                           autocomplete="off"
+                           placeholder="Destination or theme..." />
                     <div id="suggestions" class="suggestions"></div>
                 </div>
 
                 <div>
-                    <div class="field-label">Month</div>
+                    <label class="field-label"><i class="fa-solid fa-calendar-day"></i> Month</label>
                     <select class="form-select control" name="month" id="month">
-                        @if (!month.HasValue)
-                        {
-                            <option value="" selected>Any</option>
-                        }
-                        else
-                        {
-                            <option value="">Any</option>
-                        }
-
+                        <option value="">Any Month</option>
                         @for (int i = 1; i <= 12; i++)
                         {
-                            if (month.HasValue && month.Value == i)
-                            {
-                                <option value="@i" selected>@months[i - 1]</option>
-                            }
-                            else
-                            {
-                                <option value="@i">@months[i - 1]</option>
-                            }
+                            <option value="@i" selected="@(month.HasValue && month.Value == i)">@months[i - 1]</option>
                         }
                     </select>
-
                 </div>
 
                 <div>
-                    <div class="field-label">Year</div>
+                    <label class="field-label"><i class="fa-solid fa-calendar"></i> Year</label>
                     <select class="form-select control" name="year" id="year">
-                        @if (!year.HasValue)
-                        {
-                            <option value="" selected>Any</option>
-                        }
-                        else
-                        {
-                            <option value="">Any</option>
-                        }
-
+                        <option value="">Any Year</option>
                         @for (int y = currentYear; y <= currentYear + 6; y++)
                         {
-                            if (year.HasValue && year.Value == y)
-                            {
-                                <option value="@y" selected>@y</option>
-                            }
-                            else
-                            {
-                                <option value="@y">@y</option>
-                            }
+                            <option value="@y" selected="@(year.HasValue && year.Value == y)">@y</option>
                         }
                     </select>
-
                 </div>
 
                 <div>
-                    <div class="field-label">Adults (18+)</div>
-                    <input class="form-control control"
+                    <label class="field-label"><i class="fa-solid fa-user"></i> Adults</label>
+                    <input class="form-control control text-center"
                            type="number" name="adults" id="adults"
                            min="1" value="@adults" required />
                 </div>
 
                 <div>
-                    <div class="field-label">Children (0–17)</div>
-                    <input class="form-control control"
+                    <label class="field-label"><i class="fa-solid fa-child"></i> Kids</label>
+                    <input class="form-control control text-center"
                            type="number" name="children" id="children"
                            min="0" value="@children" required />
                 </div>
 
                 <div>
-                    <div class="field-label">Youngest age</div>
-                    <input class="form-control control"
+                    <label class="field-label"><i class="fa-solid fa-baby"></i> Youngest</label>
+                    <input class="form-control control text-center"
                            type="number" name="youngestAge" id="youngestAge"
                            min="0" max="17"
                            value="@youngestVal"
-                           placeholder="Only if children" />
+                           placeholder="Age" />
                 </div>
 
                 <div>
-                    <div class="field-label">&nbsp;</div>
-                    <button type="submit" class="btn-search">Search</button>
+                    <button type="submit" class="btn-search">
+                        <i class="fa-solid fa-plane-departure"></i> Search
+                    </button>
                 </div>
-
             </div>
         </form>
     </div>
 
-    <!-- ============ FILTERS + SORT (NEW layout) ============ -->
-    <div class="filters-bar">
+ <div class="filters-bar">
+    <div class="results-info">
+        <i class="fa-solid fa-sliders text-teal"></i>
+        <span>Showing results for <strong>@totalPassengers</strong> travelers</span>
+        <span class="mx-2 text-muted">|</span>
+        <a href="/Package/Gallery" class="btn-clear-filters">Clear all filters</a>
+    </div>
 
-        <div class="results-pill">
-            Showing results for <strong>@totalPassengers</strong> passengers
-            (@adults adults, @children children)
-        </div>
+    <form method="get" asp-controller="Package" asp-action="Gallery" id="filtersForm">
+        <input type="hidden" name="searchText" value="@searchText" />
+        <input type="hidden" name="destination" value="@destination" />
+        <input type="hidden" name="country" value="@country" />
+        <input type="hidden" name="categoryId" value="@(categoryId.HasValue ? categoryId.Value.ToString() : "")" />
+        <input type="hidden" name="month" value="@(month.HasValue ? month.Value.ToString() : "")" />
+        <input type="hidden" name="year" value="@(year.HasValue ? year.Value.ToString() : "")" />
+        <input type="hidden" name="adults" value="@adults" />
+        <input type="hidden" name="children" value="@children" />
+        <input type="hidden" name="youngestAge" value="@youngestVal" />
 
         <div class="filters-row">
-            <form method="get" asp-controller="Package" asp-action="Gallery" class="w-100 d-flex gap-3 flex-wrap">
+            <div class="mini-select-wrapper">
+                <select class="form-select mini-select" name="priceRange">
+                    <option value="">Price: Any Range</option>
+                    <option value="low" selected="@(priceRange == "low")">Budget (Under $500)</option>
+                    <option value="mid" selected="@(priceRange == "mid")">Standard ($500 - $3000)</option>
+                    <option value="high" selected="@(priceRange == "high")">Premium (Over $3000)</option>
+                </select>
+            </div>
 
-                <!-- keep search state -->
-                <input type="hidden" name="searchText" value="@searchText" />
-                <input type="hidden" name="destination" value="@destination" />
-                <input type="hidden" name="country" value="@country" />
-                <input type="hidden" name="categoryId" value="@(categoryId.HasValue ? categoryId.Value.ToString() : "")" />
-                <input type="hidden" name="month" value="@(month.HasValue ? month.Value.ToString() : "")" />
-                <input type="hidden" name="year" value="@(year.HasValue ? year.Value.ToString() : "")" />
-                <input type="hidden" name="adults" value="@adults" />
-                <input type="hidden" name="children" value="@children" />
-                <input type="hidden" name="youngestAge" value="@youngestVal" />
+            <div class="mini-select-wrapper">
+                <select class="form-select mini-select" name="sortBy">
+                    <option value="travelDate" selected="@(sortBy == "travelDate")">Sort by: Date</option>
+                    <option value="priceAsc" selected="@(sortBy == "priceAsc")">Price: Low to High</option>
+                    <option value="priceDesc" selected="@(sortBy == "priceDesc")">Price: High to Low</option>
+                    <option value="popular" selected="@(sortBy == "popular")">Most Popular</option>
+                </select>
+            </div>
 
-                <!-- LEFT -->
-                <div class="filter-group">
-                    <select class="form-select mini-select" name="priceRange">
-                        @if (string.IsNullOrEmpty(priceRange))
-                        {
-                            <option value="" selected>Price range (Any)</option>
-                        }
-                        else
-                        {
-                            <option value="">Price range (Any)</option>
-                        }
+            <label class="on-sale-toggle">
+                <input type="checkbox" name="onSaleOnly" value="true" @(onSaleOnly ? "checked" : "") onchange="this.form.submit()" />
+                <i class="fa-solid fa-fire-flame-curved"></i> On Sale Only
+            </label>
 
-                        @if (priceRange == "low")
-                        {
-                            <option value="low" selected>Low (&lt; $500)</option>
-                        }
-                        else
-                        {
-                            <option value="low">Low (&lt; $500)</option>
-                        }
-
-                        @if (priceRange == "mid")
-                        {
-                            <option value="mid" selected>Mid ($500–$3000)</option>
-                        }
-                        else
-                        {
-                            <option value="mid">Mid ($500–$3000)</option>
-                        }
-
-                        @if (priceRange == "high")
-                        {
-                            <option value="high" selected>High (&gt; $3000)</option>
-                        }
-                        else
-                        {
-                            <option value="high">High (&gt; $3000)</option>
-                        }
-                    </select>
-
-                </div>
-
-                <!-- CENTER -->
-                <div class="filter-group center">
-                    <select class="form-select mini-select" name="sortBy">
-                        @if (sortBy == "travelDate")
-                        {
-                            <option value="travelDate" selected>Sort: Travel date</option>
-                        }
-                        else
-                        {
-                            <option value="travelDate">Sort: Travel date</option>
-                        }
-
-                        @if (sortBy == "priceAsc")
-                        {
-                            <option value="priceAsc" selected>Sort: Price (low→high)</option>
-                        }
-                        else
-                        {
-                            <option value="priceAsc">Sort: Price (low→high)</option>
-                        }
-
-                        @if (sortBy == "priceDesc")
-                        {
-                            <option value="priceDesc" selected>Sort: Price (high→low)</option>
-                        }
-                        else
-                        {
-                            <option value="priceDesc">Sort: Price (high→low)</option>
-                        }
-
-                        @if (sortBy == "popular")
-                        {
-                            <option value="popular" selected>Sort: Most popular</option>
-                        }
-                        else
-                        {
-                            <option value="popular">Sort: Most popular</option>
-                        }
-
-                        @if (sortBy == "category")
-                        {
-                            <option value="category" selected>Sort: Category</option>
-                        }
-                        else
-                        {
-                            <option value="category">Sort: Category</option>
-                        }
-                    </select>
-
-                </div>
-
-                <!-- RIGHT -->
-                <div class="filter-right">
-
-                    <!-- ✅ FIX: always send false if unchecked -->
-                    <input type="hidden" name="onSaleOnly" value="false" />
-
-                    <label class="mini-check">
-                        <input type="checkbox" name="onSaleOnly" value="true" @(onSaleOnly ? "checked" : "") />
-                        On sale only
-                    </label>
-
-                    <button class="btn-apply" type="submit">Apply</button>
-                </div>
-
-            </form>
+            
         </div>
+    </form>
+</div>
     </div>
+    
+
+
 
     <div class="mt-4">
         @if (Model == null || !Model.Any())
@@ -576,98 +521,109 @@
                         ? (int)Math.Round(originalPrice * (1 - (p.DiscountPercent!.Value / 100.0)))
                         : originalPrice;
 
-                    bool isUnavailable = p.numFreePlaces <= 0 || p.numFreePlaces < totalPassengers;
-                    bool isAlmostFull = p.numFreePlaces > 0 && p.numFreePlaces <= 5;
+                    bool hasOffer = hasActiveOfferByPackage.ContainsKey(p.Id) && hasActiveOfferByPackage[p.Id];
+
+                    bool isUnavailable = !hasOffer && (p.numFreePlaces <= 0 || p.numFreePlaces < totalPassengers);
+                    bool isAlmostFull = !isUnavailable && !hasOffer && (p.numFreePlaces > 0 && p.numFreePlaces <= 5);
+
 
                     int waitingCount = waitingCountByPackage.ContainsKey(p.Id) ? waitingCountByPackage[p.Id] : 0;
 
                     string carouselId = $"car_{p.Id}";
 
-                    <div class="col-lg-4 col-md-6">
-                        <div class="cardx position-relative @(isUnavailable ? "card-disabled" : "")">
+                  <div class="col-lg-4 col-md-6">
+    <div class="cardx position-relative @(isUnavailable ? "card-disabled" : "")">
 
-                            @if (isAlmostFull && !isUnavailable)
-                            {
-                                <div class="badge-left">Only @p.numFreePlaces places left</div>
-                            }
+        @if (isAlmostFull && !isUnavailable)
+        {
+            <div class="badge-left">Only @p.numFreePlaces places left</div>
+        }
 
-                            @if (isUnavailable)
-                            {
-                                <div class="badge-full">FULL</div>
-                            }
+        @if (isUnavailable)
+        {
+            <div class="badge-full">FULL</div>
+        }
 
-                            <div id="@carouselId"
-                                 class="carousel slide"
-                                 data-bs-ride="carousel"
-                                 data-bs-interval="3500"
-                                 data-bs-pause="hover">
-                                <div class="carousel-inner">
-                                    @for (int i = 0; i < imgs.Count; i++)
-                                    {
-                                        <div class="carousel-item @(i == 0 ? "active" : "")">
-                                            <img src="@imgs[i]" alt="Package image" />
-                                        </div>
-                                    }
-                                </div>
-
-                                @if (imgs.Count > 1)
-                                {
-                                    <button class="carousel-control-prev" type="button" data-bs-target="#@carouselId" data-bs-slide="prev">
-                                        <span class="carousel-control-prev-icon"></span>
-                                    </button>
-                                    <button class="carousel-control-next" type="button" data-bs-target="#@carouselId" data-bs-slide="next">
-                                        <span class="carousel-control-next-icon"></span>
-                                    </button>
-                                }
-                            </div>
-
-                            <div class="bodyx">
-                                <div class="fw-bold" style="font-size:18px;">@p.destination</div>
-                                <div class="text-muted">@p.country</div>
-
-                                <div class="mt-2">
-                                    <span class="pill">@p.CategoryName</span>
-
-                                    <div class="meta-line">Travel dates: <span>@p.StartDate.ToString("dd/MM/yyyy") – @p.EndDate.ToString("dd/MM/yyyy")</span></div>
-                                    <div class="meta-line">Min age: <span>@p.ageLimit+</span></div>
-                                </div>
-
-                                <div class="price-row">
-                                    @if (isOnSale)
-                                    {
-                                        <span class="price text-danger">$@finalPrice</span>
-                                        <span class="old-price">$@originalPrice</span>
-                                        <span class="badge bg-danger sale-badge">@p.DiscountPercent% OFF</span>
-                                        <span class="text-muted">per person</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="price">$@finalPrice</span>
-                                        <span class="text-muted">per person</span>
-                                    }
-                                </div>
-
-                                <a class="btn btn-outline-primary w-100 mt-3 fw-bold"
-                                   href="/Package/PackageDetails/@p.Id?adults=@adults&children=@children&searchText=@(Uri.EscapeDataString(searchText))&destination=@(Uri.EscapeDataString(destination))&country=@(Uri.EscapeDataString(country))&categoryId=@(categoryId.HasValue ? categoryId.Value.ToString() : "")&month=@(month.HasValue ? month.Value.ToString() : "")&year=@(year.HasValue ? year.Value.ToString() : "")&youngestAge=@(youngestVal)">
-                                    View Details
-                                </a>
-
-                                                   
-                                @if (isUnavailable)
-                                {
-                                    <button type="button"
-                                            class="btn btn-outline-secondary w-100 fw-bold mt-2"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#waitlistModal"
-                                            data-package-id="@p.Id"
-                                            data-num-persons="@totalPassengers"
-                                            data-waiting-count="@waitingCount">
-                                        Waiting List
-                                    </button>
-                                }
-                            </div>
-                        </div>
+        <div id="@carouselId"
+             class="carousel slide"
+             data-bs-ride="carousel"
+             data-bs-interval="3500"
+             data-bs-pause="hover">
+            <div class="carousel-inner">
+                @for (int i = 0; i < imgs.Count; i++)
+                {
+                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                        <img src="@imgs[i]" alt="Package image" />
                     </div>
+                }
+            </div>
+
+            @if (imgs.Count > 1)
+            {
+                <button class="carousel-control-prev" type="button" data-bs-target="#@carouselId" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#@carouselId" data-bs-slide="next">
+                    <span class="carousel-control-next-icon"></span>
+                </button>
+            }
+        </div>
+
+        <div class="bodyx">
+            <div class="fw-bold" style="font-size:18px;">@p.destination</div>
+            <div class="text-muted">@p.country</div>
+
+            <div class="mt-2">
+                <span class="pill">@p.CategoryName</span>
+
+                <div class="meta-line">Travel dates: <span>@p.StartDate.ToString("dd/MM/yyyy") – @p.EndDate.ToString("dd/MM/yyyy")</span></div>
+                <div class="meta-line">Min age: <span>@p.ageLimit+</span></div>
+            </div>
+
+            @if (isOnSale)
+            {
+                <div class="mb-1">
+                    <span class="badge bg-danger sale-badge">@p.DiscountPercent% OFF</span>
+                </div>
+            }
+
+            <div class="price-row">
+                @if (isOnSale)
+                {
+                    <span class="price text-danger">$@finalPrice</span>
+                    <span class="text-muted">per person</span>
+                    <span class="old-price">$@originalPrice</span>
+                }
+                else
+                {
+                    <span class="price">$@finalPrice</span>
+                    <span class="text-muted">per person</span>
+                }
+            </div>
+
+            <a class="btn btn-outline-primary w-100 mt-3 fw-bold"
+               href="/Package/PackageDetails/@p.Id?adults=@adults&children=@children&searchText=@(Uri.EscapeDataString(searchText))&destination=@(Uri.EscapeDataString(destination))&country=@(Uri.EscapeDataString(country))&categoryId=@(categoryId.HasValue ? categoryId.Value.ToString() : "")&month=@(month.HasValue ? month.Value.ToString() : "")&year=@(year.HasValue ? year.Value.ToString() : "")&youngestAge=@(youngestVal)">
+                View Details
+            </a>
+
+            @if (isUnavailable)
+            {
+                <button type="button"
+                        class="btn btn-outline-secondary w-100 fw-bold mt-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#waitlistModal"
+                        data-package-id="@p.Id"
+                        data-num-persons="@totalPassengers"
+                        data-waiting-count="@waitingCount">
+                    Waiting List
+                </button>
+            }
+        </div>
+
+    </div>
+</div>
+
+                    
                 }
             </div>
         }
@@ -712,8 +668,6 @@
         </div>
     </div>
 
-</div>
-
 
 
 @section Scripts {
@@ -731,43 +685,10 @@
             const childrenInput = document.getElementById("children");
             const youngestInput = document.getElementById("youngestAge");
 
-            function updateYoungestRequired() {
-                const c = parseInt(childrenInput.value || "0");
-                if (c > 0) {
-                    youngestInput.required = true;
-                } else {
-                    youngestInput.required = false;
-                    youngestInput.value = "";
-                }
-            }
-            updateYoungestRequired();
-            childrenInput.addEventListener("input", updateYoungestRequired);
+            // ✅ אם אחד מאלה null, אין מה להמשיך (זה אומר שה-HTML השתנה)
+            if (!searchInput || !box || !hiddenDestination || !hiddenCountry || !hiddenCategoryId) return;
 
-            function clearHidden() {
-                hiddenDestination.value = "";
-                hiddenCountry.value = "";
-                hiddenCategoryId.value = "";
-            }
-
-            let lastQuery = "";
-            let controller = null;
-
-            function closeBox() {
-                box.style.display = "none";
-                box.innerHTML = "";
-            }
-
-            async function fetchSuggestions(q) {
-                if (controller) controller.abort();
-                controller = new AbortController();
-
-                const url = `/Package/Suggest?q=${encodeURIComponent(q)}`;
-                const res = await fetch(url, { signal: controller.signal });
-                if (!res.ok) return [];
-                return await res.json();
-            }
-
-            function render(items) {
+            function renderSuggestions(items) {
                 if (!items || items.length === 0) {
                     closeBox();
                     return;
@@ -793,10 +714,54 @@
                 box.style.display = "block";
             }
 
+            function updateYoungestRequired() {
+                const c = parseInt(childrenInput?.value || "0");
+                if (youngestInput) {
+                    if (c > 0) {
+                        youngestInput.disabled = false;
+                        youngestInput.required = true;
+                    } else {
+                        youngestInput.disabled = true;
+                        youngestInput.required = false;
+                        youngestInput.value = "";
+                    }
+                }
+            }
+            updateYoungestRequired();
+            childrenInput?.addEventListener("input", updateYoungestRequired);
+
+            function clearHiddenFields() {
+                hiddenDestination.value = "";
+                hiddenCountry.value = "";
+                hiddenCategoryId.value = "";
+            }
+
+            let lastQuery = "";
+            let controller = null;
+
+            function closeBox() {
+                box.style.display = "none";
+                box.innerHTML = "";
+            }
+
+            async function fetchSuggestions(q) {
+                if (controller) controller.abort();
+                controller = new AbortController();
+
+                try {
+                    const url = `/Package/Suggest?q=${encodeURIComponent(q)}`;
+                    const res = await fetch(url, { signal: controller.signal });
+                    if (!res.ok) return [];
+                    return await res.json();
+                } catch (e) {
+                    return [];
+                }
+            }
+
             let timer = null;
             searchInput.addEventListener("input", () => {
                 const q = (searchInput.value || "").trim();
-                clearHidden();
+                clearHiddenFields();
 
                 if (timer) clearTimeout(timer);
                 if (q.length < 2) { closeBox(); return; }
@@ -805,7 +770,7 @@
                     if (q === lastQuery) return;
                     lastQuery = q;
                     const items = await fetchSuggestions(q);
-                    render(items);
+                    renderSuggestions(items);
                 }, 150);
             });
 
@@ -818,39 +783,74 @@
     </script>
 
     <script>
-    const waitlistModal = document.getElementById('waitlistModal');
-    if (waitlistModal) {
-        waitlistModal.addEventListener('show.bs.modal', async function (event) {
-            const btn = event.relatedTarget;
+        const waitlistModal = document.getElementById('waitlistModal');
+        if (waitlistModal) {
+            waitlistModal.addEventListener('show.bs.modal', async function (event) {
+                const btn = event.relatedTarget;
 
-            const packageId = btn.getAttribute('data-package-id');
-            const numPersons = btn.getAttribute('data-num-persons');
+                const packageId = btn.getAttribute('data-package-id');
+                const numPersons = btn.getAttribute('data-num-persons');
 
-            document.getElementById('wlPackageId').value = packageId;
-            document.getElementById('wlNumPersons').value = numPersons;
+                document.getElementById('wlPackageId').value = packageId;
+                document.getElementById('wlNumPersons').value = numPersons;
 
-            document.getElementById('wlLine1').textContent = "Loading...";
-            document.getElementById('wlLine2').textContent = "";
-
-            try {
-                const res = await fetch(`/Waitlist/Info?packageId=${encodeURIComponent(packageId)}`);
-                if (!res.ok) throw new Error("Failed to load waitlist info");
-
-                const data = await res.json();
-                const ahead = data.usersAhead ?? 0;
-                const days = data.estimatedDays ?? 0;
-
-                document.getElementById('wlLine1').textContent =
-                    `There are ${ahead} users waiting ahead of you.`;
-                document.getElementById('wlLine2').textContent =
-                    `Estimated availability: approximately ${days} days.`;
-            } catch (e) {
-                document.getElementById('wlLine1').textContent =
-                    "Could not load waitlist info right now.";
+                document.getElementById('wlLine1').textContent = "Loading...";
                 document.getElementById('wlLine2').textContent = "";
-            }
-        });
-    }
-</script>
 
+                try {
+                    const res = await fetch(`/Waitlist/Info?packageId=${encodeURIComponent(packageId)}`, {
+                        method: 'GET',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    if (!res.ok) throw new Error("Bad response");
+
+                    const data = await res.json();
+
+                    if (data.alreadyJoined === true) {
+                        const modalInstance = bootstrap.Modal.getInstance(waitlistModal);
+                        if (modalInstance) modalInstance.hide();
+                        showToast("You are already on the waiting list for this trip.", "info");
+                        return;
+                    }
+
+                    const ahead = data.usersAhead ?? 0;
+                    document.getElementById('wlLine1').textContent =
+                        `There are ${ahead} users waiting ahead of you.`;
+
+                    const mins = data.estimatedMinutes ?? 0;
+                    document.getElementById('wlLine2').textContent =
+                        `Estimated availability: approximately ${formatEta(mins)}.`;
+                }
+                catch (e) {
+                    document.getElementById('wlLine1').textContent =
+                        "Could not load waitlist info right now.";
+                    document.getElementById('wlLine2').textContent = "";
+                }
+
+                function formatEta(minutes){
+                    minutes = Math.max(0, parseInt(minutes || "0"));
+                    if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+
+                    const h = Math.floor(minutes / 60);
+                    const m = minutes % 60;
+
+                    if (m === 0) return `${h} hour${h === 1 ? "" : "s"}`;
+                    return `${h} hour${h === 1 ? "" : "s"} ${m} minute${m === 1 ? "" : "s"}`;
+                }
+            });
+        }
+    </script>
+
+    <script>
+        (function(){
+            const form = document.getElementById('filtersForm');
+            if(!form) return;
+
+            const inputs = form.querySelectorAll('select, input[type="checkbox"]');
+            inputs.forEach(el => {
+                el.addEventListener('change', () => form.submit());
+            });
+        })();
+    </script>
 }

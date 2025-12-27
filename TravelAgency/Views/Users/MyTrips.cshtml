@@ -38,6 +38,21 @@ Layout = "_Layout";
     /* לשוניות */
     .nav-pills .nav-link { color: #555; border-radius: 50px; padding: 10px 25px; margin-right: 10px; font-weight: 600; cursor: pointer; }
     .nav-pills .nav-link.active { background-color: #1C6DD0; color: white; }
+
+    
+    .btn-book, .btn-buy, .btn-pdf{
+        background: #5A189A;
+        color: #fff !important;
+        border: 1px solid #5A189A;
+        text-decoration: none !important;
+        white-space: nowrap;
+    }
+
+    .btn-book:hover, .btn-buy:hover, .btn-pdf:hover{
+        background: #4B147F;
+        border-color: #4B147F;
+    }
+
 </style>
 
 <div class="page-header text-center">
@@ -51,74 +66,242 @@ Layout = "_Layout";
 
     @if (!Model.Any())
     {
-    <div class="text-center py-5">
-        <h3 class="text-muted">You haven't booked any trips yet.</h3>
-        <a asp-controller="Package" asp-action="Gallery" class="btn btn-primary mt-3">Find a Trip</a>
-    </div>
+        <div class="text-center py-5">
+            <h3 class="text-muted">You haven't booked any trips yet.</h3>
+            <a asp-controller="Package" asp-action="Gallery" class="btn btn-primary mt-3">Find a Trip</a>
+        </div>
     }
     else
     {
-    <ul class="nav nav-pills mb-4 justify-content-center" id="pills-tab" role="tablist">
-        <li class="nav-item">
-            <button class="nav-link active" id="pills-upcoming-tab" data-bs-toggle="pill" data-bs-target="#pills-upcoming" type="button">
-                Upcoming Trips
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="pills-history-tab" data-bs-toggle="pill" data-bs-target="#pills-history" type="button">
-                Trip History
-            </button>
-        </li>
-    </ul>
+        <ul class="nav nav-pills mb-4 justify-content-center" id="pills-tab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="pills-upcoming-tab" data-bs-toggle="pill" data-bs-target="#pills-upcoming" type="button">
+                    Upcoming Trips
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="pills-history-tab" data-bs-toggle="pill" data-bs-target="#pills-history" type="button">
+                    Trip History
+                </button>
+            </li>
+        </ul>
 
-    <div class="tab-content" id="pills-tabContent">
+        <div class="tab-content" id="pills-tabContent">
 
-        <div class="tab-pane fade show active" id="pills-upcoming">
-            <div class="row g-4">
-                @foreach (var item in Model.Where(t => t.IsUpcoming))
-                {
-                <div class="col-md-6 col-lg-4">
-                    <div class="trip-card">
-                        <div class="trip-img-container">
-                            <span class="status-badge status-future">Booked</span>
-                            <img src="@item.ImageUrl" class="trip-img" alt="@item.Destination">
-                            <div class="price-tag">$@item.TotalPrice</div>
+            <div class="tab-pane fade show active" id="pills-upcoming">
+                <div class="row g-4">
+                    @foreach (var item in Model.Where(t => t.IsUpcoming))
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <div class="trip-card">
+                                <div class="trip-img-container">
+                                    <span class="status-badge status-future">Booked</span>
+                                    <img src="@item.ImageUrl" class="trip-img" alt="@item.Destination">
+                                    <div class="price-tag">$@item.TotalPrice</div>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="trip-title">@item.Destination</h5>
+                                    <div class="trip-meta">
+                                        <i class="bi bi-calendar-event"></i>
+                                        <strong>@item.StartDate.ToShortDateString()</strong> – <strong>@item.EndDate.ToShortDateString()</strong>
+                                    </div>
+
+                                    <div class="trip-meta">
+                                        <i class="bi bi-people"></i>
+                                        <strong>Passengers:</strong> <span class="fw-bold">@item.NumPersons</span>
+                                    </div>
+                                    
+
+                                    @{
+                                        // Start time assumed 08:00
+                                        var tripStart = item.StartDate.Date.AddHours(8);
+
+                                        // In your ViewModel CancelationDays is int (not nullable), and SQL already returns ISNULL(...,0)
+                                        var cancelDays = item.CancelationDays;
+
+                                        // Cancellation deadline = tripStart - cancelationDays
+                                        var cancelDeadline = tripStart.AddDays(-cancelDays);
+
+                                        bool canCancel = DateTime.Now < cancelDeadline;
+                                    }
+
+
+                                    <div class="mt-2">
+                                        <div class="text-muted small">
+                                            <i class="bi bi-hourglass-split"></i>
+                                            <span class="trip-countdown" data-start="@item.StartDate.ToString("yyyy-MM-dd")"></span>
+                                        </div>
+
+                                        @if (canCancel)
+                                        {
+                                            <div class="alert alert-info py-2 px-3 mt-2 mb-2" style="border-radius:12px;">
+                                                <i class="bi bi-info-circle"></i>
+                                                Cancellation available until <strong>@cancelDeadline.ToString("dd/MM/yyyy")</strong>
+                                            </div>
+
+                                            <div class="mt-2">
+                                                <button type="button"
+                                                        class="btn btn-book w-100 mb-2"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#cancelConfirmModal"
+                                                        data-dest="@item.Destination"
+                                                        data-ctry="@item.Country"
+                                                        data-catid="@item.CategoryId"
+                                                        data-start="@item.StartDate.ToString("yyyy-MM-dd")"
+                                                        data-end="@item.EndDate.ToString("yyyy-MM-dd")">
+                                                    Cancel
+                                                </button>
+
+                                                <a class="btn btn-book w-100"
+                                                   asp-controller="Users"
+                                                   asp-action="DownloadTripPdfGroup"
+                                                   asp-route-destination="@item.Destination"
+                                                   asp-route-country="@item.Country"
+                                                   asp-route-categoryId="@item.CategoryId"
+                                                   asp-route-startDate="@item.StartDate.ToString("yyyy-MM-dd")"
+                                                   asp-route-endDate="@item.EndDate.ToString("yyyy-MM-dd")">
+                                                    Download PDF
+                                                </a>
+
+                                            </div>
+
+                                        }
+
+                                        else
+                                        {
+                                            <button type="button" class="btn btn-outline-secondary w-100 mt-2" disabled>
+                                                Cancellation closed
+                                            </button>
+                                            <div class="text-muted small mt-1">
+                                                Deadline was @cancelDeadline.ToString("dd/MM/yyyy HH:mm")
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <h5 class="trip-title">@item.Destination</h5>
-                            <div class="trip-meta"><i class="bi bi-calendar-event"></i> @item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</div>
-                            <div class="trip-meta"><i class="bi bi-people"></i> @item.NumPersons People</div>
-                        </div>
-                    </div>
+                    }
+                    @if (!Model.Any(t => t.IsUpcoming)) { <div class="text-center w-100 text-muted p-4">No upcoming trips planned.</div> }
                 </div>
-                }
-                @if (!Model.Any(t => t.IsUpcoming)) { <div class="text-center w-100 text-muted p-4">No upcoming trips planned.</div> }
             </div>
-        </div>
 
-        <div class="tab-pane fade" id="pills-history">
-            <div class="row g-4">
-                @foreach (var item in Model.Where(t => !t.IsUpcoming))
-                {
-                <div class="col-md-6 col-lg-4">
-                    <div class="trip-card">
-                        <div class="trip-img-container">
-                            <span class="status-badge status-past">Completed</span>
-                            <img src="@item.ImageUrl" class="trip-img" alt="@item.Destination">
-                            <div class="price-tag">$@item.TotalPrice</div>
+            <div class="tab-pane fade" id="pills-history">
+                <div class="row g-4">
+                    @foreach (var item in Model.Where(t => !t.IsUpcoming))
+                    {
+                        <div class="col-md-6 col-lg-4">
+                            <div class="trip-card">
+                                <div class="trip-img-container">
+                                    <span class="status-badge status-past">Completed</span>
+                                    <img src="@item.ImageUrl" class="trip-img" alt="@item.Destination">
+                                    <div class="price-tag">$@item.TotalPrice</div>
+                                </div>
+                                <div class="card-body">
+                                    <h5 class="trip-title">@item.Destination</h5>
+                                    <div class="trip-meta"><i class="bi bi-calendar-check"></i> @item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</div>
+                                    <div class="trip-meta"><i class="bi bi-people"></i> @item.NumPersons People</div>
+
+                                    <div class="mt-2">
+                                        <a class="btn btn-book w-100"
+                                           asp-controller="Users"
+                                           asp-action="DownloadTripPdfGroup"
+                                           asp-route-destination="@item.Destination"
+                                           asp-route-country="@item.Country"
+                                           asp-route-categoryId="@item.CategoryId"
+                                           asp-route-startDate="@item.StartDate.ToString("yyyy-MM-dd")"
+                                           asp-route-endDate="@item.EndDate.ToString("yyyy-MM-dd")">
+                                            Download PDF
+                                        </a>
+                                    </div>
+                                </div>
+
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <h5 class="trip-title">@item.Destination</h5>
-                            <div class="trip-meta"><i class="bi bi-calendar-check"></i> @item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</div>
-                            <div class="trip-meta"><i class="bi bi-people"></i> @item.NumPersons People</div>
-                        </div>
-                    </div>
+                    }
+                    @if (!Model.Any(t => !t.IsUpcoming)) { <div class="text-center w-100 text-muted p-4">No past trips found.</div> }
                 </div>
-                }
-                @if (!Model.Any(t => !t.IsUpcoming)) { <div class="text-center w-100 text-muted p-4">No past trips found.</div> }
             </div>
-        </div>
 
-    </div>
+        </div>
     }
 </div>
+
+<!-- ✅ Cancel confirm modal (Yes/No) -->
+<div class="modal fade" id="cancelConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel reservation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                Are you sure you want to cancel this trip?
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">No</button>
+
+                <form asp-controller="Users" asp-action="CancelReservationGroup" method="post" class="m-0">
+                    <input type="hidden" name="destination" id="cg_dest" />
+                    <input type="hidden" name="country" id="cg_ctry" />
+                    <input type="hidden" name="categoryId" id="cg_catid" />
+                    <input type="hidden" name="startDate" id="cg_start" />
+                    <input type="hidden" name="endDate" id="cg_end" />
+                    <button type="submit" class="btn btn-danger">Yes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        function pad(n){ return n.toString().padStart(2,'0'); }
+
+        // ✅ fill cancel-group form when opening modal
+        const modal = document.getElementById('cancelConfirmModal');
+        if (modal) {
+            modal.addEventListener('show.bs.modal', function (event) {
+                const btn = event.relatedTarget;
+                if (!btn) return;
+
+                document.getElementById('cg_dest').value  = btn.getAttribute('data-dest') || '';
+                document.getElementById('cg_ctry').value  = btn.getAttribute('data-ctry') || '';
+                document.getElementById('cg_catid').value = btn.getAttribute('data-catid') || '0';
+                document.getElementById('cg_start').value = btn.getAttribute('data-start') || '';
+                document.getElementById('cg_end').value   = btn.getAttribute('data-end') || '';
+            });
+        }
+
+        function tick() {
+
+    document.querySelectorAll('.trip-countdown').forEach(el => {
+      const d = el.getAttribute('data-start'); // yyyy-MM-dd
+      if(!d) return;
+
+      // Start at 08:00 local time
+      const target = new Date(d + 'T08:00:00');
+      const now = new Date();
+      let diff = target - now;
+
+      if (diff <= 0) {
+        el.textContent = 'Started';
+        return;
+      }
+
+      const totalSec = Math.floor(diff / 1000);
+      const days = Math.floor(totalSec / 86400);
+      const hours = Math.floor((totalSec % 86400) / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+
+      el.textContent = `Starts in: ${days}d ${pad(hours)}:${pad(mins)}:${pad(secs)}`;
+    });
+  }
+
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>

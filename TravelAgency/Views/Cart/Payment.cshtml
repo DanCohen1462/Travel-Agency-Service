@@ -105,13 +105,14 @@
     }
 
     .btn-back-gallery {
-        background: #F3F4F6;
+        background: #E5E7EB;
         color: #000;
     }
 
     .btn-back-gallery:hover {
         background: #E5E7EB;
     }
+
 </style>
 
 
@@ -170,7 +171,7 @@
     </form>
 
 
-    <a asp-controller="Cart" asp-action="Index" class="btn-back-cart">← Back to Cart</a>
+    <a asp-controller="Cart" asp-action="Cart" class="btn-back-cart">← Back to Cart</a>
 
     <a asp-controller="Package" asp-action="Gallery" class="btn-back-gallery">← Back to Gallery</a>
 
@@ -178,4 +179,47 @@
 
 @section Scripts{
     <partial name="_ValidationScriptsPartial" />
+
+    <div id="payToastArea"
+         style="position:fixed; top:90px; right:24px; z-index:99999;
+                display:flex; flex-direction:column; gap:10px; min-width:320px;">
+    </div>
+
+    <script>
+        function showPayToast(msg, kind) {
+            const area = document.getElementById("payToastArea");
+            if (!area) return;
+
+            const div = document.createElement("div");
+
+            let bg = "#0f5132"; // success
+            if (kind === "error") bg = "#842029";
+            if (kind === "warning") bg = "#664d03";
+            if (kind === "info") bg = "#055160";
+
+            div.style.cssText =
+                "background:" + bg + "; color:white; padding:14px 16px; border-radius:14px;" +
+                "font-weight:800; box-shadow:0 12px 30px rgba(0,0,0,0.22);" +
+                "display:flex; gap:10px; align-items:flex-start;";
+
+            div.innerHTML = `<div style="font-size:18px;line-height:1;">✅</div><div>${msg}</div>`;
+            area.appendChild(div);
+
+            setTimeout(() => div.remove(), 2500);
+        }
+    </script>
+
+    @if (TempData["PaymentToastSuccess"] != null)
+    {
+        <script>
+            showPayToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["PaymentToastSuccess"])), "success");
+        </script>
+    }
+
+    @if (TempData["PaymentToastError"] != null)
+    {
+        <script>
+            showPayToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["PaymentToastError"])), "error");
+        </script>
+    }
 }

@@ -88,13 +88,49 @@ public IActionResult Info(int packageId)
             }
         }
 
-        int estimatedDays = Math.Min(usersAhead, 20);
+
+        bool hasActiveCartHolds;
+        using (var cmd = new SqlCommand(@"
+    SELECT CASE 
+        WHEN EXISTS (
+            SELECT 1
+            FROM shoppingcart
+            WHERE PackageId = @pid
+              AND inactive = 0
+              AND ExpiresAt > GETDATE()
+        )
+        THEN 1 ELSE 0
+    END;
+", conn))
+        {
+            cmd.Parameters.AddWithValue("@pid", packageId);
+            hasActiveCartHolds = ((int)cmd.ExecuteScalar()) == 1;
+        }
+        int minutesPerUser;
+        
+        if (hasActiveCartHolds)
+        {
+            // מקומות תפוסים זמנית בעגלה
+            minutesPerUser = 15;
+        }
+        else
+        {
+            // מקומות תפוסים ע"י הזמנות (רק ביטול משחרר)
+            minutesPerUser = 60;
+        }
+
+
+        int perUserMinutes = hasActiveCartHolds ? 15 : 60;
+        int estimatedMinutes = usersAhead * perUserMinutes;
 
         return Json(new
         {
+            alreadyJoined = myJoinDate.HasValue,
             usersAhead,
-            estimatedDays
+            estimatedMinutes
         });
+
+
     }
 }
 
@@ -109,6 +145,8 @@ public IActionResult Info(int packageId)
 
             int userId = int.Parse(userIdStr);
             if (numPersons < 1) numPersons = 1;
+            var referer = Request.Headers["Referer"].ToString();
+
 
             using (var conn = new SqlConnection(_connectionString))
             {
@@ -129,9 +167,17 @@ public IActionResult Info(int packageId)
                     int exists = (int)existsCmd.ExecuteScalar();
                     if (exists > 0)
                     {
-                        TempData["WaitlistMsg"] = "You are already on the waiting list for this trip.";
-                        return Redirect(Request.Headers["Referer"].ToString());
+                        // ✅ Toast (לא חלונית)
+                        TempData["WaitlistToast"] = "You are already on the waiting list for this trip.";
+
+                        if (!string.IsNullOrEmpty(referer))
+                            return Redirect(referer);
+
+                        return RedirectToAction("Gallery", "Package");
                     }
+
+
+                    
                 }
 
                 string insertSql = @"
@@ -148,8 +194,13 @@ public IActionResult Info(int packageId)
                 }
             }
 
-            TempData["WaitlistMsg"] = "Joined waiting list successfully.";
-            return Redirect(Request.Headers["Referer"].ToString());
+            TempData["WaitlistToast"] = "You joined the waiting list.";
+            if (!string.IsNullOrEmpty(referer))
+                return Redirect(referer);
+
+            return RedirectToAction("Gallery", "Package");
+            
         }
     }
+    
 }

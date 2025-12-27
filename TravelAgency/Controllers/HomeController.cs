@@ -19,10 +19,95 @@ namespace TravelAgency.Controllers
             _connectionString = config.GetConnectionString("DefaultConnection");
         }
 
-        public IActionResult Index()
+      public IActionResult Index()
+{
+    var vm = new HomeIndexViewModel();
+
+    using (var conn = new SqlConnection(_connectionString))
+    {
+        conn.Open();
+
+        // 1) Website feedbacks
+        string fbSql = @"
+            SELECT
+                f.Id,
+                ISNULL(u.firstName + ' ' + u.lastName, u.Username) as UserFullName,
+                ISNULL(f.Description,'') as Description,
+                f.Rate
+            FROM feedBack1 f
+            LEFT JOIN Users u ON u.Id = f.userId
+            WHERE f.inactive = 0
+              AND f.feedbackType = 'Website'
+            ORDER BY f.Id DESC;
+        ";
+
+        using (var cmd = new SqlCommand(fbSql, conn))
+        using (var r = cmd.ExecuteReader())
         {
-            return View();
+            while (r.Read())
+            {
+                vm.WebsiteFeedbacks.Add(new WebsiteFeedbackVM
+                {
+                    Id = r.GetInt32(0),
+                    UserFullName = r.IsDBNull(1) ? "Anonymous" : r.GetString(1),
+                    Description = r.IsDBNull(2) ? "" : r.GetString(2),
+                    Rate = r.GetInt32(3)
+                });
+            }
         }
+
+        vm.WebsiteReviewsCount = vm.WebsiteFeedbacks.Count;
+        vm.AvgWebsiteRate = vm.WebsiteReviewsCount == 0 ? 0 : vm.WebsiteFeedbacks.Average(x => x.Rate);
+
+        // 2) Popular destinations Top 4 (לפי SUM(numPersons))
+        string popSql = @"
+            SELECT TOP (4)
+                p.Id as PackageId,
+                p.destination,
+                ISNULL(p.country,'') as country,
+                ISNULL(h.PopularityScore, 0) as PopularityScore,
+                ISNULL(img.ImageLocation, '') as ImageLocation
+            FROM Package p
+            INNER JOIN (
+                SELECT
+                    PackageId,
+                    SUM(ISNULL(numPersons,1)) as PopularityScore
+                FROM HistoryReservation
+                WHERE inactive = 0
+                GROUP BY PackageId
+            ) h ON h.PackageId = p.Id
+            OUTER APPLY (
+                SELECT TOP (1) ImageLocation
+                FROM ImagesPackage
+                WHERE PackageId = p.Id
+                ORDER BY Id
+            ) img
+            WHERE p.inactive = 0
+            ORDER BY h.PopularityScore DESC, p.Id DESC;
+        ";
+
+        using (var cmd = new SqlCommand(popSql, conn))
+        using (var r = cmd.ExecuteReader())
+        {
+            while (r.Read())
+            {
+                string imgLoc = r.IsDBNull(4) ? "" : r.GetString(4);
+
+                vm.PopularDestinations.Add(new PopularDestinationVM
+                {
+                    PackageId = r.GetInt32(0),
+                    Destination = r.GetString(1),
+                    Country = r.GetString(2),
+                    PopularityScore = r.GetInt32(3),
+                    ImageUrl = string.IsNullOrWhiteSpace(imgLoc) ? "/images/default.jpg" : imgLoc
+                });
+            }
+        }
+    }
+
+    return View(vm);
+}
+
 
         public IActionResult Privacy()
         {
@@ -97,33 +182,7 @@ namespace TravelAgency.Controllers
         {
             return View();
         }
-
-        public IActionResult Cart(int id)
-        {
-            return RedirectToAction("Index", "Cart");
-        }
-
-        public IActionResult Payment()
-        {
-            int totalPrice = 0;
-
-            var json = HttpContext.Session.GetString("Cart");
-            if (!string.IsNullOrEmpty(json))
-            {
-                try
-                {
-                    var items = JsonSerializer.Deserialize<List<CartItem>>(json) ?? new List<CartItem>();
-                    totalPrice = items.Sum(i => i.Price * i.Quantity);
-                }
-                catch
-                {
-                    totalPrice = 0;
-                }
-            }
-
-            ViewBag.TotalPrice = totalPrice;
-            return View();
-        }
+        
 
     }
 }

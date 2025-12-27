@@ -16,6 +16,26 @@ public class AuthController : Controller
                             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
     }
 
+    private void RefreshNotifCount(int userId)
+    {
+        using var conn = new SqlConnection(_connectionString);
+        conn.Open();
+
+        using var cmd = new SqlCommand(@"
+       SELECT COUNT(*)
+        FROM Notifications
+        WHERE UserId = @uid
+          AND IsRead = 0
+          AND inactive = 0;
+        -- AND inactive = 0  -- אם יש עמודה inactive ב-Notifications תשאירי, אם אין - למחוק
+    ", conn);
+
+        cmd.Parameters.AddWithValue("@uid", userId);
+
+        int count = (int)cmd.ExecuteScalar();
+        HttpContext.Session.SetInt32("NotifCount", count);
+    }
+
     // ---------- Register (GET) ----------
     public IActionResult Register() => View();
 
@@ -106,26 +126,78 @@ public class AuthController : Controller
                     string firstName = reader.GetString(2);
                     string lastName = reader.GetString(3);
 
-                    HttpContext.Session.SetString("UserId", userId.ToString());
-                    HttpContext.Session.SetString("Username", username);
-                    HttpContext.Session.SetString("FullName", firstName + " " + lastName);
-                    HttpContext.Session.SetString("UserType", userType.ToString());
+                  HttpContext.Session.SetString("UserId", userId.ToString());
+HttpContext.Session.SetString("Username", username);
+HttpContext.Session.SetString("FullName", firstName + " " + lastName);
+HttpContext.Session.SetString("UserType", userType.ToString());
 
-                    if (userType == 1) // Admin
-                        return RedirectToAction("index", "Admin");
+bool createdWelcomeNow = false;
 
-                    if (userType == 2) // Worker
-                        return RedirectToAction("EmployeeDashboard", "Employee");
+using (var conn2 = new SqlConnection(_connectionString))
+{
+    conn2.Open();
 
-                    // 🛑 התיקון: הפניה ל-Dashboard המלבנים במקום לגלריה
-                    // Customer (Type 3)
-                    return RedirectToAction("Dashboard", "Users");
+
+    using (var checkCmd = new SqlCommand(@"
+        SELECT COUNT(*)
+        FROM dbo.Notifications
+        WHERE UserId = @uid
+          AND inactive = 0
+          AND Title = 'Welcome!';", conn2))
+    {
+        checkCmd.Parameters.AddWithValue("@uid", userId);
+        int hasWelcome = (int)checkCmd.ExecuteScalar();
+
+        if (hasWelcome == 0)
+        {
+            using (var insCmd = new SqlCommand(@"
+                INSERT INTO dbo.Notifications
+                    (UserId, Title, Message, Type, LinkUrl, IsRead, CreatedAt, inactive)
+                VALUES
+                    (@uid, 'Welcome!', @msg, 'success', '/Users/Dashboard', 0, GETDATE(), 0);", conn2))
+            {
+                insCmd.Parameters.AddWithValue("@uid", userId);
+                insCmd.Parameters.AddWithValue("@msg", $"Welcome {firstName}! Enjoy your next adventure ✈️");
+                insCmd.ExecuteNonQuery();
+                createdWelcomeNow = true;
+            }
+        }
+    }
+
+    // ✅ refresh unread badge once
+    using (var countCmd = new SqlCommand(@"
+        SELECT COUNT(*)
+        FROM dbo.Notifications
+        WHERE UserId = @uid
+          AND inactive = 0
+          AND IsRead = 0;", conn2))
+    {
+        countCmd.Parameters.AddWithValue("@uid", userId);
+        int notifCount = (int)countCmd.ExecuteScalar();
+        HttpContext.Session.SetInt32("NotifCount", notifCount);
+    }
+}
+
+// ✅ show toast only if we created welcome now
+if (createdWelcomeNow)
+{
+    TempData["WelcomeToast"] = $"Hello {firstName}! Welcome to TravelAgency ✨";
+}
+
+if (userType == 1) // Admin
+    return RedirectToAction("index", "Admin");
+
+if (userType == 2) // Worker
+    return RedirectToAction("EmployeeDashboard", "Employee");
+
+return RedirectToAction("Dashboard", "Users");
+
                 }
             }
         }
     }
 
-    // ---------- Change Password ----------
+ 
     [HttpGet]
     public IActionResult ChangePassword()
     {
@@ -172,7 +244,7 @@ public class AuthController : Controller
                 return View(model);
             }
 
-            // מעדכנים לסיסמה החדשה
+            //update new password
             string updateSql = "UPDATE Users SET Password = @NewPassword WHERE Id = @Id AND inactive = 0";
             using (var cmd = new SqlCommand(updateSql, conn))
             {

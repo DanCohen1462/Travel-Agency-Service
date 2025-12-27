@@ -47,10 +47,11 @@
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <label asp-for="Username" class="form-label fw-semibold text-secondary small">Username</label>
-                                <input asp-for="Username" class="form-control bg-light" readonly />
+                                <input asp-for="Username" class="form-control" />
                                 <span asp-validation-for="Username" class="text-danger small"></span>
-                                <div class="form-text text-muted" style="font-size: 0.8rem;">Username cannot be changed.</div>
                             </div>
+
+
                             <div class="col-md-6">
                                 <label asp-for="Email" class="form-label fw-semibold text-secondary small">Email Address</label>
                                 <input asp-for="Email" class="form-control" placeholder="name@example.com" />
@@ -95,14 +96,15 @@
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top">
-                            <a asp-controller="Auth" asp-action="ChangePassword" class="btn btn-outline-primary px-4">
-                                <i class="bi bi-key me-1"></i> Change Password
-                            </a>
-                            <button type="submit" class="btn btn-primary px-4 shadow-sm">
-                                Save Changes
-                            </button>
-                        </div>
+                       <div class="d-flex flex-column align-items-end gap-2 mt-4 pt-3 border-top">
+    <a asp-controller="Auth" asp-action="ChangePassword" class="btn btn-outline-primary px-4" style="min-width:220px;">
+        <i class="bi bi-key me-1"></i> Change Password
+    </a>
+    <button type="submit" class="btn btn-primary px-4 shadow-sm" style="min-width:220px;">
+        Save Changes
+    </button>
+</div>
+
                     </form>
                 </div>
             </div>

@@ -37,55 +37,86 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
     .btn-row { display: flex; gap: 10px; margin-top: 12px; }
     /* ===== BOOK / BUY BUTTONS – SAME SIZE ALWAYS ===== */
 
-    .btn-row{
-        display: flex;
-        gap: 12px;
-        width: 100%;
-        margin-top: 16px;
-    }
+    /* ===== Buttons (Admin-like size, same color, not bubble) ===== */
+    .btn-row { display:flex; gap: 12px; margin-top: 12px; }
 
-    .btn-row > form,
-    .btn-row > a{
-        flex: 1 1 0;
-        min-width: 0;
-    }
-
-    .btn-row > form{
-        display: flex;
-    }
-
-    .btn-row > form > button{
-        width: 100%;
-    }
-
-    /* same look */
-    .btn-book,
-    .btn-buy{
-        height: 56px;
-        border-radius: 14px;
-        font-size: 18px;
-        font-weight: 800;
-        border: none;
-        color: #fff;
-        background: #6A1B9A; /* 👈 סגול לדוגמה */
-        display: flex;
+    .btn-book, .btn-buy{
+        flex: 1;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        text-decoration: none;
+
+        height: 38px;
+        padding: 0 16px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+
+        background: #5A189A;
+        color: #fff !important;
+        border: 1px solid #5A189A;
+
+        text-decoration: none !important;
+        white-space: nowrap;
+    }
+    /* ✅ Purple action button for FULL state (same look as Book/Buy) */
+    .btn-action{
+        width: 100%;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        padding: 0 16px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+
+        background: #5A189A;
+        color: #fff !important;
+        border: 1px solid #5A189A;
+
+        text-decoration: none !important;
+        white-space: nowrap;
     }
 
-    .btn-book:hover,
-    .btn-buy:hover{
-        filter: brightness(1.05);
+    .btn-action:hover{
+        background: #4B147F;
+        border-color: #4B147F;
     }
+
+
+    .btn-book:hover, .btn-buy:hover{
+        background: #4B147F;
+        border-color: #4B147F;
+    }
+
 
     .btn-book { background: #1C6DD0; color: white; }
     .btn-book:hover { background: #155BB4; }
     .btn-buy { background: #28A745; color: white; }
     .btn-buy:hover { background: #1E7E34; }
     .badge-leftover { display: inline-block; background: rgba(220, 53, 69, 0.9); color: #fff; border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; font-weight: 600; margin-left: 8px; }
-    .btn-back { display: inline-block; margin-top: 15px; background: #e9ecf2; color: #1C6DD0; padding: 10px 18px; border-radius: 10px; font-size: 17px; font-weight: 600; text-decoration: none; transition: 0.2s; }
-    /* ===== Unified buttons (same size + same color) ===== */
+    .btn-back{
+        width: 100%;
+        height: 38px;              /* כמו שאר הכפתורים שלך */
+        display: inline-flex;       /* ✅ מרכז */
+        align-items: center;        /* ✅ מרכז אנכי */
+        justify-content: center;    /* ✅ מרכז אופקי */
+        text-align: center;         /* ✅ ליתר ביטחון */
+        margin-top: 15px;
+
+        background: #e9ecf2;
+        color: #1C6DD0;
+        padding: 0 16px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: 0.2s;
+        white-space: nowrap;
+    }
+
     /* ===== Buttons (Admin-like size, same color, not bubble) ===== */
     .btn-row { display:flex; gap: 12px; margin-top: 12px; }
 
@@ -216,18 +247,28 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
                 }
 
                 <p class="details-label mt-3">Price:</p>
+
+                @if (pkg.DiscountPercent.HasValue && pkg.DiscountPercent.Value > 0)
+                {
+                    <div class="mb-2">
+                        <span class="badge bg-danger">@pkg.DiscountPercent.Value% OFF</span>
+                    </div>
+                }
+
                 <div class="price-display">
                     @if (pkg.DiscountPercent.HasValue && pkg.DiscountPercent.Value > 0)
                     {
-                    <span class="original-price">$@finalPrice</span>
-                    <span class="discounted-price">$@discountedPrice</span>
-                    <span class="badge bg-danger">@pkg.DiscountPercent.Value% OFF</span>
+                        <span class="discounted-price">$@discountedPrice</span>
+                        <span class="text-muted">per person</span>
+                        <span class="original-price">$@finalPrice</span>
                     }
                     else
                     {
-                    <span class="regular-price">$@finalPrice</span>
+                        <span class="regular-price">$@finalPrice</span>
+                        <span class="text-muted">per person</span>
                     }
                 </div>
+
 
                 <p class="details-label mt-3">Rating:</p>
                 @if (Model.TotalReviews > 0)
@@ -243,49 +284,67 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
                 <p class="text-muted">No reviews yet. Be the first!</p>
                 }
 
-                <!-- ✅ Buttons logic EXACTLY as requested -->
                 @if (Model.IsFull)
                 {
-                <!-- Open modal (not direct join) -->
-                <button type="button"
-                        class="btn btn-outline-secondary w-100 fw-bold mt-3"
-                        data-bs-toggle="modal"
-                        data-bs-target="#waitlistModalDetails"
-                        data-package-id="@pkg.Id"
-                        data-num-persons="@totalPassengers">
-                    Join Waitlist
-                </button>
+                    <!-- Open modal (not direct join) -->
+                    <button type="button"
+                            class="btn-action mt-3"
+                            data-bs-toggle="modal"
+                            data-bs-target="#waitlistModalDetails"
+                            data-package-id="@pkg.Id"
+                            data-num-persons="@totalPassengers">
+                        Join Waitlist
+                    </button>
+
+                    <a asp-controller="Package"
+                       asp-action="Gallery"
+                       asp-route-adults="@qAdults"
+                       asp-route-children="@qChildren"
+                       class="btn-action mt-2">
+                        Back to Gallery
+                    </a>
                 }
+
+
                 else
                 {
-                <div class="btn-row">
+                    <div class="d-grid gap-2 mt-3">
+                        <form method="post"
+                              asp-controller="Cart"
+                              asp-action="Add"
+                              class="m-0">
+                            <input type="hidden" name="packageId" value="@pkg.Id" />
+                            <input type="hidden" name="adults" value="@qAdults" />
+                            <input type="hidden" name="children" value="@qChildren" />
+                            <button type="submit" class="btn-book w-100">
+                                Book Trip
+                            </button>
+                        </form>
 
-                    <form method="post"
-                          asp-controller="Cart"
-                          asp-action="Add"
-                          class="m-0 flex-grow-1">
-                        <input type="hidden" name="packageId" value="@pkg.Id" />
-                        <input type="hidden" name="adults" value="@qAdults" />
-                        <input type="hidden" name="children" value="@qChildren" />
-                        <button type="submit" class="btn-book w-100">
-                            Book Trip
-                        </button>
-                    </form>
+                        <form method="post"
+                              asp-controller="Cart"
+                              asp-action="BuyNow"
+                              class="m-0">
+                            <input type="hidden" name="packageId" value="@pkg.Id" />
+                            <input type="hidden" name="adults" value="@qAdults" />
+                            <input type="hidden" name="children" value="@qChildren" />
+                            <button type="submit" class="btn-buy w-100">
+                                Buy Now
+                            </button>
+                        </form>
 
-                    <form method="post"
-                          asp-controller="Cart"
-                          asp-action="BuyNow"
-                          class="m-0 flex-grow-1">
-                        <input type="hidden" name="packageId" value="@pkg.Id" />
-                        <input type="hidden" name="adults" value="@qAdults" />
-                        <input type="hidden" name="children" value="@qChildren" />
-                        <button type="submit" class="btn-buy w-100">
-                            Buy Now
-                        </button>
-                    </form>
-
-                </div>
+                        <!-- ✅ Back button keeps SAME style as existing btn-back -->
+                        <a asp-controller="Package"
+                           asp-action="Gallery"
+                           asp-route-adults="@qAdults"
+                           asp-route-children="@qChildren"
+                           class="btn-back w-100">
+                            Back to Gallery
+                        </a>
+                    </div>
                 }
+
+
             </div>
         </div>
     </div>
@@ -330,9 +389,7 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
         </div>
     </div>
 
-    <a asp-controller="Package" asp-action="Gallery" class="btn-back">
-        ← Back to Packages
-    </a>
+  
 </div>
 
 <!-- ✅ DETAILS MODAL -->
@@ -347,6 +404,10 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
             <div class="modal-body">
                 <p class="mb-2" id="wlDLine1">There are 0 users waiting ahead of you.</p>
                 <p class="mb-0" id="wlDLine2">Estimated availability: approximately 0 days.</p>
+                
+                <p class="fw-bold mt-3">
+                    Would you like to join the waiting list?
+                </p>
 
             </div>
 
@@ -394,13 +455,26 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
 
                 document.getElementById('wlDLine1').textContent =
                     `There are ${ahead} users waiting ahead of you.`;
+                const mins = data.estimatedMinutes ?? 0;
                 document.getElementById('wlDLine2').textContent =
-                    `Estimated availability: approximately ${days} days.`;
+                    `Estimated availability: approximately ${formatEta(mins)}.`;
+
             } catch (e) {
                 document.getElementById('wlDLine1').textContent =
                     "Could not load waitlist info right now.";
                 document.getElementById('wlDLine2').textContent = "";
             }
+            function formatEta(minutes){
+                minutes = Math.max(0, parseInt(minutes || "0"));
+                if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+
+                const h = Math.floor(minutes / 60);
+                const m = minutes % 60;
+
+                if (m === 0) return `${h} hour${h === 1 ? "" : "s"}`;
+                return `${h} hour${h === 1 ? "" : "s"} ${m} minute${m === 1 ? "" : "s"}`;
+            }
+
         });
     }
 </script>

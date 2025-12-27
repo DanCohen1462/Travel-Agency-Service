@@ -63,12 +63,6 @@ public class User
     public int type {get; set;}
 }
 
-
-
-
-
-// ⬇⬇⬇ כאן בתוך אותו קובץ — מחלקת הולידציה לגיל 18 ⬇⬇⬇
-
 public class MinAge : ValidationAttribute
 {
     private readonly int _minAge;
@@ -87,7 +81,7 @@ public class MinAge : ValidationAttribute
 
         int age = DateTime.Today.Year - birthDate.Year;
 
-        // אם יום ההולדת טרם עבר השנה
+     
         if (birthDate.Date > DateTime.Today.AddYears(-age).Date)
             age--;
 

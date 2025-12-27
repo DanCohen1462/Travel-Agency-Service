@@ -66,21 +66,23 @@ namespace TravelAgency.Controllers
                 conn.Open();
 
                 string sql = @"
-                    SELECT TOP (20)
-                        p.destination,
-                        ISNULL(p.country, '') as country,
-                        p.idCategory,
-                        ISNULL(c.name, '') as categoryName
-                    FROM Package p
-                    INNER JOIN Category c ON c.Id = p.idCategory AND c.inactive = 0
-                    WHERE p.inactive = 0
-                      AND (
-                           p.destination LIKE @q + '%'
-                           OR p.country LIKE @q + '%'
-                           OR c.name LIKE @q + '%'
-                      )
-                    ORDER BY p.destination, p.country, c.name;
-                ";
+    SELECT TOP (20)
+        p.destination,
+        ISNULL(p.country, '') as country,
+        p.idCategory,
+        ISNULL(c.name, '') as categoryName
+    FROM Package p
+    INNER JOIN Category c ON c.Id = p.idCategory AND c.inactive = 0
+    WHERE p.inactive = 0
+      AND p.startDate > CAST(GETDATE() AS date)
+      AND (
+           p.destination LIKE @q + '%'
+           OR p.country LIKE @q + '%'
+           OR c.name LIKE @q + '%'
+      )
+    ORDER BY p.destination, p.country, c.name;
+";
+
 
                 using (var cmd = new SqlCommand(sql, conn))
                 {
@@ -175,16 +177,28 @@ namespace TravelAgency.Controllers
             }
 
             string freeText = (searchText ?? "").Trim();
+            
 
-            // אם נבחרה הצעה (destination/country/categoryId) – לא עושים freeText LIKE
+            var packages = new List<Package>();
+            var imagesByPackage = new Dictionary<int, List<string>>();
+    
+            int? currentUserId = null;
+            var uidStr = HttpContext.Session.GetString("UserId");
+            if (int.TryParse(uidStr, out int tmpUid)) currentUserId = tmpUid;
+
+            var hasActiveOfferByPackage = new Dictionary<int, bool>();
+            
             bool hasChosenSuggestion =
                 !string.IsNullOrWhiteSpace(destination) ||
                 !string.IsNullOrWhiteSpace(country) ||
                 categoryId.HasValue;
-
-            var packages = new List<Package>();
-            var imagesByPackage = new Dictionary<int, List<string>>();
-
+            
+            if (string.IsNullOrWhiteSpace(destination) && string.IsNullOrWhiteSpace(country) && categoryId.HasValue && categoryId.Value <= 0)
+            {
+                categoryId = null;
+                hasChosenSuggestion = false;
+            }
+            
             // waiting count per package
             var waitingCountByPackage = new Dictionary<int, int>();
 
@@ -216,6 +230,8 @@ namespace TravelAgency.Controllers
                         d.DiscountPercent as DiscountPercent,
 
                         ISNULL(w.WaitingCount, 0) as WaitingCount,
+                        ISNULL(oa.HasOffer, 0) as HasActiveOfferForUser,
+
 
                         ISNULL(fb.AvgRate, 0) as AvgRate,
                         ISNULL(fb.TotalReviews, 0) as TotalReviews
@@ -246,24 +262,40 @@ namespace TravelAgency.Controllers
                         WHERE wl.PackageId = p.Id
                           AND wl.inactive = 0
                     ) w
-
                     OUTER APPLY (
-                        SELECT
-                            AVG(CAST(f.Rate as float)) as AvgRate,
-                            COUNT(*) as TotalReviews
-                        FROM PackageFeedback pf
-                        INNER JOIN feedBack1 f ON f.Id = pf.FeedbackId
-                        WHERE pf.PackageId = p.Id
-                          AND pf.inactive = 0
-                          AND f.inactive = 0
-                          AND f.feedbackType = 'Package'
-                    ) fb
+    SELECT TOP (1) 1 as HasOffer
+    FROM WaitlistOffers o
+    WHERE o.PackageId = p.Id
+      AND o.IsUsed = 0
+      AND o.OfferEnd > GETDATE()
+      AND (o.UserId = @uid)
+) oa
 
-                    WHERE p.inactive = 0
+
+                            OUTER APPLY (
+            SELECT
+                AVG(CAST(f.Rate as float)) as AvgRate,
+                COUNT(*) as TotalReviews
+            FROM Package p2
+            INNER JOIN PackageFeedback pf ON pf.PackageId = p2.Id AND pf.inactive = 0
+            INNER JOIN feedBack1 f ON f.Id = pf.FeedbackId
+            WHERE p2.inactive = 0
+              AND p2.destination = p.destination
+              AND ISNULL(p2.country,'') = ISNULL(p.country,'')
+              AND p2.idCategory = p.idCategory
+              AND f.inactive = 0
+              AND f.feedbackType = 'Package'
+        ) fb
+
+
+                 WHERE p.inactive = 0
+  AND p.startDate > CAST(GETDATE() AS date)
                 ";
 
                 var conditions = new List<string>();
                 var cmd = new SqlCommand { Connection = conn };
+                
+                cmd.Parameters.AddWithValue("@uid", (object?)currentUserId ?? DBNull.Value);
 
                 if (!string.IsNullOrWhiteSpace(destination))
                 {
@@ -378,6 +410,8 @@ namespace TravelAgency.Controllers
                     int oTotalBookings = r.GetOrdinal("TotalBookings");
                     int oDiscount = r.GetOrdinal("DiscountPercent");
                     int oWaiting = r.GetOrdinal("WaitingCount");
+                    int oHasOffer = r.GetOrdinal("HasActiveOfferForUser");
+
                     int oAvgRate = r.GetOrdinal("AvgRate");
                     int oTotalReviews = r.GetOrdinal("TotalReviews");
 
@@ -404,6 +438,9 @@ namespace TravelAgency.Controllers
 
                         int waitingCount = r.IsDBNull(oWaiting) ? 0 : r.GetInt32(oWaiting);
                         waitingCountByPackage[pkg.Id] = waitingCount;
+                        bool hasOffer = !r.IsDBNull(oHasOffer) && r.GetInt32(oHasOffer) == 1;
+                        hasActiveOfferByPackage[pkg.Id] = hasOffer;
+
 
                         double avgRate = r.IsDBNull(oAvgRate) ? 0.0 : r.GetDouble(oAvgRate);
                         int totalRev = r.IsDBNull(oTotalReviews) ? 0 : r.GetInt32(oTotalReviews);
@@ -481,6 +518,9 @@ namespace TravelAgency.Controllers
             ViewBag.ImagesByPackage = imagesByPackage;
             ViewBag.WaitingCountByPackage = waitingCountByPackage;
 
+            ViewBag.HasActiveOfferByPackage = hasActiveOfferByPackage;
+
+            
             ViewBag.AvgRatingByPackage = avgRatingByPackage;
             ViewBag.TotalReviewsByPackage = totalReviewsByPackage;
 
@@ -497,6 +537,12 @@ namespace TravelAgency.Controllers
             children = children < 0 ? 0 : children;
             int totalPassengers = adults + children;
 
+            int? currentUserId = null;
+            var uidStr = HttpContext.Session.GetString("UserId");
+            if (int.TryParse(uidStr, out int tmpUid)) currentUserId = tmpUid;
+
+            bool hasActiveOfferForUser = false;
+            
             Package? pkg = null;
             string categoryName = "";
             int discountedPrice = 0;
@@ -506,6 +552,7 @@ namespace TravelAgency.Controllers
 
             double avgRating = 0;
             int totalReviews = 0;
+            
 
             using (var conn = new SqlConnection(_connectionString))
             {
@@ -574,8 +621,31 @@ namespace TravelAgency.Controllers
                         };
 
                         categoryName = pkg.CategoryName ?? "";
+                        
+                        
+                        
                     }
                 }
+                
+               
+                
+// ✅ NEW: check active offer for this user on this package
+                using (var offerCmd = new SqlCommand(@"
+    SELECT TOP (1) 1
+    FROM WaitlistOffers
+    WHERE PackageId = @pid
+      AND UserId = @uid
+      AND IsUsed = 0
+      AND OfferEnd > GETDATE();
+", conn))
+                {
+                    offerCmd.Parameters.AddWithValue("@pid", id);
+                    offerCmd.Parameters.AddWithValue("@uid", (object?)currentUserId ?? DBNull.Value);
+
+                    var obj = offerCmd.ExecuteScalar();
+                    hasActiveOfferForUser = (obj != null);
+                }
+
 
                 string imgSql = @"
                     SELECT ImageLocation
@@ -594,23 +664,33 @@ namespace TravelAgency.Controllers
                 }
 
                 string reviewSql = @"
-                    SELECT
-                        f.Id,
-                        f.userId,
-                        ISNULL(u.firstName + ' ' + u.lastName, u.Username) as UserFullName,
-                        ISNULL(f.Description,'') as Description,
-                        f.Rate,
-                        f.feedbackType,
-                        f.inactive
-                    FROM PackageFeedback pf
-                    INNER JOIN feedBack1 f ON f.Id = pf.FeedbackId
-                    LEFT JOIN Users u ON u.Id = f.userId
-                    WHERE pf.PackageId = @Id
-                      AND pf.inactive = 0
-                      AND f.inactive = 0
-                      AND f.feedbackType = 'Package'
-                    ORDER BY f.Id DESC;
-                ";
+SELECT
+    f.Id,
+    f.userId,
+    ISNULL(u.firstName + ' ' + u.lastName, u.Username) as UserFullName,
+    ISNULL(f.Description,'') as Description,
+    f.Rate,
+    f.feedbackType,
+    f.inactive
+FROM PackageFeedback pf
+INNER JOIN feedBack1 f ON f.Id = pf.FeedbackId
+INNER JOIN Package p2 ON p2.Id = pf.PackageId
+LEFT JOIN Users u ON u.Id = f.userId
+WHERE f.inactive = 0
+  AND f.feedbackType = 'Package'
+  AND EXISTS (
+      SELECT 1
+      FROM Package pBase
+      WHERE pBase.Id = @Id
+        AND pBase.inactive = 0
+        AND p2.inactive = 0
+        AND p2.destination = pBase.destination
+        AND ISNULL(p2.country,'') = ISNULL(pBase.country,'')
+        AND p2.idCategory = pBase.idCategory
+  )
+ORDER BY f.Id DESC;
+";
+
                 using (var revCmd = new SqlCommand(reviewSql, conn))
                 {
                     revCmd.Parameters.AddWithValue("@Id", id);
@@ -658,6 +738,8 @@ namespace TravelAgency.Controllers
             };
 
             ViewBag.Images = images;
+            
+            ViewBag.HasActiveOfferForUser = hasActiveOfferForUser;
             return View(vm);
 
 
@@ -788,7 +870,7 @@ namespace TravelAgency.Controllers
     ViewBag.StartDate = startDate;
     return View(travelers);
 }
-    } // <--- זה הסוגר שסוגר את ה-Controller (הפונקציה חייבת להיות מעליו!)
+    } 
 }
     
 

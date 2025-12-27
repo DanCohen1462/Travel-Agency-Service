@@ -8,11 +8,13 @@ namespace TravelAgency.Models
         public int Id { get; set; }
 
         // USERNAME – ניתן לעריכה, עם אותם חוקים כמו בהרשמה
+// USERNAME – same rules as Register
         [Required(ErrorMessage = "Username is required")]
         [MinLength(3, ErrorMessage = "Username must be at least 3 characters")]
         [RegularExpression("^[A-Za-z0-9]*$", ErrorMessage = "Username can only contain letters and numbers")]
         [Display(Name = "Username")]
         public string Username { get; set; }
+
 
         // FIRST NAME (2–10 letters)
         [Required(ErrorMessage = "First name is required")]

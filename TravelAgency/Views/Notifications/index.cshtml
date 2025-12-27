@@ -1,13 +1,11 @@
-﻿@{
+﻿@model List<TravelAgency.Models.NotificationItem>
+@{
     ViewData["Title"] = "My Notifications";
 }
 
 <style>
-    body {
-        background-color: #f8f9fa;
-    }
+    body { background-color: #f8f9fa; }
 
-    /* קופסת ההודעה */
     .notification-card {
         background: #fff;
         border-radius: 12px;
@@ -15,22 +13,20 @@
         margin-bottom: 1rem;
         position: relative;
         transition: all 0.3s ease;
-        border-left: 6px solid #dee2e6; /* צבע ברירת מחדל */
+        border-left: 6px solid #dee2e6;
         box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
 
     .notification-card:hover {
-        transform: translateX(5px); /* תזוזה קטנה ימינה בריחוף */
+        transform: translateX(5px);
         box-shadow: 0 5px 15px rgba(0,0,0,0.08);
     }
 
-    /* סוגי הודעות (צבעים) */
-    .type-info { border-left-color: #0d6efd; }      /* כחול - מידע */
-    .type-success { border-left-color: #198754; }   /* ירוק - הצלחה */
-    .type-warning { border-left-color: #ffc107; }   /* צהוב - אזהרה */
-    .type-danger { border-left-color: #dc3545; }    /* אדום - דחוף */
+    .type-info { border-left-color: #0d6efd; }
+    .type-success { border-left-color: #198754; }
+    .type-warning { border-left-color: #ffc107; }
+    .type-danger { border-left-color: #dc3545; }
 
-    /* כפתור מחיקה עדין */
     .btn-dismiss {
         position: absolute;
         top: 15px;
@@ -39,12 +35,8 @@
         cursor: pointer;
         transition: color 0.2s;
     }
+    .btn-dismiss:hover { color: #dc3545; }
 
-    .btn-dismiss:hover {
-        color: #dc3545;
-    }
-
-    /* תאריך */
     .meta-date {
         font-size: 0.85rem;
         color: #6c757d;
@@ -52,8 +44,7 @@
         align-items: center;
         gap: 5px;
     }
-    
-    /* אייקון עגול */
+
     .notif-icon {
         width: 45px;
         height: 45px;
@@ -65,76 +56,93 @@
         margin-right: 15px;
         flex-shrink: 0;
     }
-    
+
     .bg-light-blue { background: rgba(13, 110, 253, 0.1); color: #0d6efd; }
     .bg-light-green { background: rgba(25, 135, 84, 0.1); color: #198754; }
     .bg-light-red { background: rgba(220, 53, 69, 0.1); color: #dc3545; }
-
 </style>
 
 <div class="container py-5">
-    
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold mb-1">Notifications</h2>
             <p class="text-muted">Stay updated with your latest activities.</p>
         </div>
-        <button class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-check-all"></i> Mark all as read
-        </button>
+
+        <form asp-controller="Notifications" asp-action="MarkAllRead" method="post" class="m-0">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-check-all"></i> Mark all as read
+            </button>
+        </form>
     </div>
 
     <div class="row justify-content-center">
         <div class="col-lg-9">
 
-            <div class="notification-card type-success d-flex align-items-start">
-                <div class="notif-icon bg-light-green">
-                    <i class="bi bi-check-lg"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="fw-bold mb-1">Package Approved</h5>
-                        <i class="bi bi-x-lg btn-dismiss" title="Dismiss"></i>
-                    </div>
-                    <p class="mb-2 text-secondary">Great news! The "Paris Vacation" package has been approved by the admin.</p>
-                    <div class="meta-date">
-                        <i class="bi bi-clock"></i> Just now
-                    </div>
-                </div>
-            </div>
+            @if (Model == null || !Model.Any())
+            {
+                <div class="alert alert-info">You have no notifications.</div>
+            }
+            else
+            {
+                foreach (var n in Model)
+                {
+                    var t = (n.Type ?? "info").ToLower();
+                    var typeClass = t == "success" ? "type-success"
+                                 : t == "warning" ? "type-warning"
+                                 : t == "danger"  ? "type-danger"
+                                 : "type-info";
 
-            <div class="notification-card type-info d-flex align-items-start">
-                <div class="notif-icon bg-light-blue">
-                    <i class="bi bi-info-circle"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="fw-bold mb-1">System Update</h5>
-                        <i class="bi bi-x-lg btn-dismiss" title="Dismiss"></i>
-                    </div>
-                    <p class="mb-2 text-secondary">We have updated the pricing module. Please review the new guidelines.</p>
-                    <div class="meta-date">
-                        <i class="bi bi-clock"></i> 2 hours ago
-                    </div>
-                </div>
-            </div>
+                    var iconBg = t == "success" ? "bg-light-green"
+                               : t == "danger"  ? "bg-light-red"
+                               : "bg-light-blue";
 
-            <div class="notification-card type-danger d-flex align-items-start">
-                <div class="notif-icon bg-light-red">
-                    <i class="bi bi-exclamation-triangle"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="fw-bold mb-1">Booking Cancelled</h5>
-                        <i class="bi bi-x-lg btn-dismiss" title="Dismiss"></i>
-                    </div>
-                    <p class="mb-2 text-secondary">Client John Doe has cancelled their trip to London.</p>
-                    <div class="meta-date">
-                        <i class="bi bi-clock"></i> Yesterday
-                    </div>
-                </div>
-            </div>
+                    var icon = t == "success" ? "bi-check-lg"
+                             : t == "warning" ? "bi-exclamation-circle"
+                             : t == "danger"  ? "bi-exclamation-triangle"
+                             : "bi-info-circle";
 
-            </div>
+                    <div class="notification-card @typeClass d-flex align-items-start">
+
+                        <div class="notif-icon @iconBg">
+                            <i class="bi @icon"></i>
+                        </div>
+
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h5 class="fw-bold mb-1">@n.Title</h5>
+
+                                <form asp-controller="Notifications" asp-action="Dismiss" method="post" class="m-0">
+                                    <input type="hidden" name="id" value="@n.Id" />
+                                    <button type="submit" class="btn btn-link p-0 btn-dismiss" title="Dismiss">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </form>
+                            </div>
+
+                            <p class="mb-2 text-secondary">@n.Message</p>
+
+                            <div class="meta-date">
+                                <i class="bi bi-clock"></i> @n.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(n.LinkUrl))
+                            {
+                                <div class="mt-2">
+                                    <form asp-controller="Notifications" asp-action="Open" method="post" class="m-0">
+                                        <input type="hidden" name="id" value="@n.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">Open</button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
+
+                    </div>
+                }
+            }
+
+        </div>
     </div>
+
 </div>
