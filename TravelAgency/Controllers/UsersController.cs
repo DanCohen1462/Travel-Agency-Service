@@ -365,60 +365,83 @@ namespace TravelAgency.Controllers
 
                     return new UserTripViewModel
                     {
-                        ReservationId = first.ReservationId, // only for display (not for cancel anymore)
+                        ReservationId = first.ReservationId,
                         PackageId = first.PackageId,
                         Destination = first.Destination,
                         Country = first.Country,
                         StartDate = first.StartDate,
                         EndDate = first.EndDate,
                         CancelationDays = first.CancelationDays,
-
                         CategoryId = first.CategoryId,
                         CategoryName = first.CategoryName,
-
                         ImageUrl = first.ImageUrl,
-
-                        // ✅ merged totals
                         NumPersons = g.Sum(x => Math.Max(1, x.NumPersons)),
                         TotalPrice = g.Sum(x => Math.Max(0, x.TotalPrice)),
-
                         IsUpcoming = first.StartDate > DateTime.Now
+                        
+                        
                     };
                 })
                 .OrderByDescending(x => x.StartDate)
                 .ToList();
-
-            // ✅ CREATE "Rate your trip" notifications for ended trips (once per ReservationId)
+            
+            // ✅ Fill HasRated per group (Destination+Country+Category) for this user
             try
             {
-                using var conn2 = new SqlConnection(_connectionString);
-                conn2.Open();
+                var ratedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                using var cmd = new SqlCommand(@"
-        SELECT TOP (50)
-            h.Id AS ReservationId,
-            p.destination,
-            ISNULL(p.country,'') as country
-        FROM HistoryReservation h
-        INNER JOIN Package p ON p.Id = h.PackageId
-        WHERE h.UserId = @uid
-          AND h.inactive = 0
-          AND p.inactive = 0
-          AND CAST(p.endDate AS date) < CAST(GETDATE() AS date)
-        ORDER BY p.endDate DESC, h.Id DESC;", conn2);
-
-                cmd.Parameters.AddWithValue("@uid", userId);
-
-                using var r = cmd.ExecuteReader();
-                while (r.Read())
+                using (var connR = new SqlConnection(_connectionString))
                 {
-                    int reservationId = r.GetInt32(0);
-                    string dest = r["destination"]?.ToString() ?? "";
-                    string ctry = r["country"]?.ToString() ?? "";
+                    connR.Open();
+                    using var cmdR = new SqlCommand(@"
+            SELECT
+                ISNULL(pf.Destination,'') as Destination,
+                ISNULL(pf.Country,'') as Country,
+                pf.CategoryId
+            FROM feedBack1 f
+            INNER JOIN PackageFeedback pf ON pf.FeedbackId = f.Id AND pf.inactive = 0
+            WHERE f.userId = @uid
+              AND f.inactive = 0
+              AND f.feedbackType = 'Package';", connR);
 
-                    string title = $"Rate your trip #{reservationId}";
+                    cmdR.Parameters.AddWithValue("@uid", userId);
 
-                    // check if already exists
+                    using var rr = cmdR.ExecuteReader();
+                    while (rr.Read())
+                    {
+                        string d = (rr["Destination"]?.ToString() ?? "").Trim();
+                        string c = (rr["Country"]?.ToString() ?? "").Trim();
+                        int cat = Convert.ToInt32(rr["CategoryId"]);
+
+                        ratedKeys.Add($"{d}||{c}||{cat}");
+                    }
+                }
+
+                foreach (var t in grouped)
+                {
+                    string key = $"{(t.Destination ?? "").Trim()}||{(t.Country ?? "").Trim()}||{t.CategoryId}";
+                    t.HasRated = ratedKeys.Contains(key);
+                }
+            }
+            catch
+            {
+                // if something fails, keep HasRated default (false) – but no crash
+            }
+
+            
+// ✅ CREATE "Rate your trip" notifications (ONE per PAST TRIP CARD / group)
+            try
+            {
+                foreach (var trip in grouped.Where(t => !t.IsUpcoming && !t.HasRated))
+                {
+                    string dest = trip.Destination ?? "";
+                    string ctry = trip.Country ?? "";
+
+                    string title = $"Rate your trip: {dest}{(string.IsNullOrWhiteSpace(ctry) ? "" : $" ({ctry})")}";
+
+                    // ✅ Open should lead to History tab (past trips)
+                    string linkUrl = $"/Users/MyTrips?tab=history&highlightReservationId={trip.ReservationId}";
+
                     using var conn3 = new SqlConnection(_connectionString);
                     conn3.Open();
 
@@ -427,21 +450,18 @@ namespace TravelAgency.Controllers
             FROM dbo.Notifications
             WHERE UserId = @uid
               AND inactive = 0
-              AND Title = @title;", conn3);
+              AND LinkUrl = @link;", conn3);
 
                     existsCmd.Parameters.AddWithValue("@uid", userId);
-                    existsCmd.Parameters.AddWithValue("@title", title);
+                    existsCmd.Parameters.AddWithValue("@link", linkUrl);
 
                     int exists = (int)existsCmd.ExecuteScalar();
                     if (exists > 0) continue;
 
-                    // ✅ link to rating page (we will create this Action now)
-                    string linkUrl = $"/Feedback/Package?reservationId={reservationId}";
-
                     _notificationService.Create(
                         userId,
                         title: title,
-                        message: $"Your trip to {dest}{(string.IsNullOrWhiteSpace(ctry) ? "" : $" ({ctry})")} has ended. Please rate your experience!",
+                        message: "Your trip has ended. Please rate your experience!",
                         type: "info",
                         linkUrl: linkUrl
                     );
@@ -523,6 +543,8 @@ WHERE h.inactive = 0
 
     // Make the Information look nice (keep paragraphs)
     info = NormalizeInfo(info);
+    
+    QuestPDF.Settings.License = LicenseType.Community;
 
     // Build PDF
     byte[] pdfBytes = Document.Create(container =>

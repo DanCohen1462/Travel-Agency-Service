@@ -24,6 +24,8 @@ namespace TravelAgency.Models
         public int CategoryId { get; set; }
         
         public string CategoryName { get; set; }
+        
+        public bool HasRated { get; set; }
 
     }
 }

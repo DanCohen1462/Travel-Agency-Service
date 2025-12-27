@@ -82,31 +82,52 @@ public IActionResult Package(int reservationId)
         return RedirectToAction("Login", "Auth");
 
     // basic ownership check: reservation belongs to this user + active
+    // ✅ ownership + fetch trip info for display (Destination/Country/Category)
     using (var conn = new SqlConnection(_connectionString))
     {
         conn.Open();
 
         using var cmd = new SqlCommand(@"
-            SELECT COUNT(*)
-            FROM HistoryReservation h
-            WHERE h.Id = @rid
-              AND h.UserId = @uid
-              AND h.inactive = 0;", conn);
+    SELECT TOP 1
+        h.Id AS ReservationId,
+        h.PackageId,
+        p.destination,
+        ISNULL(p.country,'') AS country,
+        p.idCategory,
+        ISNULL(c.name,'') AS CategoryName
+    FROM HistoryReservation h
+    INNER JOIN Package p ON p.Id = h.PackageId
+    LEFT JOIN [Category] c ON c.Id = p.idCategory AND c.inactive = 0
+    WHERE h.Id = @rid
+      AND h.UserId = @uid
+      AND h.inactive = 0
+      AND p.inactive = 0;", conn);
+
 
         cmd.Parameters.AddWithValue("@rid", reservationId);
         cmd.Parameters.AddWithValue("@uid", userId.Value);
 
-        int ok = (int)cmd.ExecuteScalar();
-        if (ok == 0)
+        using var r = cmd.ExecuteReader();
+        if (!r.Read())
         {
-            TempData["Error"] = "Trip not found.";
+            TempData["FeedbackError"] = "Trip not found.";
             return RedirectToAction("MyTrips", "Users");
         }
+
+        ViewBag.ReservationId = reservationId;
+        ViewBag.PackageId = Convert.ToInt32(r["PackageId"]);
+        ViewBag.Destination = r["destination"]?.ToString() ?? "";
+        ViewBag.Country = r["country"]?.ToString() ?? "";
+        ViewBag.CategoryId = Convert.ToInt32(r["idCategory"]);
+        ViewBag.CategoryName = r["CategoryName"]?.ToString() ?? "";
+        
+        // ✅ clean old error TempData so it won't show when the trip was found
+        TempData.Remove("FeedbackError");
+
     }
 
-    // View should show stars + description
-    ViewBag.ReservationId = reservationId;
     return View();
+
 }
 
 
@@ -122,7 +143,7 @@ public IActionResult Package(int reservationId, int rate, string description)
 
     if (rate < 1 || rate > 5)
     {
-        TempData["Error"] = "Please choose a rate between 1 and 5.";
+        TempData["FeedbackError"] = "Please choose a rate between 1 and 5.";
         return RedirectToAction("Package", new { reservationId });
     }
 
@@ -157,7 +178,7 @@ public IActionResult Package(int reservationId, int rate, string description)
             using var r = cmd.ExecuteReader();
             if (!r.Read())
             {
-                TempData["Error"] = "Trip not found.";
+                TempData["FeedbackError"] = "Trip not found.";
                 return RedirectToAction("MyTrips", "Users");
             }
 
@@ -167,7 +188,7 @@ public IActionResult Package(int reservationId, int rate, string description)
             categoryId = Convert.ToInt32(r["idCategory"]);
         }
 
-        // 2) Prevent duplicate feedback per user (one Package feedback per user)
+        // 2) Prevent duplicate feedback per user (ONE per Destination+Country+Category)
         using (var chk = new SqlCommand(@"
             SELECT COUNT(*)
             FROM feedBack1 f
@@ -175,18 +196,23 @@ public IActionResult Package(int reservationId, int rate, string description)
             WHERE f.userId = @uid
               AND f.feedbackType = 'Package'
               AND f.inactive = 0
-              AND pf.PackageId = @pid;", conn))
+              AND ISNULL(pf.Destination,'') = ISNULL(@dest,'')
+              AND ISNULL(pf.Country,'') = ISNULL(@ctry,'')
+              AND pf.CategoryId = @cat;", conn))
         {
             chk.Parameters.AddWithValue("@uid", userId.Value);
-            chk.Parameters.AddWithValue("@pid", packageId);
+            chk.Parameters.AddWithValue("@dest", dest);
+            chk.Parameters.AddWithValue("@ctry", country);
+            chk.Parameters.AddWithValue("@cat", categoryId);
 
             int exists = (int)chk.ExecuteScalar();
             if (exists > 0)
             {
-                TempData["Error"] = "You already rated this trip.";
+                TempData["FeedbackError"] = "You already rated this trip group.";
                 return RedirectToAction("MyTrips", "Users");
             }
         }
+
 
         // 3) Insert into feedBack1
         int feedbackId;
@@ -203,7 +229,7 @@ public IActionResult Package(int reservationId, int rate, string description)
         }
 
         // 4) Link to package + store grouping fields for the “Destination+Country+Category” logic
-        using (var insPf = new SqlCommand(@"
+               using (var insPf = new SqlCommand(@"
             INSERT INTO PackageFeedback(PackageId, FeedbackId, inactive, CategoryId, Destination, Country)
             VALUES(@pid, @fid, 0, @cat, @dest, @ctry);", conn))
         {
@@ -215,11 +241,28 @@ public IActionResult Package(int reservationId, int rate, string description)
 
             insPf.ExecuteNonQuery();
         }
+
+        // ✅ deactivate related "Rate your trip" notification (if exists)
+        try
+        {
+            using var cmdN = new SqlCommand(@"
+                UPDATE dbo.Notifications
+                SET inactive = 1
+                WHERE UserId = @uid
+                  AND inactive = 0
+                  AND LinkUrl = @link;", conn);
+
+            cmdN.Parameters.AddWithValue("@uid", userId.Value);
+            cmdN.Parameters.AddWithValue("@link",
+                $"/Users/MyTrips?tab=history&highlightReservationId={reservationId}");
+
+            cmdN.ExecuteNonQuery();
+        }
+        catch { }
     }
 
-    TempData["Success"] = "Thanks! Your rating was submitted.";
-    return RedirectToAction("MyTrips", "Users");
+    TempData["FeedbackSuccess"] = "Thanks! Your rating was submitted.";
+    return RedirectToAction("MyTrips", "Users", new { tab = "history" });
 }
     }
-    
 }
