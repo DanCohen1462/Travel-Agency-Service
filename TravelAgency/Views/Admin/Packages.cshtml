@@ -6,6 +6,15 @@
 
 <div class="container mt-4 mb-5">
     <h2 class="fw-bold text-center mb-4">Packages Gallery</h2>
+    <form method="get" class="mb-4 d-flex" style="max-width: 350px;">
+        <input type="text"
+               name="search"
+               class="form-control"
+               placeholder="Search by destination or country..."
+               value="@ViewBag.Search" />
+
+        <button class="btn btn-primary ms-2">Search</button>
+    </form>
 
     <div class="row">
 
@@ -66,6 +75,7 @@
                 </div>
             </div>
         }
+
 
     </div>
 </div>

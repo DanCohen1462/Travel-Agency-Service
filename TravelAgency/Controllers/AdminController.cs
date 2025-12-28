@@ -16,25 +16,25 @@ public class AdminController : Controller
     {
         _connectionString = config.GetConnectionString("DefaultConnection");
     }
-    public override void OnActionExecuting(ActionExecutingContext context)
-    {
-        // אם אין סשן משתמש — שלח לדף התחברות
-        if (HttpContext.Session.GetInt32("UserId") == null)
-        {
-            context.Result = RedirectToAction("Login", "Auth");
-            return;
-        }
-
-        // אם המשתמש לא אדמין – חסום גישה
-        int userType = HttpContext.Session.GetInt32("UserType") ?? 0;
-        if (userType != 1) // נניח: 1 = Admin
-        {
-            context.Result = RedirectToAction("AccessDenied", "Auth");
-            return;
-        }
-
-        base.OnActionExecuting(context);
-    }
+    // public override void OnActionExecuting(ActionExecutingContext context)
+    // {
+    //     // אם אין סשן משתמש — שלח לדף התחברות
+    //     if (HttpContext.Session.GetInt32("UserId") == null)
+    //     {
+    //         context.Result = RedirectToAction("Login", "Auth");
+    //         return;
+    //     }
+    //
+    //     // אם המשתמש לא אדמין – חסום גישה
+    //     int userType = HttpContext.Session.GetInt32("UserType") ?? 0;
+    //     if (userType != 1) // נניח: 1 = Admin
+    //     {
+    //         context.Result = RedirectToAction("AccessDenied", "Auth");
+    //         return;
+    //     }
+    //
+    //     base.OnActionExecuting(context);
+    // }
 
     // GET
     public IActionResult Index()
@@ -69,12 +69,45 @@ public class AdminController : Controller
         ViewBag.Categories = categories;
         return View();
     }
-    
+    private List<Category> LoadCategories()
+    {
+        List<Category> categories = new List<Category>();
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            string query = "SELECT * FROM Category";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            using (SqlDataReader reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    categories.Add(new Category
+                    {
+                        Id = (int)reader["Id"],
+                        name = reader["name"].ToString()
+                    });
+                }
+            }
+        }
+
+        return categories;
+    }
+
     [HttpPost]
     public IActionResult CreatePackage(Package model, List<IFormFile> images)
     {
         if (!ModelState.IsValid)
+        {
+            // Load categories again
+             List<Category> categories = LoadCategories();
+            ViewBag.Categories = categories;
+
             return View(model);
+        }
+
         int newPackageId = 0;
 
         using (SqlConnection conn = new SqlConnection(_connectionString))
@@ -251,14 +284,14 @@ public class AdminController : Controller
 
         return RedirectToAction("AssignGuide");
     }
-    public IActionResult Packages()
+    public IActionResult Packages(string search)
     {
         List<Package> packages = new List<Package>();
 
         using (SqlConnection conn = new SqlConnection(_connectionString))
         {
             conn.Open();
-            
+
             string query = @"
                 SELECT 
                     p.Id,
@@ -276,28 +309,40 @@ public class AdminController : Controller
                 FROM Package p
                 WHERE p.inactive = 0";
 
+            if (!string.IsNullOrEmpty(search))
+            {
+                query += " AND (p.destination LIKE @search OR p.country LIKE @search)";
+            }
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
-            using (SqlDataReader reader = cmd.ExecuteReader())
             {
-                while (reader.Read())
-                {
-                    packages.Add(new Package
-                    {
-                        Id = reader.GetInt32(0),
-                        destination = reader.GetString(1),
-                        //image = reader.GetString(2),
-                        StartDate = reader.GetDateTime(2),
-                        EndDate = reader.GetDateTime(3),
-                        sum = reader.GetInt32(4),
-                        ActiveDiscount = reader.IsDBNull(5) ? 0 : reader.GetInt32(5),
-                        country = reader.IsDBNull(6) ? null : reader.GetString(6),
-                        
+                if (!string.IsNullOrEmpty(search))
+                    cmd.Parameters.AddWithValue("@search", "%" + search + "%");
+            
 
-                    });
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+
+                    while (reader.Read())
+                    {
+                        packages.Add(new Package
+                        {
+                            Id = reader.GetInt32(0),
+                            destination = reader.GetString(1),
+                            //image = reader.GetString(2),
+                            StartDate = reader.GetDateTime(2),
+                            EndDate = reader.GetDateTime(3),
+                            sum = reader.GetInt32(4),
+                            ActiveDiscount = reader.IsDBNull(5) ? 0 : reader.GetInt32(5),
+                            country = reader.IsDBNull(6) ? null : reader.GetString(6),
+
+
+                        });
+                    }
                 }
-            }
-            foreach (var pkg in packages)
+        }
+
+        foreach (var pkg in packages)
             {
                 string q2 = @"SELECT TOP 5 imageLocation FROM ImagesPackage WHERE packageId = @pid";
 
