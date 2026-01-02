@@ -699,7 +699,7 @@ public class AdminController : Controller
     }
     
     [HttpPost] 
-    public IActionResult EditPackage(Package model,List<IFormFile> images)
+    public IActionResult EditPackage(PackageView model,List<IFormFile> images)
     {
         
         if (!ModelState.IsValid)

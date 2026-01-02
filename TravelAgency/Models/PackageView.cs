@@ -2,9 +2,9 @@ namespace TravelAgency.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
 
-public class Package
+public class PackageView
 {
-    public int Id { get; set; }
+     public int Id { get; set; }
     [Required(ErrorMessage = "Destination is required")]
     [StringLength(83, MinimumLength = 2, ErrorMessage = "Destination must be 2–83 characters")]
 
@@ -37,7 +37,6 @@ public class Package
     public int ActiveDiscount{get; set; }
     [Required(ErrorMessage = "Country is required")]
     [StringLength(1000, MinimumLength = 2, ErrorMessage = "Country must be between 2 to 1000 characters")]
-
     public string? country { get; set; }
     
     public string? RandomImage { get; set; }
@@ -51,11 +50,11 @@ public class Package
     public int? cancelationDays { get; set; } 
    
 }
-public class DateGreaterThanAttribute : ValidationAttribute
+public class DateGreaterThanAttribute1 : ValidationAttribute
 {
     private readonly string _comparisonProperty;
 
-    public DateGreaterThanAttribute(string comparisonProperty)
+    public DateGreaterThanAttribute1(string comparisonProperty)
     {
         _comparisonProperty = comparisonProperty;
     }
@@ -79,13 +78,7 @@ public class DateGreaterThanAttribute : ValidationAttribute
             return ValidationResult.Success;
 
         // ⚠ דרישה חדשה: StartDate חייב להיות לפחות יום אחד אחרי היום
-        if (property.Name == "StartDate")
-        {
-            if (comparisonValue.Value.Date <= DateTime.Today)
-            {
-                return new ValidationResult("Start date must be at least 1 day in the future.");
-            }
-        }
+      
 
         // בדיקה רגילה: EndDate > StartDate
         if (currentValue <= comparisonValue)
