@@ -709,6 +709,7 @@ public class AdminController : Controller
             {
                 foreach (var e in err.Value.Errors)
                 {
+                   
                     Console.WriteLine($"FIELD: {err.Key} → ERROR: {e.ErrorMessage}");
                 }
             }
@@ -1175,6 +1176,168 @@ public class AdminController : Controller
 
         return View("CreatePackage", package);
     }
+
+    public IActionResult CategoryIndex()
+    {
+        List<Category> categories = new();
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+            string query = "SELECT Id, name, inactive FROM Category";
+            SqlCommand cmd = new SqlCommand(query, conn);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                categories.Add(new Category
+                {
+                    Id = reader.GetInt32(0),
+                    name = reader.GetString(1),
+                    inactive = reader.GetBoolean(2)
+                });
+            }
+        }
+
+        return View(categories);
+    }
+    public IActionResult CreateCategory()
+    {
+        return View();
+    }
+    [HttpPost]
+    public IActionResult CreateCategory(Category model)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+            string query = "INSERT INTO Category (name, inactive) VALUES (@n, 0)";
+            SqlCommand cmd = new SqlCommand(query, conn);
+
+            cmd.Parameters.AddWithValue("@n", model.name);
+            
+
+            cmd.ExecuteNonQuery();
+        }
+    
+        return RedirectToAction("CategoryIndex");
+    }
+    public IActionResult EditCategory(int id)
+    {
+        Category cat = null;
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+            string query = "SELECT Id, name FROM Category WHERE Id = @id and active = 0";
+            SqlCommand cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@id", id);
+
+            SqlDataReader r = cmd.ExecuteReader();
+
+            if (r.Read())
+            {
+                cat = new Category
+                {
+                    Id = r.GetInt32(0),
+                    name = r.GetString(1),
+                    
+                };
+            }
+        }
+
+        return View(cat);
+    }
+    [HttpPost]
+    public IActionResult EditCategory(Category model)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+            string query = "UPDATE Category SET name=@n WHERE Id=@id and active = 0";
+
+            SqlCommand cmd = new SqlCommand(query, conn);
+
+            cmd.Parameters.AddWithValue("@id", model.Id);
+            cmd.Parameters.AddWithValue("@n", model.name);
+            
+
+            cmd.ExecuteNonQuery();
+        }
+
+        return RedirectToAction("CategoryIndex");
+    }
+    [HttpPost]
+    public IActionResult DeleteCategory(int id)
+    {
+        bool hasFuturePackages = false;
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            string checkQuery = @"
+            SELECT COUNT(*) 
+            FROM Package 
+            WHERE idCategory = @id 
+              AND startDate > GETDATE()";
+
+            SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
+            checkCmd.Parameters.AddWithValue("@id", id);
+
+            int count = (int)checkCmd.ExecuteScalar();
+
+            hasFuturePackages = count > 0;
+
+            if (hasFuturePackages)
+            {
+                TempData["Error"] = "Cannot delete category — it has upcoming trips.";
+                return RedirectToAction("CategoryIndex");
+            }
+
+            // Safe to delete
+            string deleteQuery = "UPDATE Category SET inactive=1 WHERE Id=@id and inactive = 0";
+            SqlCommand deleteCmd = new SqlCommand(deleteQuery, conn);
+            deleteCmd.Parameters.AddWithValue("@id", id);
+
+            deleteCmd.ExecuteNonQuery();
+        }
+
+        TempData["Success"] = "Category deleted successfully.";
+        return RedirectToAction("CategoryIndex");
+    }
+    [HttpPost]
+    public IActionResult ActiveCategory(int id)
+    {
+        bool hasFuturePackages = false;
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+         
+          
+       
+            
+            // Safe to Active
+            string ActiveQuery = "UPDATE Category SET inactive=0 WHERE Id=@id and inactive = 1";
+            SqlCommand ActiveCmd = new SqlCommand(ActiveQuery, conn);
+            ActiveCmd.Parameters.AddWithValue("@id", id);
+
+            ActiveCmd.ExecuteNonQuery();
+        }
+
+        TempData["Success"] = "Category Active successfully.";
+        return RedirectToAction("CategoryIndex");
+    }
+    //Deactivate
+
 
 
 }

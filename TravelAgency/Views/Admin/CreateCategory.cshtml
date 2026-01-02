@@ -1,0 +1,17 @@
+@model Category
+
+<h2>Create Category</h2>
+
+<form method="post" class="mt-3">
+
+    <div class="mb-3">
+        <label class="form-label fw-bold">Name</label>
+        <input asp-for="name" class="form-control" />
+        <span asp-validation-for="name" class="text-danger"></span>
+    </div>
+
+
+
+    <button class="btn btn-success">Create</button>
+
+</form>

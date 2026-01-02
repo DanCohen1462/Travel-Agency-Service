@@ -1,0 +1,56 @@
+@model List<Category>
+
+<h2 class="mt-4">Category Management</h2>
+
+<a class="btn btn-primary my-3" href="/Admin/CreateCategory">+ Add Category</a>
+
+<table class="table table-bordered">
+    <thead class="table-light">
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th style="width: 200px;">Actions</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    @foreach (var c in Model)
+    {
+        <tr>
+            <td>@c.Id</td>
+            <td>@c.name</td>
+
+            <td>
+                <!-- Edit Button -->
+                <a href="/Admin/EditCategory/@c.Id" class="btn btn-warning btn-sm me-1">Edit</a>
+
+                <!-- Toggle Active / Inactive -->
+                @if (c.inactive == false)
+                {
+                    <!-- Category is active → show DEACTIVATE -->
+                    <form method="post" asp-action="DeleteCategory" class="d-inline">
+                        <input type="hidden" name="id" value="@c.Id" />
+
+                        <button class="btn btn-danger btn-sm"
+                                onclick="return confirm('Are you sure you want to deactivate this category?');">
+                            Deactivate
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <!-- Category is inactive → show ACTIVATE -->
+                    <form method="post" asp-action="ActiveCategory" class="d-inline">
+                        <input type="hidden" name="id" value="@c.Id" />
+
+                        <button class="btn btn-success btn-sm"
+                                onclick="return confirm('Activate this category?');">
+                            Activate
+                        </button>
+                    </form>
+                }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

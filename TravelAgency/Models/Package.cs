@@ -6,7 +6,8 @@ public class Package
 {
     public int Id { get; set; }
     [Required(ErrorMessage = "Destination is required")]
-    [StringLength(50, ErrorMessage = "Destination must be up to 50 characters")]
+    [StringLength(83, MinimumLength = 2, ErrorMessage = "Destination must be 2–83 characters")]
+
     public string destination { get; set; }
     [Required(ErrorMessage = "Start date is required")]
     public DateTime StartDate { get; set; }
