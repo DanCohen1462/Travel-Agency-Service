@@ -89,7 +89,8 @@ public IActionResult Info(int packageId)
         }
 
 
-        bool hasActiveCartHolds;
+        bool hasActiveTempBlocks; // carts OR offers
+
         using (var cmd = new SqlCommand(@"
     SELECT CASE 
         WHEN EXISTS (
@@ -99,29 +100,27 @@ public IActionResult Info(int packageId)
               AND inactive = 0
               AND ExpiresAt > GETDATE()
         )
+        OR EXISTS (
+            SELECT 1
+            FROM WaitlistOffers
+            WHERE PackageId = @pid
+              AND IsUsed = 0
+              AND OfferEnd > GETDATE()
+              AND ExpiredAt IS NULL
+        )
         THEN 1 ELSE 0
     END;
 ", conn))
         {
             cmd.Parameters.AddWithValue("@pid", packageId);
-            hasActiveCartHolds = ((int)cmd.ExecuteScalar()) == 1;
-        }
-        int minutesPerUser;
-        
-        if (hasActiveCartHolds)
-        {
-            // מקומות תפוסים זמנית בעגלה
-            minutesPerUser = 15;
-        }
-        else
-        {
-            // מקומות תפוסים ע"י הזמנות (רק ביטול משחרר)
-            minutesPerUser = 60;
+            hasActiveTempBlocks = ((int)cmd.ExecuteScalar()) == 1;
         }
 
+// Option A: usersAhead לפי WaitingList, זמן לפי חסימה זמנית/קבועה
+        int minutesPerUser = hasActiveTempBlocks ? 15 : 60;
+        int estimatedMinutes = Math.Max(1, usersAhead) * minutesPerUser;
 
-        int perUserMinutes = hasActiveCartHolds ? 15 : 60;
-        int estimatedMinutes = usersAhead * perUserMinutes;
+
 
         return Json(new
         {

@@ -42,11 +42,90 @@ namespace TravelAgency.Services
             var cs = _config.GetConnectionString("DefaultConnection")
                      ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-            using var conn = new SqlConnection(cs);
-            await conn.OpenAsync(ct);
+           using var conn = new SqlConnection(cs);
+await conn.OpenAsync(ct);
 
-            // 1) מציאת שורות עגלה שפג תוקפן (מכל המשתמשים)
-            var expiredRows = new List<(int CartId, int UserId, int PackageId, int NumPersons)>();
+// ✅ 0) ניקוי Offers שפגו (WaitlistOffers) => להחזיר מקומות ולתת Offer הבא
+var expiredOffers = new List<(int OfferId, int UserId, int PackageId, int NumPersons, string Reason)>();
+
+using (var selOff = new SqlCommand(@"
+SELECT Id, UserId, PackageId, NumPersons, Reason
+FROM WaitlistOffers
+WHERE IsUsed = 0
+  AND OfferEnd <= GETDATE()
+  AND ExpiredAt IS NULL;
+", conn))
+
+{
+    using var r = await selOff.ExecuteReaderAsync(ct);
+    while (await r.ReadAsync(ct))
+    {
+        expiredOffers.Add((
+            r.GetInt32(0),
+            r.GetInt32(1),
+            r.GetInt32(2),
+            r.IsDBNull(3) ? 1 : r.GetInt32(3),
+            r.IsDBNull(4) ? "cart" : r.GetString(4)
+        ));
+    }
+}
+
+foreach (var off in expiredOffers)
+{
+    using var tx = conn.BeginTransaction();
+
+    try
+    {
+        // 0.1) לסמן את ההצעה כלא פעילה כדי שלא נטפל שוב
+        using (var upd = new SqlCommand(@"
+UPDATE WaitlistOffers
+SET ExpiredAt = GETDATE()
+WHERE Id = @oid
+  AND IsUsed = 0
+  AND OfferEnd <= GETDATE()
+  AND ExpiredAt IS NULL;
+", conn, tx))
+        {
+            upd.Parameters.AddWithValue("@oid", off.OfferId);
+            int ok = await upd.ExecuteNonQueryAsync(ct);
+            if (ok == 0)
+            {
+                tx.Rollback();
+                continue;
+            }
+        }
+
+        // 0.2) להחזיר מקומות לחבילה
+        using (var back = new SqlCommand(@"
+UPDATE Package
+SET numFreePlaces = numFreePlaces + @n
+WHERE Id = @pid;
+", conn, tx))
+        {
+            back.Parameters.AddWithValue("@n", off.NumPersons);
+            back.Parameters.AddWithValue("@pid", off.PackageId);
+            await back.ExecuteNonQueryAsync(ct);
+        }
+
+        tx.Commit();
+    }
+    catch
+    {
+        try { tx.Rollback(); } catch { }
+        continue;
+    }
+
+    // 0.3) לתת Offer הבא בתור (לפי אותו reason)
+    try
+    {
+        CreateOffersFromWaitlist(conn, notificationService, off.PackageId, reason: off.Reason);
+    }
+    catch { }
+}
+
+// 1) מציאת שורות עגלה שפג תוקפן (מכל המשתמשים)
+var expiredRows = new List<(int CartId, int UserId, int PackageId, int NumPersons)>();
+
 
             using (var sel = new SqlCommand(@"
 SELECT Id, userId, PackageId, numPersons
@@ -66,8 +145,7 @@ WHERE inactive = 0 AND ExpiresAt <= GETDATE();
                 }
             }
 
-            if (expiredRows.Count == 0)
-                return;
+
 
             foreach (var row in expiredRows)
             {
