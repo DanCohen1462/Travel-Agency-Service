@@ -1096,6 +1096,23 @@ WHERE Id = @pid;
             }
         }
 
+        // create notification for the cancelling user
+        try
+        {
+            string title = "Trip cancelled successfully";
+            string message = "Your reservation was cancelled successfully.";
+            string linkUrl = "/Users/MyTrips?tab=upcoming";
+
+            _notificationService.Create(
+                userId,
+                title: title,
+                message: message,
+                type: "success",
+                linkUrl: linkUrl
+            );
+        }
+        catch { }
+        
         TempData["Success"] = "Reservation cancelled successfully.";
         return RedirectToAction("MyTrips");
     }
