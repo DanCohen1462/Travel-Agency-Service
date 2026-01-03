@@ -442,6 +442,13 @@
         showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["Error"])), "error");
     </script>
 }
+
+@if (TempData["SearchError"] != null)
+{
+    <script>
+        showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["SearchError"])), "error");
+    </script>
+}
 @if (TempData["WelcomeToast"] != null)
 {
     <script>
@@ -457,20 +464,30 @@
 
 <script>
   (function () {
-    // 1) before any form submit - remember scroll
-    document.addEventListener('submit', function () {
+    // 1) before submit - remember scroll ONLY for forms that request it
+    document.addEventListener('submit', function (e) {
       try {
+        const form = e.target;
+        if (!form || !form.hasAttribute || !form.hasAttribute('data-keep-scroll')) return;
+
+        sessionStorage.setItem('keepScroll', '1');
         sessionStorage.setItem('scrollY', String(window.scrollY || 0));
-      } catch (e) {}
+      } catch (err) {}
     }, true);
 
-    // 2) after page load - restore scroll
+    // 2) after page load - restore scroll ONLY if it was requested
     window.addEventListener('load', function () {
       try {
+        const keep = sessionStorage.getItem('keepScroll');
+        if (keep !== '1') return;
+
         const y = parseInt(sessionStorage.getItem('scrollY') || "0");
         if (y > 0) window.scrollTo(0, y);
+
+        sessionStorage.removeItem('keepScroll');
         sessionStorage.removeItem('scrollY');
-      } catch (e) {}
+      } catch (err) {}
     });
   })();
 </script>
+

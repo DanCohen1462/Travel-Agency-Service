@@ -45,21 +45,27 @@ namespace TravelAgency.Controllers
             if (!userId.HasValue)
                 return RedirectToAction("Login", "Auth");
 
-            // ✅ ולידציה בסיסית
+// ✅ Rate validation
             if (rate < 1 || rate > 5)
             {
-                TempData["FeedbackError"] = "Please choose a rate between 1 and 5.";
+                TempData["Error"] = "Please choose a rate between 1 and 5.";
                 return RedirectToAction("Website");
             }
 
-            description = description ?? "";
+// ✅ Description required (no empty / whitespace)
+            description = (description ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(description) || description.Length < 3)
+            {
+                TempData["Error"] = "Please write a short feedback (at least 3 characters).";
+                return RedirectToAction("Website");
+            }
 
             using (var conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
                 using var cmd = new SqlCommand(@"
-                    INSERT INTO feedBack1(userId, Description, Rate, feedbackType, inactive)
-                    VALUES(@uid, @desc, @rate, 'Website', 0);", conn);
+        INSERT INTO feedBack1(userId, Description, Rate, feedbackType, inactive)
+        VALUES(@uid, @desc, @rate, 'Website', 0);", conn);
 
                 cmd.Parameters.AddWithValue("@uid", userId.Value);
                 cmd.Parameters.AddWithValue("@desc", description);
@@ -67,8 +73,10 @@ namespace TravelAgency.Controllers
                 cmd.ExecuteNonQuery();
             }
 
-            TempData["FeedbackSuccess"] = "Thanks for your feedback!";
+// ✅ show only Toast (white) via _Layout
+            TempData["Success"] = "Thanks! Your rating was submitted.";
             return RedirectToAction("Dashboard", "Users");
+
         }
         
 // ---------------------------------------------------------
@@ -110,8 +118,12 @@ public IActionResult Package(int reservationId)
         using var r = cmd.ExecuteReader();
         if (!r.Read())
         {
-            TempData["FeedbackError"] = "Trip not found.";
-            return RedirectToAction("MyTrips", "Users");
+            if (!r.Read())
+            {
+                TempData["Error"] = "Trip not found.";
+                return RedirectToAction("MyTrips", "Users");
+            }
+
         }
 
         ViewBag.ReservationId = reservationId;
@@ -143,15 +155,22 @@ public IActionResult Package(int reservationId, int rate, string description)
 
     if (rate < 1 || rate > 5)
     {
-        TempData["FeedbackError"] = "Please choose a rate between 1 and 5.";
+        TempData["Error"] = "Please choose a rate between 1 and 5.";
         return RedirectToAction("Package", new { reservationId });
     }
 
-    description = description ?? "";
+
+    description = (description ?? "").Trim();
+    if (string.IsNullOrWhiteSpace(description) || description.Length < 3)
+    {
+        TempData["Error"] = "Please write a short feedback (at least 3 characters).";
+        return RedirectToAction("Package", new { reservationId });
+    }
 
     using (var conn = new SqlConnection(_connectionString))
     {
         conn.Open();
+
 
         // 1) Validate ownership and pull PackageId + grouping fields (dest/country/category)
         int packageId = 0;
@@ -178,8 +197,9 @@ public IActionResult Package(int reservationId, int rate, string description)
             using var r = cmd.ExecuteReader();
             if (!r.Read())
             {
-                TempData["FeedbackError"] = "Trip not found.";
+                TempData["Error"] = "Trip not found.";
                 return RedirectToAction("MyTrips", "Users");
+
             }
 
             packageId = Convert.ToInt32(r["PackageId"]);
@@ -208,8 +228,9 @@ public IActionResult Package(int reservationId, int rate, string description)
             int exists = (int)chk.ExecuteScalar();
             if (exists > 0)
             {
-                TempData["FeedbackError"] = "You already rated this trip group.";
+                TempData["Error"] = "Trip not found.";
                 return RedirectToAction("MyTrips", "Users");
+
             }
         }
 
@@ -261,8 +282,9 @@ public IActionResult Package(int reservationId, int rate, string description)
         catch { }
     }
 
-    TempData["FeedbackSuccess"] = "Thanks! Your rating was submitted.";
+    TempData["Success"] = "Thanks! Your rating was submitted.";
     return RedirectToAction("MyTrips", "Users", new { tab = "history" });
+
 }
     }
 }

@@ -19,15 +19,7 @@
         Trip: <b>@destination</b> | <b>@country</b> | Category: <b>@(string.IsNullOrWhiteSpace(categoryName) ? categoryId.ToString() : categoryName)</b>
 
     </p>
-
-    @if (TempData["FeedbackError"] != null)
-    {
-        <div class="alert alert-danger">@TempData["FeedbackError"]</div>
-    }
-    @if (TempData["FeedbackSuccess"] != null)
-    {
-        <div class="alert alert-success">@TempData["FeedbackSuccess"]</div>
-    }
+    
 
     <div class="card shadow-sm" style="border-radius:16px;">
         <div class="card-body">
@@ -47,8 +39,9 @@
                     <option value="5">5 - Excellent</option>
                 </select>
 
-                <label class="form-label fw-bold mt-3">Tell us more (optional)</label>
-                <textarea class="form-control" name="description" rows="4" placeholder="Write your feedback..."></textarea>
+                <label class="form-label fw-bold mt-3">Tell us more</label>
+                <textarea class="form-control" name="description" rows="4" placeholder="Write your feedback..." required minlength="3"></textarea>
+
 
                 <button type="submit" class="btn btn-primary w-100 mt-4 fw-bold">
                     Submit Trip Feedback
