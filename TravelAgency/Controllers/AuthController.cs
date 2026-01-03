@@ -142,7 +142,6 @@ using (var conn2 = new SqlConnection(_connectionString))
         SELECT COUNT(*)
         FROM dbo.Notifications
         WHERE UserId = @uid
-          AND inactive = 0
           AND Title = 'Welcome!';", conn2))
     {
         checkCmd.Parameters.AddWithValue("@uid", userId);
