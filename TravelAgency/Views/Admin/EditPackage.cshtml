@@ -18,6 +18,7 @@
                 <form method="post"
                       asp-action="EditPackage"
                       enctype="multipart/form-data">
+                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
                     <input type="hidden" name="Id" value="@Model.Id" />
 
@@ -29,6 +30,8 @@
                                class="form-control"
                                value="@Model.destination"
                                required/>
+                        <span asp-validation-for="destination" class="text-danger"></span>
+
                     </div>
 
                     <!-- Country -->
@@ -37,6 +40,8 @@
                         <input name="country"
                                class="form-control"
                                value="@Model.country" />
+                        <span asp-validation-for="country" class="text-danger"></span>
+
                     </div>
 
                     <!-- Dates -->
@@ -48,6 +53,8 @@
                                    class="form-control"
                                    value="@Model.StartDate.ToString("yyyy-MM-dd")"
                                    required />
+                            <span asp-validation-for="StartDate" class="text-danger"></span>
+
                         </div>
 
                         <div class="col">
@@ -57,6 +64,8 @@
                                    class="form-control"
                                    value="@Model.EndDate.ToString("yyyy-MM-dd")"
                                    required />
+                            <span asp-validation-for="EndDate" class="text-danger"></span>
+
                         </div>
                     </div>
 
@@ -68,6 +77,8 @@
                                class="form-control"
                                value="@Model.sum"
                                required />
+                        <span asp-validation-for="sum" class="text-danger"></span>
+
                     </div>
 
                     <!-- Age Limit -->
@@ -78,6 +89,8 @@
                                class="form-control"
                                value="@Model.ageLimit"
                                required />
+                        <span asp-validation-for="ageLimit" class="text-danger"></span>
+
                     </div>
 
                     <!-- Free Places -->
@@ -88,6 +101,8 @@
                                class="form-control"
                                value="@Model.numFreePlaces"
                                required />
+                        <span asp-validation-for="numFreePlaces" class="text-danger"></span>
+
                     </div>
 
                     <!-- Cancellation Days -->
@@ -97,6 +112,8 @@
                                type="number"
                                class="form-control"
                                value="@Model.cancelationDays" />
+                        <span asp-validation-for="cancelationDays" class="text-danger"></span>
+
                     </div>
 
                     <!-- Category -->
@@ -113,6 +130,8 @@
                                 </option>
                             }
                         </select>
+                        <span asp-validation-for="idCategory" class="text-danger"></span>
+
                     </div>
 
                     <!-- Existing Images -->
@@ -151,6 +170,8 @@
                         <textarea name="information"
                                   class="form-control"
                                   rows="3">@Model.information</textarea>
+                        <span asp-validation-for="information" class="text-danger"></span>
+
                     </div>
 
                     <button class="btn btn-warning text-white w-100 fw-bold">
