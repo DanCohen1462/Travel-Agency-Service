@@ -605,7 +605,7 @@ public class AdminController : Controller
     }
     public IActionResult EditPackage(int id)    
     {
-        Package package = null;
+        PackageView model = null;
         List<Category> categories = new List<Category>();
         List<ImagePackage> packageImages = new();
 
@@ -628,7 +628,7 @@ public class AdminController : Controller
                 {
                     if (reader.Read())
                     {
-                        package = new Package
+                        model = new PackageView
                         {
                             Id = reader.GetInt32(0),
                             destination = reader.GetString(1),
@@ -638,12 +638,13 @@ public class AdminController : Controller
                             ageLimit = reader.GetInt32(5),
                             numFreePlaces = reader.GetInt32(6),
 
-                            idCategory = reader.GetInt32(7),                                  // int
-                            information = reader.IsDBNull(8) ? null : reader.GetString(8),   // string
-                            UserId = reader.IsDBNull(9) ? 0 : reader.GetInt32(9),            // int
-                            country = reader.IsDBNull(10) ? null : reader.GetString(10),      // string
+                            idCategory = reader.GetInt32(7),
+                            information = reader.IsDBNull(8) ? null : reader.GetString(8),
+                            UserId = reader.IsDBNull(9) ? 0 : reader.GetInt32(9),
+                            country = reader.IsDBNull(10) ? null : reader.GetString(10),
                             cancelationDays = reader.IsDBNull(11) ? (int?)null : reader.GetInt32(11),
                         };
+
 
 
                     }
@@ -695,7 +696,8 @@ public class AdminController : Controller
         ViewBag.Categories = categories;
        
 
-        return View(package);
+        return View(model);
+
     }
     
     [HttpPost] 
