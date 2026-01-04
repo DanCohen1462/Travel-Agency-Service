@@ -1,4 +1,12 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Data.SqlClient;
 using TravelAgency.Services;
 
 namespace TravelAgency.Services
@@ -123,33 +131,48 @@ WHERE Id = @pid;
     catch { }
 }
 
-// 1) מציאת שורות עגלה שפג תוקפן (מכל המשתמשים)
-var expiredRows = new List<(int CartId, int UserId, int PackageId, int NumPersons)>();
+var expiredRows = new List<(int CartId, int UserId, int PackageId, int NumPersons, int? OfferId, string TripLabel)>();
 
-
-            using (var sel = new SqlCommand(@"
-SELECT Id, userId, PackageId, numPersons
-FROM shoppingcart
-WHERE inactive = 0 AND ExpiresAt <= GETDATE();
+using (var sel = new SqlCommand(@"
+SELECT 
+    sc.Id, 
+    sc.userId, 
+    sc.PackageId, 
+    sc.numPersons,
+    sc.OfferId,
+    ISNULL(p.destination,'') as destination,
+    ISNULL(p.country,'') as country
+FROM shoppingcart sc
+INNER JOIN Package p ON p.Id = sc.PackageId
+WHERE sc.inactive = 0 
+  AND sc.ExpiresAt <= GETDATE();
 ", conn))
-            {
-                using var r = await sel.ExecuteReaderAsync(ct);
-                while (await r.ReadAsync(ct))
-                {
-                    expiredRows.Add((
-                        r.GetInt32(0),
-                        r.GetInt32(1),
-                        r.GetInt32(2),
-                        r.IsDBNull(3) ? 1 : r.GetInt32(3)
-                    ));
-                }
-            }
+{
+    using var r = await sel.ExecuteReaderAsync(ct);
+    while (await r.ReadAsync(ct))
+    {
+        int cartId = r.GetInt32(0);
+        int userId = r.GetInt32(1);
+        int packageId = r.GetInt32(2);
+        int numPersons = r.IsDBNull(3) ? 1 : r.GetInt32(3);
+        int? offerId = r.IsDBNull(4) ? (int?)null : r.GetInt32(4);
+
+        string dest = r.IsDBNull(5) ? "" : r.GetString(5);
+        string country = r.IsDBNull(6) ? "" : r.GetString(6);
+
+        string tripLabel = string.IsNullOrWhiteSpace(dest) ? "your trip"
+            : (string.IsNullOrWhiteSpace(country) ? dest : $"{dest}, {country}");
+
+        expiredRows.Add((cartId, userId, packageId, numPersons, offerId, tripLabel));
+    }
+}
 
 
+var expiredByUser = new Dictionary<int, List<string>>();
 
-            foreach (var row in expiredRows)
-            {
-                using var tx = conn.BeginTransaction();
+foreach (var row in expiredRows)
+{
+    using var tx = conn.BeginTransaction();
 
                 try
                 {
@@ -170,19 +193,23 @@ WHERE Id = @rid AND inactive = 0;
                         }
                     }
 
-                    // 2) להחזיר מקומות
-                    using (var back = new SqlCommand(@"
+// 2) להחזיר מקומות רק אם זה לא הגיע מ-Offer (Offer תופס מקומות בזמן יצירת Offer)
+                    if (row.OfferId == null)
+                    {
+                        using (var back = new SqlCommand(@"
 UPDATE Package
 SET numFreePlaces = numFreePlaces + @n
 WHERE Id = @pid;
 ", conn, tx))
-                    {
-                        back.Parameters.AddWithValue("@n", row.NumPersons);
-                        back.Parameters.AddWithValue("@pid", row.PackageId);
-                        await back.ExecuteNonQueryAsync(ct);
+                        {
+                            back.Parameters.AddWithValue("@n", row.NumPersons);
+                            back.Parameters.AddWithValue("@pid", row.PackageId);
+                            await back.ExecuteNonQueryAsync(ct);
+                        }
                     }
 
                     tx.Commit();
+
                 }
                 catch
                 {
@@ -190,46 +217,144 @@ WHERE Id = @pid;
                     continue;
                 }
 
-                // 3) אחרי קומיט – ליצור offers + התראות (בלי tx)
+// 3) אחרי קומיט – ליצור offers (בלי tx)
                 try
                 {
                     CreateOffersFromWaitlist(conn, notificationService, row.PackageId, reason: "cart");
                 }
                 catch { }
 
-                string dest = "";
-                string country = "";
+// ✅ במקום Notification לכל שורה — אוספים לפי משתמש (TripLabel כבר כולל יעד+מדינה)
+                if (!expiredByUser.ContainsKey(row.UserId))
+                    expiredByUser[row.UserId] = new List<string>();
 
-                using (var cmdTrip = new SqlCommand(@"
-SELECT TOP 1 destination, ISNULL(country,'')
-FROM Package
-WHERE Id = @pid;
+                if (!string.IsNullOrWhiteSpace(row.TripLabel))
+                    expiredByUser[row.UserId].Add(row.TripLabel);
+}
+
+// ✅ B2: אחרי שסיימנו לאסוף — שולחים התראה אחת מאוחדת לכל משתמש,
+// ובנוסף “מכבים” התראות קודמות מאותו סוג כדי שלא יישארו כפולות.
+foreach (var kv in expiredByUser)
+{
+    int uid = kv.Key;
+
+    // unique labels + nice formatting
+    var labels = kv.Value
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Select(s => s.Trim())
+        .Distinct()
+        .ToList();
+
+    if (labels.Count == 0) 
+        continue;
+
+    // ✅ 1) לפני שמכבים — קוראים את ההודעות הקודמות הפעילות ומחלצים מהן יעדים
+    using (var readPrev = new SqlCommand(@"
+SELECT Message
+FROM Notifications
+WHERE UserId = @uid
+  AND inactive = 0
+  AND Title = 'Cart reservation expired'
+  AND Type = 'warning';
 ", conn))
-                {
-                    cmdTrip.Parameters.AddWithValue("@pid", row.PackageId);
-                    using var rr = cmdTrip.ExecuteReader();
-                    if (rr.Read())
-                    {
-                        dest = rr.IsDBNull(0) ? "" : rr.GetString(0);
-                        country = rr.IsDBNull(1) ? "" : rr.GetString(1);
-                    }
-                }
+    {
+        readPrev.Parameters.AddWithValue("@uid", uid);
+        using var rr = await readPrev.ExecuteReaderAsync(ct);
+        while (await rr.ReadAsync(ct))
+        {
+            string prevMsg = rr.IsDBNull(0) ? "" : rr.GetString(0);
+            foreach (var t in ExtractTripLabelsFromExpiredMessage(prevMsg))
+                labels.Add(t);
+        }
+    }
 
-                string tripLabel = string.IsNullOrWhiteSpace(dest) ? "your trip" :
-                    (string.IsNullOrWhiteSpace(country) ? dest : $"{dest}, {country}");
+    // ✅ unique again אחרי שהוספנו מהעבר
+    labels = labels
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Select(s => s.Trim())
+        .Distinct()
+        .ToList();
 
-                notificationService.Create(
-                    row.UserId,
-                    title: "Cart reservation expired",
-                    message: $"Your 15-minute reservation expired for {tripLabel}.",
-                    type: "warning",
-                    linkUrl: "/Cart/Cart"
-                );
+    if (labels.Count == 0)
+        continue;
 
-            }
+    string message = labels.Count == 1
+        ? $"Your 15-minute reservation expired for {labels[0]}."
+        : $"Your 15-minute reservations expired for:\n- {string.Join("\n- ", labels)}";
+
+    // ✅ 2) עכשיו מכבים את הקודמות כדי שלא יישארו כפולות
+    using (var deact = new SqlCommand(@"
+UPDATE Notifications
+SET inactive = 1
+WHERE UserId = @uid
+  AND inactive = 0
+  AND Title = 'Cart reservation expired'
+  AND Type = 'warning';
+", conn))
+    {
+
+        deact.Parameters.AddWithValue("@uid", uid);
+        await deact.ExecuteNonQueryAsync(ct);
+    }
+
+
+
+    notificationService.Create(
+        uid,
+        title: "Cart reservation expired",
+        message: message,
+        type: "warning",
+        linkUrl: "/Cart/Cart"
+    );
+
+
 
         }
 
+    }
+
+
+        
+        private static List<string> ExtractTripLabelsFromExpiredMessage(string msg)
+        {
+            var res = new List<string>();
+            if (string.IsNullOrWhiteSpace(msg))
+                return res;
+
+            msg = msg.Replace("\r\n", "\n").Trim();
+
+            // פורמט מרובה:
+            // "Your 15-minute reservations expired for:\n- A\n- B"
+            var lines = msg.Split('\n');
+            foreach (var line in lines)
+            {
+                var t = line.Trim();
+                if (t.StartsWith("- "))
+                {
+                    var label = t.Substring(2).Trim();
+                    if (!string.IsNullOrWhiteSpace(label))
+                        res.Add(label);
+                }
+            }
+
+            if (res.Count > 0)
+                return res;
+
+            // פורמט יחיד:
+            // "Your 15-minute reservation expired for X."
+            const string prefix = "Your 15-minute reservation expired for ";
+            if (msg.StartsWith(prefix))
+            {
+                var label = msg.Substring(prefix.Length).Trim();
+                if (label.EndsWith("."))
+                    label = label.Substring(0, label.Length - 1).Trim();
+
+                if (!string.IsNullOrWhiteSpace(label))
+                    res.Add(label);
+            }
+
+            return res;
+        }
         // העתקתי את אותה פונקציה שלך, רק עם NotificationService כפרמטר
         private void CreateOffersFromWaitlist(SqlConnection conn, NotificationService notificationService, int packageId, string reason)
         {
@@ -305,13 +430,35 @@ VALUES (@pid, @uid, @n, @reason, GETDATE(), DATEADD(minute, @mins, GETDATE()));
                     cmdOffer.ExecuteNonQuery();
                 }
 
+                string dest = "";
+                string country = "";
+
+                using (var cmdTrip = new SqlCommand(@"
+SELECT TOP 1 destination, ISNULL(country,'')
+FROM Package
+WHERE Id = @pid;
+", conn))
+                {
+                    cmdTrip.Parameters.AddWithValue("@pid", packageId);
+                    using var rr = cmdTrip.ExecuteReader();
+                    if (rr.Read())
+                    {
+                        dest = rr.IsDBNull(0) ? "" : rr.GetString(0);
+                        country = rr.IsDBNull(1) ? "" : rr.GetString(1);
+                    }
+                }
+
+                string tripLabel = string.IsNullOrWhiteSpace(dest) ? "your trip"
+                    : (string.IsNullOrWhiteSpace(country) ? dest : $"{dest}, {country}");
+
                 notificationService.Create(
                     userId,
                     title: "Spot available!",
-                    message: $"A spot is available for a trip you are waiting for. You have {minutes} minutes to add it to your cart.",
+                    message: $"A spot is available for {tripLabel}. You have {minutes} minutes to add it to your cart.",
                     type: "success",
                     linkUrl: "/Users/MyTrips"
                 );
+
             }
         }
     }
