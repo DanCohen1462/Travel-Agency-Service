@@ -666,19 +666,22 @@ namespace TravelAgency.Controllers
                     var obj = offerCmd.ExecuteScalar();
                     hasActiveOfferForUser = (obj != null);
                 }
-
-// ✅ NEW: check if THIS user already holds this package in cart (active row)
+// NEW: check if THIS user already holds this package in cart
+// IMPORTANT: Same package + SAME passengers = "already in cart"
+// Same package + different passengers = allowed (different line)
                 using (var cartCmd = new SqlCommand(@"
     SELECT TOP (1) 1
     FROM shoppingcart
     WHERE userId = @uid
       AND PackageId = @pid
-      AND inactive = 0;
+      AND numPersons = @n
+      AND inactive = 0
+      AND ExpiresAt > GETDATE();
 ", conn))
                 {
                     cartCmd.Parameters.AddWithValue("@uid", (object?)currentUserId ?? DBNull.Value);
                     cartCmd.Parameters.AddWithValue("@pid", idResolved);
-
+                    cartCmd.Parameters.AddWithValue("@n", totalPassengers);
 
                     hasActiveCartForUser = (cartCmd.ExecuteScalar() != null);
                 }

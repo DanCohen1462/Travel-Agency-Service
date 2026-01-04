@@ -99,12 +99,46 @@ namespace TravelAgency.Controllers
             if (!userId.HasValue)
                 return RedirectToAction("Login", "Auth");
 
-            int totalPersons = Math.Max(1, adults + children);
+            int totalPersons = Math.Max(1, adults) + Math.Max(0, children);
             string returnUrl = Request.Headers["Referer"].ToString();
 
+            // If this package is already in cart (SAME passenger count) -> don't add duplicate row
+            using (var preConn = new SqlConnection(_connectionString))
+            {
+                preConn.Open();
+
+                using var preDup = new SqlCommand(@"
+                    SELECT TOP (1) Id
+                    FROM shoppingcart
+                    WHERE userId = @uid
+                      AND PackageId = @pid
+                      AND numPersons = @n
+                      AND inactive = 0
+                      AND ExpiresAt > GETDATE();
+                ", preConn);
+
+                preDup.Parameters.AddWithValue("@uid", userId.Value);
+                preDup.Parameters.AddWithValue("@pid", packageId);
+                preDup.Parameters.AddWithValue("@n", totalPersons);
+
+                var existingSame = preDup.ExecuteScalar();
+                if (existingSame != null)
+                {
+                    // Toast (non-modal, auto-hide)
+                    TempData["BookToast"] = "This trip is already in your cart (reserved for 15 minutes).";
+
+                    if (!string.IsNullOrEmpty(returnUrl))
+                        return Redirect(returnUrl);
+
+                    return RedirectToAction("Gallery", "Package");
+                }
+            }
+
+
             // מחיר לאדם + בדיקת מקומות
-           // מחיר לאדם + בדיקת Offer/מקומות
-int pricePerPerson;
+            // מחיר לאדם + בדיקת Offer/מקומות
+            int pricePerPerson;
+
 int freePlaces;
 
 int? activeOfferId = null;
@@ -348,10 +382,39 @@ VALUES(@uid, @pid, @sum, 0, @n, GETDATE(), DATEADD(MINUTE, 15, GETDATE()), @offe
             if (!userId.HasValue)
                 return RedirectToAction("Login", "Auth");
 
-            int totalPersons = Math.Max(1, adults + children);
+            int totalPersons = Math.Max(1, adults) + Math.Max(0, children);
 
-           // מחיר לאדם + בדיקת Offer/מקומות
-int pricePerPerson;
+            // If this package is already in cart (SAME passenger count) -> go to cart, don't add duplicate row
+            using (var preConn = new SqlConnection(_connectionString))
+            {
+                preConn.Open();
+
+                using var preDup = new SqlCommand(@"
+                    SELECT TOP (1) Id
+                    FROM shoppingcart
+                    WHERE userId = @uid
+                      AND PackageId = @pid
+                      AND numPersons = @n
+                      AND inactive = 0
+                      AND ExpiresAt > GETDATE();
+                ", preConn);
+
+                preDup.Parameters.AddWithValue("@uid", userId.Value);
+                preDup.Parameters.AddWithValue("@pid", packageId);
+                preDup.Parameters.AddWithValue("@n", totalPersons);
+
+                var existingSame = preDup.ExecuteScalar();
+                if (existingSame != null)
+                {
+                    TempData["BookToast"] = "This trip is already in your cart (reserved for 15 minutes).";
+                    return RedirectToAction("Cart");
+                }
+            }
+
+
+            // מחיר לאדם + בדיקת Offer/מקומות
+            int pricePerPerson;
+
 int freePlaces;
 
 int? activeOfferId = null;
