@@ -135,7 +135,8 @@ bool showHistory = tab == "history";
                                         // Cancellation deadline = tripStart - cancelationDays
                                         var cancelDeadline = tripStart.AddDays(-cancelDays);
 
-                                        bool canCancel = DateTime.Now < cancelDeadline;
+                                        //  If cancelDays is 0 or less -> cancellation is not available
+                                        bool canCancel = (cancelDays > 0) && (DateTime.Now < cancelDeadline);
                                     }
 
 
@@ -149,8 +150,9 @@ bool showHistory = tab == "history";
                                         {
                                             <div class="alert alert-info py-2 px-3 mt-2 mb-2" style="border-radius:12px;">
                                                 <i class="bi bi-info-circle"></i>
-                                                Cancellation available until <strong>@cancelDeadline.ToString("dd/MM/yyyy")</strong>
+                                                Cancellation available until <strong>@cancelDeadline.ToString("dd/MM/yyyy HH:mm")</strong>
                                             </div>
+
 
                                             <div class="mt-2">
                                                 <button type="button"
@@ -182,11 +184,23 @@ bool showHistory = tab == "history";
 
                                         else
                                         {
-                                            <button type="button" class="btn btn-outline-secondary w-100 mt-2" disabled>
-                                                Cancellation closed
-                                            </button>
-                                            <div class="text-muted small mt-1">
-                                                Deadline was @cancelDeadline.ToString("dd/MM/yyyy HH:mm")
+                                            <div class="alert alert-secondary py-2 px-3 mt-2 mb-2" style="border-radius:12px;">
+                                                <i class="bi bi-lock-fill"></i>
+                                                Cancellation was available until <strong>@cancelDeadline.ToString("dd/MM/yyyy HH:mm")</strong>
+                                            </div>
+
+
+                                            <div class="mt-2">
+                                                <a class="btn btn-book w-100"
+                                                   asp-controller="Users"
+                                                   asp-action="DownloadTripPdfGroup"
+                                                   asp-route-destination="@item.Destination"
+                                                   asp-route-country="@item.Country"
+                                                   asp-route-categoryId="@item.CategoryId"
+                                                   asp-route-startDate="@item.StartDate.ToString("yyyy-MM-dd")"
+                                                   asp-route-endDate="@item.EndDate.ToString("yyyy-MM-dd")">
+                                                    Download PDF
+                                                </a>
                                             </div>
                                         }
                                     </div>

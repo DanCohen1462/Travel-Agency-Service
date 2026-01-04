@@ -1047,19 +1047,92 @@ WHERE h.UserId = @uid
             TempData["Error"] = "Reservation not found.";
             return RedirectToAction("MyTrips");
         }
+        
+        // ✅ SERVER GUARD: check cancellation deadline for this trip group
+        int cancelDaysDb = 0;
+        DateTime startDateDb = DateTime.MinValue;
 
-        // 2) mark all matching reservations inactive
+        using (var cmdDeadline = new SqlCommand(@"
+SELECT TOP 1
+    ISNULL(p.cancelationDays,0) as cancelationDays,
+    p.startDate
+FROM Package p
+WHERE p.inactive = 0
+  AND p.destination = @dest
+  AND ISNULL(p.country,'') = ISNULL(@ctry,'')
+  AND p.idCategory = @catId
+  AND CAST(p.startDate as date) = CAST(@start as date)
+  AND CAST(p.endDate as date) = CAST(@end as date);
+", conn, tx))
+        {
+            cmdDeadline.Parameters.AddWithValue("@dest", (destination ?? "").Trim());
+            cmdDeadline.Parameters.AddWithValue("@ctry", (country ?? "").Trim());
+            cmdDeadline.Parameters.AddWithValue("@catId", categoryId);
+            cmdDeadline.Parameters.AddWithValue("@start", startDate.Date);
+            cmdDeadline.Parameters.AddWithValue("@end", endDate.Date);
+
+            using var rr = cmdDeadline.ExecuteReader();
+            if (rr.Read())
+            {
+                cancelDaysDb = rr.IsDBNull(0) ? 0 : rr.GetInt32(0);
+                startDateDb = rr.GetDateTime(1);
+            }
+            else
+            {
+                tx.Rollback();
+                TempData["Error"] = "Trip not found.";
+                return RedirectToAction("MyTrips");
+            }
+
+        }
+
+// start at 08:00 local time
+        DateTime tripStart = startDateDb.Date.AddHours(8);
+        DateTime cancelDeadline = tripStart.AddDays(-cancelDaysDb);
+
+// if cancelDays is 0 or less -> no cancellation at all
+        bool canCancelServer = (cancelDaysDb > 0) && (DateTime.Now < cancelDeadline);
+
+        if (!canCancelServer)
+        {
+            tx.Rollback();
+
+            if (cancelDaysDb <= 0)
+                TempData["Error"] = "Cancellation is not available for this trip.";
+            else
+                TempData["Error"] = $"Cancellation closed. Deadline was {cancelDeadline:dd/MM/yyyy HH:mm}.";
+
+            return RedirectToAction("MyTrips");
+        }
+
+        
+
+// 2) mark all matching reservations inactive (NO string.Join)
         using (var cmd = new SqlCommand(@"
-UPDATE HistoryReservation
-SET inactive = 1
-WHERE UserId = @uid
-  AND inactive = 0
-  AND Id IN (" + string.Join(",", rows.Select(x => x.ReservationId)) + @");
+UPDATE h
+SET h.inactive = 1
+FROM HistoryReservation h
+INNER JOIN Package p ON p.Id = h.PackageId
+WHERE h.UserId = @uid
+  AND h.inactive = 0
+  AND p.inactive = 0
+  AND p.destination = @dest
+  AND ISNULL(p.country,'') = ISNULL(@ctry,'')
+  AND p.idCategory = @catId
+  AND CAST(p.startDate as date) = CAST(@start as date)
+  AND CAST(p.endDate as date) = CAST(@end as date);
 ", conn, tx))
         {
             cmd.Parameters.AddWithValue("@uid", userId);
+            cmd.Parameters.AddWithValue("@dest", (destination ?? "").Trim());
+            cmd.Parameters.AddWithValue("@ctry", (country ?? "").Trim());
+            cmd.Parameters.AddWithValue("@catId", categoryId);
+            cmd.Parameters.AddWithValue("@start", startDate.Date);
+            cmd.Parameters.AddWithValue("@end", endDate.Date);
+
             cmd.ExecuteNonQuery();
         }
+
 
         // 3) return places per package (grouped by packageId)
         foreach (var grp in rows.GroupBy(x => x.PackageId))
