@@ -605,14 +605,13 @@
             @if (isUnavailable)
             {
                 <button type="button"
-                        class="btn btn-outline-secondary w-100 fw-bold mt-2"
-                        data-bs-toggle="modal"
-                        data-bs-target="#waitlistModal"
+                        class="btn btn-outline-secondary w-100 fw-bold mt-2 btn-waitlist"
                         data-package-id="@p.Id"
                         data-num-persons="@totalPassengers"
                         data-waiting-count="@waitingCount">
                     Waiting List
                 </button>
+
             }
         </div>
 
@@ -636,6 +635,10 @@
                 </div>
 
                 <div class="modal-body">
+                    <p class="mb-2" id="wlLine0">
+                        Requested travelers: 0
+                    </p>
+
                     <p class="mb-2" id="wlLine1">
                         There are 0 users waiting ahead of you.
                     </p>
@@ -648,6 +651,7 @@
                         Would you like to join the waiting list?
                     </p>
                 </div>
+
 
 
                 <div class="modal-footer">
@@ -778,65 +782,118 @@
         })();
     </script>
 
-    <script>
-        const waitlistModal = document.getElementById('waitlistModal');
-        if (waitlistModal) {
-            waitlistModal.addEventListener('show.bs.modal', async function (event) {
-                const btn = event.relatedTarget;
+<script>
+    (function () {
+        const waitlistModalEl = document.getElementById('waitlistModal');
+        if (!waitlistModalEl) return;
 
-                const packageId = btn.getAttribute('data-package-id');
-                const numPersons = btn.getAttribute('data-num-persons');
+        const modal = new bootstrap.Modal(waitlistModalEl);
 
+        function formatEta(minutes){
+            minutes = Math.max(0, parseInt(minutes || "0"));
+            if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+
+            if (m === 0) return `${h} hour${h === 1 ? "" : "s"}`;
+            return `${h} hour${h === 1 ? "" : "s"} ${m} minute${m === 1 ? "" : "s"}`;
+        }
+
+        async function openWaitlist(packageId, numPersons) {
+            // ✅ show loading inside modal ONLY after we decide to open it
+            document.getElementById('wlPackageId').value = packageId;
+            document.getElementById('wlNumPersons').value = numPersons;
+
+            document.getElementById('wlLine0').textContent = `Requested travelers: ${numPersons}`;
+            document.getElementById('wlLine1').textContent = "Loading...";
+            document.getElementById('wlLine2').textContent = "";
+
+            modal.show();
+
+            try {
+                const res = await fetch(`/Waitlist/Info?packageId=${encodeURIComponent(packageId)}`, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!res.ok) throw new Error("Bad response");
+
+                const data = await res.json();
+
+                // ✅ if already joined -> close modal and toast (no stuck loading)
+                if (data.alreadyJoined === true) {
+                    modal.hide();
+                    showToast("You are already on the waiting list for this trip.", "info");
+                    return;
+                }
+
+                const ahead = data.usersAhead ?? 0;
+                document.getElementById('wlLine1').textContent =
+                    `There are ${ahead} users waiting ahead of you.`;
+
+                const mins = data.estimatedMinutes ?? 0;
+                document.getElementById('wlLine2').textContent =
+                    `Estimated availability: approximately ${formatEta(mins)}.`;
+
+            } catch (e) {
+                document.getElementById('wlLine1').textContent =
+                    "Could not load waitlist info right now.";
+                document.getElementById('wlLine2').textContent = "";
+            }
+        }
+
+        // ✅ click handler: decide before opening modal
+        document.addEventListener('click', async function (e) {
+            const btn = e.target.closest('.btn-waitlist');
+            if (!btn) return;
+
+            const packageId = btn.getAttribute('data-package-id');
+            const numPersons = btn.getAttribute('data-num-persons');
+
+            // ✅ first: quick check if already joined (without opening modal)
+            try {
+                const res = await fetch(`/Waitlist/Info?packageId=${encodeURIComponent(packageId)}`, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!res.ok) throw new Error("Bad response");
+
+                const data = await res.json();
+                if (data.alreadyJoined === true) {
+                    showToast("You are already on the waiting list for this trip.", "info");
+                    return;
+                }
+
+                // ✅ not joined -> open modal and show info (we already have it)
                 document.getElementById('wlPackageId').value = packageId;
                 document.getElementById('wlNumPersons').value = numPersons;
 
-                document.getElementById('wlLine1').textContent = "Loading...";
+                document.getElementById('wlLine0').textContent = `Requested travelers: ${numPersons}`;
+
+                const ahead = data.usersAhead ?? 0;
+                document.getElementById('wlLine1').textContent =
+                    `There are ${ahead} users waiting ahead of you.`;
+
+                const mins = data.estimatedMinutes ?? 0;
+                document.getElementById('wlLine2').textContent =
+                    `Estimated availability: approximately ${formatEta(mins)}.`;
+
+                modal.show();
+
+            } catch (err) {
+                // if failed -> open modal with error message
+                document.getElementById('wlPackageId').value = packageId;
+                document.getElementById('wlNumPersons').value = numPersons;
+
+                document.getElementById('wlLine0').textContent = `Requested travelers: ${numPersons}`;
+                document.getElementById('wlLine1').textContent = "Could not load waitlist info right now.";
                 document.getElementById('wlLine2').textContent = "";
+                modal.show();
+            }
+        });
+    })();
+</script>
 
-                try {
-                    const res = await fetch(`/Waitlist/Info?packageId=${encodeURIComponent(packageId)}`, {
-                        method: 'GET',
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    });
-
-                    if (!res.ok) throw new Error("Bad response");
-
-                    const data = await res.json();
-
-                    if (data.alreadyJoined === true) {
-                        const modalInstance = bootstrap.Modal.getInstance(waitlistModal);
-                        if (modalInstance) modalInstance.hide();
-                        showToast("You are already on the waiting list for this trip.", "info");
-                        return;
-                    }
-
-                    const ahead = data.usersAhead ?? 0;
-                    document.getElementById('wlLine1').textContent =
-                        `There are ${ahead} users waiting ahead of you.`;
-
-                    const mins = data.estimatedMinutes ?? 0;
-                    document.getElementById('wlLine2').textContent =
-                        `Estimated availability: approximately ${formatEta(mins)}.`;
-                }
-                catch (e) {
-                    document.getElementById('wlLine1').textContent =
-                        "Could not load waitlist info right now.";
-                    document.getElementById('wlLine2').textContent = "";
-                }
-
-                function formatEta(minutes){
-                    minutes = Math.max(0, parseInt(minutes || "0"));
-                    if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
-
-                    const h = Math.floor(minutes / 60);
-                    const m = minutes % 60;
-
-                    if (m === 0) return `${h} hour${h === 1 ? "" : "s"}`;
-                    return `${h} hour${h === 1 ? "" : "s"} ${m} minute${m === 1 ? "" : "s"}`;
-                }
-            });
-        }
-    </script>
 
     <script>
         (function(){

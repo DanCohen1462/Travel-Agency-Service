@@ -408,14 +408,15 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
             </div>
 
             <div class="modal-body">
+                <p class="mb-2" id="wlDLine0">Requested travelers: 0</p>
                 <p class="mb-2" id="wlDLine1">There are 0 users waiting ahead of you.</p>
                 <p class="mb-0" id="wlDLine2">Estimated availability: approximately 0 days.</p>
-                
+
                 <p class="fw-bold mt-3">
                     Would you like to join the waiting list?
                 </p>
-
             </div>
+
 
 
             <div class="modal-footer">
@@ -437,53 +438,78 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
 @section Scripts {
 
 <script>
-    const waitlistModalDetails = document.getElementById('waitlistModalDetails');
-    if (waitlistModalDetails) {
-        waitlistModalDetails.addEventListener('show.bs.modal', async function (event) {
-            const btn = event.relatedTarget;
+    (function () {
+        const btn = document.querySelector('[data-bs-target="#waitlistModalDetails"]');
+        const modalEl = document.getElementById('waitlistModalDetails');
+        if (!modalEl) return;
 
-            const packageId = btn.getAttribute('data-package-id');
-            const numPersons = btn.getAttribute('data-num-persons');
+        const modal = new bootstrap.Modal(modalEl);
 
-            document.getElementById('wlDPackageId').value = packageId;
-            document.getElementById('wlDNumPersons').value = numPersons;
+        function formatEta(minutes){
+            minutes = Math.max(0, parseInt(minutes || "0"));
+            if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
 
-            document.getElementById('wlDLine1').textContent = "Loading...";
-            document.getElementById('wlDLine2').textContent = "";
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+
+            if (m === 0) return `${h} hour${h === 1 ? "" : "s"}`;
+            return `${h} hour${h === 1 ? "" : "s"} ${m} minute${m === 1 ? "" : "s"}`;
+        }
+
+        // ✅ intercept click: do not open modal if already joined
+        document.addEventListener('click', async function (e) {
+            const openBtn = e.target.closest('[data-bs-target="#waitlistModalDetails"]');
+            if (!openBtn) return;
+
+            // stop Bootstrap from auto-opening
+            e.preventDefault();
+            e.stopPropagation();
+
+            const packageId = openBtn.getAttribute('data-package-id');
+            const numPersons = openBtn.getAttribute('data-num-persons');
 
             try {
-                const res = await fetch(`/Waitlist/Info?packageId=${encodeURIComponent(packageId)}`);
-                if (!res.ok) throw new Error("Failed to load waitlist info");
+                const res = await fetch(`/Waitlist/Info?packageId=${encodeURIComponent(packageId)}`, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!res.ok) throw new Error("Bad response");
 
                 const data = await res.json();
-                const ahead = data.usersAhead ?? 0;
-                const days = data.estimatedDays ?? 0;
 
+                if (data.alreadyJoined === true) {
+                    showToast("You are already on the waiting list for this trip.", "info");
+                    return;
+                }
+
+                document.getElementById('wlDPackageId').value = packageId;
+                document.getElementById('wlDNumPersons').value = numPersons;
+
+                document.getElementById('wlDLine0').textContent = `Requested travelers: ${numPersons}`;
+
+                const ahead = data.usersAhead ?? 0;
                 document.getElementById('wlDLine1').textContent =
                     `There are ${ahead} users waiting ahead of you.`;
+
                 const mins = data.estimatedMinutes ?? 0;
                 document.getElementById('wlDLine2').textContent =
                     `Estimated availability: approximately ${formatEta(mins)}.`;
 
-            } catch (e) {
-                document.getElementById('wlDLine1').textContent =
-                    "Could not load waitlist info right now.";
+                modal.show();
+
+            } catch (err) {
+                document.getElementById('wlDPackageId').value = packageId;
+                document.getElementById('wlDNumPersons').value = numPersons;
+
+                document.getElementById('wlDLine0').textContent = `Requested travelers: ${numPersons}`;
+                document.getElementById('wlDLine1').textContent = "Could not load waitlist info right now.";
                 document.getElementById('wlDLine2').textContent = "";
+                modal.show();
             }
-            function formatEta(minutes){
-                minutes = Math.max(0, parseInt(minutes || "0"));
-                if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
-
-                const h = Math.floor(minutes / 60);
-                const m = minutes % 60;
-
-                if (m === 0) return `${h} hour${h === 1 ? "" : "s"}`;
-                return `${h} hour${h === 1 ? "" : "s"} ${m} minute${m === 1 ? "" : "s"}`;
-            }
-
         });
-    }
+    })();
 </script>
+
 <script>
   // ✅ Prevent double submit (race from client side)
   document.addEventListener("DOMContentLoaded", function () {

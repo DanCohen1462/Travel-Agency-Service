@@ -490,10 +490,11 @@ WHERE Id = @pid;
                 notificationService.Create(
                     userId,
                     title: "Spot available!",
-                    message: $"A spot is available for {tripLabel}. You have {minutes} minutes to add it to your cart.",
+                    message: $"A spot is available for {tripLabel} for {numPersons} passenger(s). You have {minutes} minutes to add it to your cart.",
                     type: "success",
-                    linkUrl: $"/Package/PackageDetails?id={packageId}&adults={numPersons}&children=0"
+                    linkUrl: $"/Package/PackageDetails?packageId={packageId}&adults={numPersons}&children=0"
                 );
+
 
             }
         }

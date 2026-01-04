@@ -1294,13 +1294,34 @@ private void CreateOffersFromWaitlist(SqlConnection conn, int packageId, string 
 
 
       
+        string dest = "";
+        string country = "";
+
+        using (var cmdTrip = new SqlCommand(@"
+SELECT TOP 1 destination, ISNULL(country,'')
+FROM Package
+WHERE Id = @pid;
+", conn))
+        {
+            cmdTrip.Parameters.AddWithValue("@pid", packageId);
+            using var rr = cmdTrip.ExecuteReader();
+            if (rr.Read())
+            {
+                dest = rr.IsDBNull(0) ? "" : rr.GetString(0);
+                country = rr.IsDBNull(1) ? "" : rr.GetString(1);
+            }
+        }
+
+        string tripLabel = string.IsNullOrWhiteSpace(dest) ? "your trip"
+            : (string.IsNullOrWhiteSpace(country) ? dest : $"{dest}, {country}");
+
         _notificationService.Create(userId,
             title: "Spot available!",
-            message: $"A spot is available for a trip you are waiting for. You have {minutes} minutes to add it to your cart.",
+            message: $"A spot is available for {tripLabel} for {numPersons} passenger(s). You have {minutes} minutes to add it to your cart.",
             type: "success",
-            linkUrl: $"/Package/PackageDetails?packageId={packageId}&adults={numPersons}&children=0"
-
+            linkUrl: $"/Package/PackageDetails?id={packageId}&adults={numPersons}&children=0"
         );
+
     }
 }
 

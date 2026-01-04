@@ -29,6 +29,31 @@ public IActionResult Info(int packageId)
     {
         conn.Open();
 
+        // ✅ Check if user already joined (active)
+        bool alreadyJoined = false;
+        int joinedNumPersons = 0;
+
+        using (var cmdJoined = new SqlCommand(@"
+            SELECT TOP 1 numPersons
+            FROM WaitingList
+            WHERE PackageId = @pid
+              AND UserId = @uid
+              AND inactive = 0
+            ORDER BY JoinDate ASC, Id ASC;
+        ", conn))
+        {
+            cmdJoined.Parameters.AddWithValue("@pid", packageId);
+            cmdJoined.Parameters.AddWithValue("@uid", userId);
+
+            var obj = cmdJoined.ExecuteScalar();
+            if (obj != null && obj != DBNull.Value)
+            {
+                alreadyJoined = true;
+                joinedNumPersons = Convert.ToInt32(obj);
+            }
+        }
+
+
         // 1) find the user's JoinDate for this package (if already in waitlist)
         string myJoinDateSql = @"
             SELECT TOP 1 JoinDate
@@ -124,10 +149,12 @@ public IActionResult Info(int packageId)
 
         return Json(new
         {
-            alreadyJoined = myJoinDate.HasValue,
-            usersAhead,
-            estimatedMinutes
+            usersAhead = usersAhead,
+            estimatedMinutes = estimatedMinutes,
+            alreadyJoined = alreadyJoined,
+            joinedNumPersons = joinedNumPersons
         });
+
 
 
     }
@@ -167,7 +194,7 @@ public IActionResult Info(int packageId)
                     if (exists > 0)
                     {
                         // ✅ Toast (לא חלונית)
-                        TempData["WaitlistToast"] = "You are already on the waiting list for this trip.";
+                        TempData["WaitlistToast"] = $"You joined the waiting list for {numPersons} passenger(s).";
 
                         if (!string.IsNullOrEmpty(referer))
                             return Redirect(referer);

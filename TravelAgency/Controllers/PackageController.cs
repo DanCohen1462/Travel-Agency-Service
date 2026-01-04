@@ -749,8 +749,9 @@ ORDER BY f.Id DESC;
             ViewBag.HasActiveOfferForUser = hasActiveOfferForUser;
 
 // ✅ If user arrived from an offer link but the offer is already expired
-// (we detect it by: no active offer now + there exists a recent offer record for this user/package)
-            if (!hasActiveOfferForUser)
+// ✅ IMPORTANT: Do NOT show "expired" after the user USED the offer (Book/BuyNow).
+// We show it only when the offer is truly expired (OfferEnd passed / ExpiredAt set) AND not used.
+            if (!hasActiveOfferForUser && TempData["SuppressOfferExpiredToast"] == null)
             {
                 using (var conn2 = new SqlConnection(_connectionString))
                 {
@@ -762,10 +763,10 @@ ORDER BY f.Id DESC;
             WHERE PackageId = @pid
               AND UserId = @uid
               AND OfferStart > DATEADD(HOUR, -24, GETDATE())
+              AND IsUsed = 0
               AND (
                     OfferEnd <= GETDATE()
                  OR ExpiredAt IS NOT NULL
-                 OR IsUsed = 1
               )
             ORDER BY OfferStart DESC, Id DESC;
         ", conn2))
@@ -773,9 +774,8 @@ ORDER BY f.Id DESC;
                         cmd.Parameters.AddWithValue("@pid", id);
                         cmd.Parameters.AddWithValue("@uid", (object?)currentUserId ?? DBNull.Value);
 
-
-                        var wasRecentOffer = cmd.ExecuteScalar() != null;
-                        if (wasRecentOffer)
+                        var wasRecentExpiredOffer = cmd.ExecuteScalar() != null;
+                        if (wasRecentExpiredOffer)
                         {
                             TempData["OfferExpiredToast"] =
                                 "Your offer has expired. If the trip is still full, you can re-join the waiting list.";
@@ -785,6 +785,7 @@ ORDER BY f.Id DESC;
             }
 
             return View(vm);
+
 
 
 
