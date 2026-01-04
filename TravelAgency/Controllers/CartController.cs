@@ -577,10 +577,12 @@ VALUES(@uid, @pid, @sum, 0, @n, GETDATE(), DATEADD(MINUTE, 15, GETDATE()), @offe
             if (!userId.HasValue)
                 return Unauthorized();
 
-            int removed = ExpireOldCartItems(userId.Value);
+            // ✅ Cleanup is handled by CartCleanupHostedService (single source of truth)
+            int removed = 0;
 
             RefreshCartCount(userId.Value);
             RefreshNotifCount(userId.Value);
+
 
             var newCartCount = HttpContext.Session.GetInt32("CartCount") ?? 0;
             var newNotifCount = HttpContext.Session.GetInt32("NotifCount") ?? 0;
@@ -624,22 +626,11 @@ VALUES(@uid, @pid, @sum, 0, @n, GETDATE(), DATEADD(MINUTE, 15, GETDATE()), @offe
             if (!userId.HasValue)
                 return RedirectToAction("Login", "Auth");
 
-            int expiredOffers = ExpireOldOffers();
-            int expired = ExpireOldCartItems(userId.Value);
-
-            if (expired > 0)
-            {
-                _notificationService.Create(
-                    userId.Value,
-                    title: "Cart reservation expired",
-                    message: $"{expired} item(s) were removed because the 15-minute hold expired.",
-                    type: "warning",
-                    linkUrl: "/Cart/Cart"
-                );
-            }
-
+            // ✅ ניקוי פגי-תוקף מתבצע ברקע ע"י CartCleanupHostedService
+            // כדי למנוע ניקוי כפול (החזרת מקומות פעמיים / Offers כפולים / התראות כפולות)
             
             var items = new List<CartItem>();
+
 
             using (var conn = new SqlConnection(_connectionString))
             {
@@ -697,7 +688,8 @@ public IActionResult RemoveRow(int rowId)
         return RedirectToAction("Login", "Auth");
 
     int packageId = 0; // נשמור כדי ליצור offers אחרי הקומיט
-
+    int? offerId = null;
+    
     try
     {
         using (var conn = new SqlConnection(_connectionString))
@@ -708,7 +700,6 @@ public IActionResult RemoveRow(int rowId)
             try
             {
                 int numPersons;
-                int? offerId;
 
                 // 1) להביא PackageId + numPersons
                 using (var sel = new SqlCommand(@"
@@ -742,7 +733,9 @@ public IActionResult RemoveRow(int rowId)
                     upd.ExecuteNonQuery();
                 }
 
-                // 3) להחזיר מקומות
+                // 3) להחזיר מקומות רק אם זה Hold רגיל (כלומר לא הגיע מ-Offer)
+// אם OfferId קיים -> המקומות כבר הוקצו/נלקחו בזמן יצירת Offer,
+// וב-Add/BuyNow לא הורדנו numFreePlaces, אז אסור להחזיר פה כדי לא לנפח מקומות.
                 using (var back = new SqlCommand(@"
                     UPDATE Package
                     SET numFreePlaces = numFreePlaces + @n
@@ -753,6 +746,7 @@ public IActionResult RemoveRow(int rowId)
                     back.ExecuteNonQuery();
                 }
 
+
                 tx.Commit();
             }
             catch
@@ -762,7 +756,7 @@ public IActionResult RemoveRow(int rowId)
             }
         }
 
-        // ✅ אחרי שהמחיקה בוצעה והטרנזקציה נסגרה — יוצרים offers (חיבור חדש, בלי tx)
+// ✅ אחרי שהמחיקה בוצעה והטרנזקציה נסגרה — יוצרים offers רק אם התפנה מקום אמיתי (לא Offer)
         try
         {
             using var c2 = new SqlConnection(_connectionString);
@@ -774,9 +768,11 @@ public IActionResult RemoveRow(int rowId)
             Console.WriteLine("CreateOffersFromWaitlist after RemoveRow failed: " + ex2);
         }
 
+
         RefreshCartCount(userId.Value);
         RefreshNotifCount(userId.Value);
         return RedirectToAction("Cart");
+
     }
     catch (Exception ex)
     {
@@ -949,132 +945,21 @@ catch
 
         }
         
+        // ✅ Offers expired cleanup is handled by CartCleanupHostedService (single source of truth)
         private int ExpireOldOffers()
         {
-            using var conn = new SqlConnection(_connectionString);
-            conn.Open();
-
-            var expiredOffers = new List<(int OfferId, int PackageId, int NumPersons, int UserId)>();
-
-            using (var sel = new SqlCommand(@"
-SELECT Id, PackageId, NumPersons, UserId
-FROM WaitlistOffers
-WHERE IsUsed = 0
-  AND OfferEnd <= GETDATE()
-  AND ExpiredAt IS NULL;
-", conn))
-
-            {
-                using var r = sel.ExecuteReader();
-                while (r.Read())
-                {
-                    expiredOffers.Add((
-                        r.GetInt32(0),
-                        r.GetInt32(1),
-                        r.IsDBNull(2) ? 1 : r.GetInt32(2),
-                        r.GetInt32(3)
-                    ));
-                }
-            }
-
-            if (expiredOffers.Count == 0) return 0;
-
-            foreach (var off in expiredOffers)
-            {
-                // 1) החזרת מקומות
-                using (var back = new SqlCommand(@"
-            UPDATE Package
-            SET numFreePlaces = numFreePlaces + @n
-            WHERE Id = @pid;
-        ", conn))
-                {
-                    back.Parameters.AddWithValue("@n", off.NumPersons);
-                    back.Parameters.AddWithValue("@pid", off.PackageId);
-                    back.ExecuteNonQuery();
-                }
-
-                using (var upd = new SqlCommand(@"
-UPDATE WaitlistOffers
-SET ExpiredAt = GETDATE()
-WHERE Id = @oid
-  AND IsUsed = 0
-  AND OfferEnd <= GETDATE()
-  AND ExpiredAt IS NULL;
-
-", conn))
-                {
-                    upd.Parameters.AddWithValue("@oid", off.OfferId);
-                    upd.ExecuteNonQuery();
-                }
-
-
-                // 3) להעביר הלאה את המקום שהתפנה
-                CreateOffersFromWaitlist(conn, off.PackageId, reason: "cart");
-            }
-
-            return expiredOffers.Count;
+            return 0;
         }
+
 
 
 
         private int ExpireOldCartItems(int userId)
         {
-            using var conn = new SqlConnection(_connectionString);
-            conn.Open();
-
-            // 1) take all expired active rows first
-            var expiredRows = new List<(int PackageId, int NumPersons)>();
-
-            using (var sel = new SqlCommand(@"
-        SELECT PackageId, numPersons
-        FROM shoppingcart
-        WHERE userId = @uid
-          AND inactive = 0
-          AND ExpiresAt <= GETDATE();
-    ", conn))
-            {
-                sel.Parameters.AddWithValue("@uid", userId);
-                using var r = sel.ExecuteReader();
-                while (r.Read())
-                {
-                    expiredRows.Add((r.GetInt32(0), r.IsDBNull(1) ? 1 : r.GetInt32(1)));
-                }
-            }
-
-            if (expiredRows.Count == 0) return 0;
-
-            // 2) mark them inactive
-            using (var upd = new SqlCommand(@"
-        UPDATE shoppingcart
-        SET inactive = 1
-        WHERE userId = @uid AND inactive = 0 AND ExpiresAt <= GETDATE();
-    ", conn))
-            {
-                upd.Parameters.AddWithValue("@uid", userId);
-                upd.ExecuteNonQuery();
-            }
-
-            // 3) return places + create 15-min offers for waitlist (per package)
-            foreach (var row in expiredRows)
-            {
-                // return places
-                using (var back = new SqlCommand(@"
-            UPDATE Package
-            SET numFreePlaces = numFreePlaces + @n
-            WHERE Id = @pid;
-        ", conn))
-                {
-                    back.Parameters.AddWithValue("@n", row.NumPersons);
-                    back.Parameters.AddWithValue("@pid", row.PackageId);
-                    back.ExecuteNonQuery();
-                }
-
-                // create offers (15 minutes) for this package
-                CreateOffersFromWaitlist(conn, row.PackageId, reason: "cart");
-            }
-
-            return expiredRows.Count;
+            // ✅ Cart expiration cleanup is handled only by CartCleanupHostedService
+            return 0;
         }
+
 
 private void CreateOffersFromWaitlist(SqlConnection conn, int packageId, string reason)
 {

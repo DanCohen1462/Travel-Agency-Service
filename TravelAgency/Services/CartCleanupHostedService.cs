@@ -197,13 +197,35 @@ WHERE Id = @pid;
                 }
                 catch { }
 
+                string dest = "";
+                string country = "";
+
+                using (var cmdTrip = new SqlCommand(@"
+SELECT TOP 1 destination, ISNULL(country,'')
+FROM Package
+WHERE Id = @pid;
+", conn))
+                {
+                    cmdTrip.Parameters.AddWithValue("@pid", row.PackageId);
+                    using var rr = cmdTrip.ExecuteReader();
+                    if (rr.Read())
+                    {
+                        dest = rr.IsDBNull(0) ? "" : rr.GetString(0);
+                        country = rr.IsDBNull(1) ? "" : rr.GetString(1);
+                    }
+                }
+
+                string tripLabel = string.IsNullOrWhiteSpace(dest) ? "your trip" :
+                    (string.IsNullOrWhiteSpace(country) ? dest : $"{dest}, {country}");
+
                 notificationService.Create(
                     row.UserId,
                     title: "Cart reservation expired",
-                    message: "An item was removed because the 15-minute hold expired.",
+                    message: $"Your 15-minute reservation expired for {tripLabel}.",
                     type: "warning",
                     linkUrl: "/Cart/Cart"
                 );
+
             }
 
         }
