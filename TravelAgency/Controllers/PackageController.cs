@@ -532,22 +532,35 @@ namespace TravelAgency.Controllers
 // 4) Package Details (VIEW) - specific package by Id
 // =========================
         [HttpGet]
-        public IActionResult PackageDetails(int id, int? packageId = null, int adults = 1, int children = 0)
+        public IActionResult PackageDetails(int? id = null, int? packageId = null, int adults = 1, int children = 0)
         {
             // ✅ allow notifications link: /Package/PackageDetails?packageId=123
             if (packageId.HasValue && packageId.Value > 0)
                 id = packageId.Value;
 
+            if (!id.HasValue || id.Value <= 0)
+            {
+                TempData["SearchError"] = "Trip not found.";
+                return RedirectToAction("Gallery");
+            }
+
+            int pid = id.Value;
+
             adults = adults < 1 ? 1 : adults;
             children = children < 0 ? 0 : children;
             int totalPassengers = adults + children;
+
+            // ✅ use pid from resolved id/packageId
+            int idResolved = pid;
+
 
             int? currentUserId = null;
             var uidStr = HttpContext.Session.GetString("UserId");
             if (int.TryParse(uidStr, out int tmpUid)) currentUserId = tmpUid;
 
             bool hasActiveOfferForUser = false;
-    
+            bool hasActiveCartForUser = false;
+
             Package? pkg = null;
             string categoryName = "";
             int discountedPrice = 0;
@@ -597,7 +610,7 @@ namespace TravelAgency.Controllers
 
                 using (var cmd = new SqlCommand(sql, conn))
                 {
-                    cmd.Parameters.AddWithValue("@Id", id);
+                    cmd.Parameters.AddWithValue("@Id", idResolved);
 
                     using (var r = cmd.ExecuteReader())
                     {
@@ -646,23 +659,42 @@ namespace TravelAgency.Controllers
 ", conn))
 
                 {
-                    offerCmd.Parameters.AddWithValue("@pid", id);
+                    offerCmd.Parameters.AddWithValue("@pid", idResolved);
+
                     offerCmd.Parameters.AddWithValue("@uid", (object?)currentUserId ?? DBNull.Value);
 
                     var obj = offerCmd.ExecuteScalar();
                     hasActiveOfferForUser = (obj != null);
                 }
 
+// ✅ NEW: check if THIS user already holds this package in cart (active row)
+                using (var cartCmd = new SqlCommand(@"
+    SELECT TOP (1) 1
+    FROM shoppingcart
+    WHERE userId = @uid
+      AND PackageId = @pid
+      AND inactive = 0;
+", conn))
+                {
+                    cartCmd.Parameters.AddWithValue("@uid", (object?)currentUserId ?? DBNull.Value);
+                    cartCmd.Parameters.AddWithValue("@pid", idResolved);
+
+
+                    hasActiveCartForUser = (cartCmd.ExecuteScalar() != null);
+                }
+
 
                 string imgSql = @"
+
                     SELECT ImageLocation
                     FROM ImagesPackage
                     WHERE PackageId = @Id
                     ORDER BY Id;
                 ";
+
                 using (var imgCmd = new SqlCommand(imgSql, conn))
                 {
-                    imgCmd.Parameters.AddWithValue("@Id", id);
+                    imgCmd.Parameters.AddWithValue("@Id", idResolved);
                     using (var ir = imgCmd.ExecuteReader())
                     {
                         while (ir.Read())
@@ -700,7 +732,7 @@ ORDER BY f.Id DESC;
 
                 using (var revCmd = new SqlCommand(reviewSql, conn))
                 {
-                    revCmd.Parameters.AddWithValue("@Id", id);
+                    revCmd.Parameters.AddWithValue("@Id", idResolved);
                     using (var rr = revCmd.ExecuteReader())
                     {
                         while (rr.Read())
@@ -745,8 +777,12 @@ ORDER BY f.Id DESC;
             };
 
             ViewBag.Images = images;
+       
             
             ViewBag.HasActiveOfferForUser = hasActiveOfferForUser;
+            ViewBag.HasActiveCartForUser = hasActiveCartForUser;
+
+            
 
 // ✅ If user arrived from an offer link but the offer is already expired
 // ✅ IMPORTANT: Do NOT show "expired" after the user USED the offer (Book/BuyNow).
@@ -771,7 +807,8 @@ ORDER BY f.Id DESC;
             ORDER BY OfferStart DESC, Id DESC;
         ", conn2))
                     {
-                        cmd.Parameters.AddWithValue("@pid", id);
+                        cmd.Parameters.AddWithValue("@pid", idResolved);
+
                         cmd.Parameters.AddWithValue("@uid", (object?)currentUserId ?? DBNull.Value);
 
                         var wasRecentExpiredOffer = cmd.ExecuteScalar() != null;

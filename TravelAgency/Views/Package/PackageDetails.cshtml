@@ -33,69 +33,46 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
     .price-display .regular-price { color: #1C6DD0; font-size: 30px; font-weight: 700; }
     .price-display .original-price { text-decoration: line-through; color: #888; font-size: 18px; font-weight: 500; }
     .price-display .discounted-price { color: #dc3545; font-size: 30px; font-weight: 700; }
-    .btn-row { display: flex; gap: 10px; margin-top: 12px; }
-    /* ===== BOOK / BUY BUTTONS – SAME SIZE ALWAYS ===== */
-
-    /* ===== Buttons (Admin-like size, same color, not bubble) ===== */
+    /* ===== Buttons (purple, same size, not bubble) ===== */
     .btn-row { display:flex; gap: 12px; margin-top: 12px; }
 
+    .btn-book, .btn-buy, .btn-action{
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        height: 38px;
+        padding: 0 16px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+
+        background: #5A189A;
+        color: #fff !important;
+        border: 1px solid #5A189A;
+
+        text-decoration: none !important;
+        white-space: nowrap;
+    }
+
+    /* Book/Buy sit in the same row or grid */
     .btn-book, .btn-buy{
         flex: 1;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-
-        height: 38px;
-        padding: 0 16px;
-        border-radius: 6px;
-        font-size: 16px;
-        font-weight: 600;
-
-        background: #5A189A;
-        color: #fff !important;
-        border: 1px solid #5A189A;
-
-        text-decoration: none !important;
-        white-space: nowrap;
+        width: 100%;
     }
-    /* ✅ Purple action button for FULL state (same look as Book/Buy) */
+
+    /* FULL state buttons already use btn-action, keep full width */
     .btn-action{
         width: 100%;
-        height: 38px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-
-        padding: 0 16px;
-        border-radius: 6px;
-        font-size: 16px;
-        font-weight: 600;
-
-        background: #5A189A;
-        color: #fff !important;
-        border: 1px solid #5A189A;
-
-        text-decoration: none !important;
-        white-space: nowrap;
     }
 
-    .btn-action:hover{
+    .btn-book:hover, .btn-buy:hover, .btn-action:hover{
         background: #4B147F;
         border-color: #4B147F;
     }
 
-
-    .btn-book:hover, .btn-buy:hover{
-        background: #4B147F;
-        border-color: #4B147F;
-    }
-
-
-    .btn-book { background: #1C6DD0; color: white; }
-    .btn-book:hover { background: #155BB4; }
-    .btn-buy { background: #28A745; color: white; }
-    .btn-buy:hover { background: #1E7E34; }
     .badge-leftover { display: inline-block; background: rgba(220, 53, 69, 0.9); color: #fff; border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; font-weight: 600; margin-left: 8px; }
+
     .btn-back{
         width: 100%;
         height: 38px;              /* כמו שאר הכפתורים שלך */
@@ -116,42 +93,13 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
         white-space: nowrap;
     }
 
-    /* ===== Buttons (Admin-like size, same color, not bubble) ===== */
-    .btn-row { display:flex; gap: 12px; margin-top: 12px; }
-
-    .btn-book, .btn-buy{
-        flex: 1;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-
-        height: 38px;              /* כמו btn רגיל של Bootstrap */
-        padding: 0 16px;
-        border-radius: 6px;         /* לא בועתי */
-        font-size: 16px;
-        font-weight: 600;
-
-        background: #5A189A;        /* ✅ צבע חדש (סגול) - תשני אם בא לך */
-        color: #fff !important;
-        border: 1px solid #5A189A;
-
-        text-decoration: none !important;
-        white-space: nowrap;
-    }
-
-    .btn-book:hover, .btn-buy:hover{
-        background: #4B147F;
-        border-color: #4B147F;
-    }
-
-    .btn-book:hover, .btn-buy:hover { filter: brightness(1.03); }
-
     .btn-back:hover { background: #d7dbe3; color: #124f9e; }
 
     /* ✅✅ הוספה: כדי ש-Enter מה-DB יופיע באתר */
     .trip-info {
         white-space: pre-line;
     }
+
 </style>
 
 <div class="container mt-5 mb-5">
@@ -285,9 +233,12 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
 
                 @{
                     bool hasOffer = (ViewBag.HasActiveOfferForUser as bool?) ?? false;
+                    bool hasActiveCart = (ViewBag.HasActiveCartForUser as bool?) ?? false;
                 }
-                
-                @if (Model.IsFull && !hasOffer)
+
+                @if (Model.IsFull && !hasOffer && !hasActiveCart)
+
+
 
                 {
                     <!-- Open modal (not direct join) -->
