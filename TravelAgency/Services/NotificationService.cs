@@ -18,8 +18,9 @@ namespace TravelAgency.Services
             conn.Open();
 
             using var cmd = new SqlCommand(@"
-                INSERT INTO dbo.Notifications (UserId, Title, Message, Type, LinkUrl, IsRead, CreatedAt, inactive)
-                VALUES (@uid, @title, @msg, @type, @link, 0, GETUTCDATE(), 0);", conn);
+    INSERT INTO dbo.Notifications (UserId, Title, Message, Type, LinkUrl, IsRead, inactive)
+    VALUES (@uid, @title, @msg, @type, @link, 0, 0);", conn);
+
 
             cmd.Parameters.AddWithValue("@uid", userId);
             cmd.Parameters.AddWithValue("@title", title);

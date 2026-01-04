@@ -1,3 +1,4 @@
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using TravelAgency.Models;
@@ -1297,7 +1298,8 @@ private void CreateOffersFromWaitlist(SqlConnection conn, int packageId, string 
             title: "Spot available!",
             message: $"A spot is available for a trip you are waiting for. You have {minutes} minutes to add it to your cart.",
             type: "success",
-            linkUrl: "/Users/MyTrips"
+            linkUrl: $"/Package/PackageDetails?packageId={packageId}&adults={numPersons}&children=0"
+
         );
     }
 }

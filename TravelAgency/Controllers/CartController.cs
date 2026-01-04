@@ -150,9 +150,10 @@ using (var conn = new SqlConnection(_connectionString))
         using var r = cmd.ExecuteReader();
         if (!r.Read())
         {
-            TempData["CartError"] = "Trip not found.";
+            TempData["CartError"] = "This trip is no longer available.";
             return RedirectToAction("Gallery", "Package");
         }
+
 
         pricePerPerson = r.GetInt32(0);
         freePlaces = r.GetInt32(1);
@@ -163,12 +164,13 @@ using (var conn = new SqlConnection(_connectionString))
 if (activeOfferId.HasValue)
 {
     if (!offerPersons.HasValue) offerPersons = 1;
-
+    
     if (offerPersons.Value != totalPersons)
     {
         TempData["CartError"] = $"This offer is for {offerPersons.Value} passenger(s). Please book with the same number of passengers.";
-        return RedirectToAction("Gallery", "Package");
+        return RedirectToAction("PackageDetails", "Package", new { id = packageId, adults = offerPersons.Value, children = 0 });
     }
+
 }
 else
 {
@@ -395,9 +397,10 @@ using (var conn = new SqlConnection(_connectionString))
         using var r = cmd.ExecuteReader();
         if (!r.Read())
         {
-            TempData["CartError"] = "Trip not found.";
+            TempData["CartError"] = "This trip is no longer available.";
             return RedirectToAction("Gallery", "Package");
         }
+
 
         pricePerPerson = r.GetInt32(0);
         freePlaces = r.GetInt32(1);
@@ -412,8 +415,9 @@ if (activeOfferId.HasValue)
     if (offerPersons.Value != totalPersons)
     {
         TempData["CartError"] = $"This offer is for {offerPersons.Value} passenger(s). Please book with the same number of passengers.";
-        return RedirectToAction("Gallery", "Package");
+        return RedirectToAction("PackageDetails", "Package", new { id = packageId, adults = offerPersons.Value, children = 0 });
     }
+
 }
 else
 {
@@ -452,9 +456,11 @@ else
                         if (activeCount >= 3)
                         {
                             tx.Rollback();
-                            TempData["CartError"] = "You can have up to 3 active trips in your cart.";
-                            return RedirectToAction("Gallery", "Package"); // ב-BuyNow אצלך זה Cart
+                            TempData["CartError"] = "You can have up to 3 active trips in your cart. Please remove one item to continue.";
+                            return RedirectToAction("Cart");
                         }
+
+
                     }
 
                     // ✅ Prevent duplicate active row for same package + same passengers (BuyNow)
@@ -689,6 +695,7 @@ public IActionResult RemoveRow(int rowId)
 
     int packageId = 0; // נשמור כדי ליצור offers אחרי הקומיט
     int? offerId = null;
+    bool releasedSeats = false; // האם באמת התפנה מקום
     
     try
     {
@@ -705,7 +712,7 @@ public IActionResult RemoveRow(int rowId)
                 using (var sel = new SqlCommand(@"
                     SELECT PackageId, numPersons, OfferId
                     FROM shoppingcart
-                    WHERE Id = @rid AND userId = @uid AND inactive = 0;", conn, tx))
+                    WHERE Id = @rid AND userId = @uid AND inactive = 0 AND ExpiresAt > GETDATE();", conn, tx))
                 {
                     sel.Parameters.AddWithValue("@rid", rowId);
                     sel.Parameters.AddWithValue("@uid", userId.Value);
@@ -722,28 +729,82 @@ public IActionResult RemoveRow(int rowId)
                     offerId = r.IsDBNull(2) ? (int?)null : r.GetInt32(2);
                 }
 
+
                 // 2) inactive = 1
+                int rowsAffected;
+
                 using (var upd = new SqlCommand(@"
                     UPDATE shoppingcart
                     SET inactive = 1
-                    WHERE Id = @rid AND userId = @uid;", conn, tx))
+                    WHERE Id = @rid AND userId = @uid AND inactive = 0;", conn, tx))
                 {
                     upd.Parameters.AddWithValue("@rid", rowId);
                     upd.Parameters.AddWithValue("@uid", userId.Value);
-                    upd.ExecuteNonQuery();
+                    rowsAffected = upd.ExecuteNonQuery();
                 }
 
-                // 3) להחזיר מקומות רק אם זה Hold רגיל (כלומר לא הגיע מ-Offer)
-// אם OfferId קיים -> המקומות כבר הוקצו/נלקחו בזמן יצירת Offer,
-// וב-Add/BuyNow לא הורדנו numFreePlaces, אז אסור להחזיר פה כדי לא לנפח מקומות.
-                using (var back = new SqlCommand(@"
-                    UPDATE Package
-                    SET numFreePlaces = numFreePlaces + @n
-                    WHERE Id = @pid;", conn, tx))
+                if (rowsAffected == 0)
                 {
-                    back.Parameters.AddWithValue("@pid", packageId);
-                    back.Parameters.AddWithValue("@n", numPersons);
-                    back.ExecuteNonQuery();
+                    tx.Rollback();
+                    return RedirectToAction("Cart");
+                }
+
+
+                
+// נשתמש בזה כדי לדעת אם באמת התפנה מקום (ואז מותר לייצר offers)
+                releasedSeats = false;
+// 3) אם השורה הגיעה מ-Offer -> מסמנים את ה-Offer כ-Expired
+// (גם אם IsUsed=1, כי הוא "שומש" לצורך הוספה לעגלה אבל לא מומש לתשלום)
+// ורק אם הצלחנו לסמן עכשיו ExpiredAt בפועל -> נחזיר מקומות.
+                if (offerId.HasValue)
+                {
+                    int okOffer;
+
+                    using (var exp = new SqlCommand(@"
+        UPDATE WaitlistOffers
+        SET ExpiredAt = GETDATE()
+        WHERE Id = @oid
+          AND ExpiredAt IS NULL;
+    ", conn, tx))
+                    {
+                        exp.Parameters.AddWithValue("@oid", offerId.Value);
+                        okOffer = exp.ExecuteNonQuery();
+                    }
+
+                    // ✅ נחזיר מקומות רק אם באמת סימנו ExpiredAt עכשיו (כדי לא להחזיר פעמיים)
+                    if (okOffer > 0)
+                    {
+                        using (var back = new SqlCommand(@"
+            UPDATE Package
+            SET numFreePlaces = numFreePlaces + @n
+            WHERE Id = @pid;
+        ", conn, tx))
+                        {
+                            back.Parameters.AddWithValue("@pid", packageId);
+                            back.Parameters.AddWithValue("@n", numPersons);
+                            int seatsRows = back.ExecuteNonQuery();
+                            releasedSeats = seatsRows > 0;
+                        }
+                    }
+                    else
+                    {
+                        releasedSeats = false;
+                    }
+                }
+                else
+                {
+                    // Hold רגיל
+                    using (var back = new SqlCommand(@"
+        UPDATE Package
+        SET numFreePlaces = numFreePlaces + @n
+        WHERE Id = @pid;
+    ", conn, tx))
+                    {
+                        back.Parameters.AddWithValue("@pid", packageId);
+                        back.Parameters.AddWithValue("@n", numPersons);
+                        int seatsRows = back.ExecuteNonQuery();
+                        releasedSeats = seatsRows > 0;
+                    }
                 }
 
 
@@ -756,17 +817,22 @@ public IActionResult RemoveRow(int rowId)
             }
         }
 
-// ✅ אחרי שהמחיקה בוצעה והטרנזקציה נסגרה — יוצרים offers רק אם התפנה מקום אמיתי (לא Offer)
-        try
+        // אחרי שהמחיקה בוצעה והטרנזקציה נסגרה — יוצרים offers רק אם באמת התפנה מקום אמיתי
+// (כלומר: רק אם הצלחנו להחזיר מקומות בפועל)
+        if (releasedSeats && packageId > 0)
         {
-            using var c2 = new SqlConnection(_connectionString);
-            c2.Open();
-            CreateOffersFromWaitlist(c2, packageId, reason: "cart");
+            try
+            {
+                using var c2 = new SqlConnection(_connectionString);
+                c2.Open();
+                CreateOffersFromWaitlist(c2, packageId, reason: "cart");
+            }
+            catch (Exception ex2)
+            {
+                Console.WriteLine("CreateOffersFromWaitlist after RemoveRow failed: " + ex2);
+            }
         }
-        catch (Exception ex2)
-        {
-            Console.WriteLine("CreateOffersFromWaitlist after RemoveRow failed: " + ex2);
-        }
+
 
 
         RefreshCartCount(userId.Value);
@@ -1052,15 +1118,15 @@ VALUES (@pid, @uid, @n, @reason, GETDATE(), DATEADD(minute, @mins, GETDATE()));
             cmdOffer.ExecuteNonQuery();
         }
 
-      
         _notificationService.Create(userId,
             title: "Spot available!",
             message: $"A spot is available for a trip you are waiting for. You have {minutes} minutes to add it to your cart.",
             type: "success",
-            linkUrl: "/Users/MyTrips"
+            linkUrl: $"/Package/PackageDetails?id={packageId}&adults={numPersons}&children=0"
         );
     }
 }
+
 // -------------------- EMAIL + PDF helpers --------------------
 private string? GetUserEmail(int userId)
 {

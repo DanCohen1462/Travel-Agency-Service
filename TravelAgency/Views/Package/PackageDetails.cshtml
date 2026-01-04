@@ -283,7 +283,12 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
                 <p class="text-muted">No reviews yet. Be the first!</p>
                 }
 
-                @if (Model.IsFull)
+                @{
+                    bool hasOffer = (ViewBag.HasActiveOfferForUser as bool?) ?? false;
+                }
+                
+                @if (Model.IsFull && !hasOffer)
+
                 {
                     <!-- Open modal (not direct join) -->
                     <button type="button"
@@ -334,7 +339,7 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
                             </button>
                         </form>
 
-                        <!-- ✅ Back button keeps SAME style as existing btn-back -->
+                        <!-- Back button keeps SAME style as existing btn-back -->
                         <a asp-controller="Package"
                            asp-action="Gallery"
                            asp-route-adults="@qAdults"
@@ -478,6 +483,18 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
 
         });
     }
+</script>
+<script>
+  // ✅ Prevent double submit (race from client side)
+  document.addEventListener("DOMContentLoaded", function () {
+    const forms = document.querySelectorAll('form[data-lock-submit="true"]');
+    forms.forEach(f => {
+      f.addEventListener("submit", function () {
+        const btns = f.querySelectorAll("button[type='submit'], input[type='submit']");
+        btns.forEach(b => b.disabled = true);
+      });
+    });
+  });
 </script>
 
 }

@@ -424,6 +424,14 @@
         showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["PaymentToastSuccess"])), "success");
     </script>
 }
+
+@if (TempData["OfferExpiredToast"] != null)
+{
+    <script>
+        showToast(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["OfferExpiredToast"])), "error");
+    </script>
+}
+
 @if (TempData["WaitlistToast"] != null)
 {
     <script>

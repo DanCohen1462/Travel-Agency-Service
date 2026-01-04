@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -131,7 +132,7 @@ WHERE Id = @pid;
     catch { }
 }
 
-var expiredRows = new List<(int CartId, int UserId, int PackageId, int NumPersons, int? OfferId, string TripLabel)>();
+var expiredRows = new List<(int CartId, int UserId, int PackageId, int NumPersons, int? OfferId, string OfferReason, string TripLabel)>();
 
 using (var sel = new SqlCommand(@"
 SELECT 
@@ -140,10 +141,12 @@ SELECT
     sc.PackageId, 
     sc.numPersons,
     sc.OfferId,
+    ISNULL(o.Reason,'cart') as OfferReason,
     ISNULL(p.destination,'') as destination,
     ISNULL(p.country,'') as country
 FROM shoppingcart sc
 INNER JOIN Package p ON p.Id = sc.PackageId
+LEFT JOIN WaitlistOffers o ON o.Id = sc.OfferId
 WHERE sc.inactive = 0 
   AND sc.ExpiresAt <= GETDATE();
 ", conn))
@@ -156,16 +159,18 @@ WHERE sc.inactive = 0
         int packageId = r.GetInt32(2);
         int numPersons = r.IsDBNull(3) ? 1 : r.GetInt32(3);
         int? offerId = r.IsDBNull(4) ? (int?)null : r.GetInt32(4);
+        string offerReason = r.IsDBNull(5) ? "cart" : r.GetString(5);
 
-        string dest = r.IsDBNull(5) ? "" : r.GetString(5);
-        string country = r.IsDBNull(6) ? "" : r.GetString(6);
+        string dest = r.IsDBNull(6) ? "" : r.GetString(6);
+        string country = r.IsDBNull(7) ? "" : r.GetString(7);
 
         string tripLabel = string.IsNullOrWhiteSpace(dest) ? "your trip"
             : (string.IsNullOrWhiteSpace(country) ? dest : $"{dest}, {country}");
 
-        expiredRows.Add((cartId, userId, packageId, numPersons, offerId, tripLabel));
+        expiredRows.Add((cartId, userId, packageId, numPersons, offerId, offerReason, tripLabel));
     }
 }
+
 
 
 var expiredByUser = new Dictionary<int, List<string>>();
@@ -193,8 +198,37 @@ WHERE Id = @rid AND inactive = 0;
                         }
                     }
 
-// 2) להחזיר מקומות רק אם זה לא הגיע מ-Offer (Offer תופס מקומות בזמן יצירת Offer)
-                    if (row.OfferId == null)
+// 2) אם זה הגיע מ-Offer -> נסמן את ה-Offer כ-Expired ונחזיר מקומות רק אם באמת סימנו עכשיו
+// אם זה Hold רגיל (OfferId==null) -> מחזירים מקומות כרגיל
+                    if (row.OfferId != null)
+                    {
+                        int okOffer;
+                        using (var updOffer = new SqlCommand(@"
+UPDATE WaitlistOffers
+SET ExpiredAt = GETDATE()
+WHERE Id = @oid
+  AND ExpiredAt IS NULL;
+", conn, tx))
+                        {
+                            updOffer.Parameters.AddWithValue("@oid", row.OfferId.Value);
+                            okOffer = await updOffer.ExecuteNonQueryAsync(ct);
+                        }
+
+                        if (okOffer > 0)
+                        {
+                            using (var back = new SqlCommand(@"
+UPDATE Package
+SET numFreePlaces = numFreePlaces + @n
+WHERE Id = @pid;
+", conn, tx))
+                            {
+                                back.Parameters.AddWithValue("@n", row.NumPersons);
+                                back.Parameters.AddWithValue("@pid", row.PackageId);
+                                await back.ExecuteNonQueryAsync(ct);
+                            }
+                        }
+                    }
+                    else
                     {
                         using (var back = new SqlCommand(@"
 UPDATE Package
@@ -208,6 +242,7 @@ WHERE Id = @pid;
                         }
                     }
 
+
                     tx.Commit();
 
                 }
@@ -220,7 +255,8 @@ WHERE Id = @pid;
 // 3) אחרי קומיט – ליצור offers (בלי tx)
                 try
                 {
-                    CreateOffersFromWaitlist(conn, notificationService, row.PackageId, reason: "cart");
+                    CreateOffersFromWaitlist(conn, notificationService, row.PackageId, reason: row.OfferReason);
+
                 }
                 catch { }
 
@@ -456,10 +492,11 @@ WHERE Id = @pid;
                     title: "Spot available!",
                     message: $"A spot is available for {tripLabel}. You have {minutes} minutes to add it to your cart.",
                     type: "success",
-                    linkUrl: "/Users/MyTrips"
+                    linkUrl: $"/Package/PackageDetails?id={packageId}&adults={numPersons}&children=0"
                 );
 
             }
         }
     }
 }
+

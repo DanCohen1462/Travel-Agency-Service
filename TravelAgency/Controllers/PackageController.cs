@@ -268,6 +268,7 @@ namespace TravelAgency.Controllers
     WHERE o.PackageId = p.Id
       AND o.IsUsed = 0
       AND o.OfferEnd > GETDATE()
+      AND o.ExpiredAt IS NULL
       AND (o.UserId = @uid)
 ) oa
 
@@ -528,11 +529,15 @@ namespace TravelAgency.Controllers
         }
 
         // =========================
-        // 4) Package Details (VIEW) - specific package by Id
-        // =========================
+// 4) Package Details (VIEW) - specific package by Id
+// =========================
         [HttpGet]
-        public IActionResult PackageDetails(int id, int adults = 1, int children = 0)
+        public IActionResult PackageDetails(int id, int? packageId = null, int adults = 1, int children = 0)
         {
+            // ✅ allow notifications link: /Package/PackageDetails?packageId=123
+            if (packageId.HasValue && packageId.Value > 0)
+                id = packageId.Value;
+
             adults = adults < 1 ? 1 : adults;
             children = children < 0 ? 0 : children;
             int totalPassengers = adults + children;
@@ -542,7 +547,7 @@ namespace TravelAgency.Controllers
             if (int.TryParse(uidStr, out int tmpUid)) currentUserId = tmpUid;
 
             bool hasActiveOfferForUser = false;
-            
+    
             Package? pkg = null;
             string categoryName = "";
             int discountedPrice = 0;
@@ -552,7 +557,7 @@ namespace TravelAgency.Controllers
 
             double avgRating = 0;
             int totalReviews = 0;
-            
+
 
             using (var conn = new SqlConnection(_connectionString))
             {
@@ -636,8 +641,10 @@ namespace TravelAgency.Controllers
     WHERE PackageId = @pid
       AND UserId = @uid
       AND IsUsed = 0
-      AND OfferEnd > GETDATE();
+      AND OfferEnd > GETDATE()
+      AND ExpiredAt IS NULL;
 ", conn))
+
                 {
                     offerCmd.Parameters.AddWithValue("@pid", id);
                     offerCmd.Parameters.AddWithValue("@uid", (object?)currentUserId ?? DBNull.Value);
@@ -740,7 +747,45 @@ ORDER BY f.Id DESC;
             ViewBag.Images = images;
             
             ViewBag.HasActiveOfferForUser = hasActiveOfferForUser;
+
+// ✅ If user arrived from an offer link but the offer is already expired
+// (we detect it by: no active offer now + there exists a recent offer record for this user/package)
+            if (!hasActiveOfferForUser)
+            {
+                using (var conn2 = new SqlConnection(_connectionString))
+                {
+                    conn2.Open();
+
+                    using (var cmd = new SqlCommand(@"
+            SELECT TOP (1) 1
+            FROM WaitlistOffers
+            WHERE PackageId = @pid
+              AND UserId = @uid
+              AND OfferStart > DATEADD(HOUR, -24, GETDATE())
+              AND (
+                    OfferEnd <= GETDATE()
+                 OR ExpiredAt IS NOT NULL
+                 OR IsUsed = 1
+              )
+            ORDER BY OfferStart DESC, Id DESC;
+        ", conn2))
+                    {
+                        cmd.Parameters.AddWithValue("@pid", id);
+                        cmd.Parameters.AddWithValue("@uid", (object?)currentUserId ?? DBNull.Value);
+
+
+                        var wasRecentOffer = cmd.ExecuteScalar() != null;
+                        if (wasRecentOffer)
+                        {
+                            TempData["OfferExpiredToast"] =
+                                "Your offer has expired. If the trip is still full, you can re-join the waiting list.";
+                        }
+                    }
+                }
+            }
+
             return View(vm);
+
 
 
         }
