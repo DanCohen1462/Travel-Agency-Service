@@ -10,6 +10,10 @@ using TravelAgency.Services;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.Net;
+using System.Net.Mail;
+using Microsoft.AspNetCore.Hosting;
+
 
 namespace TravelAgency.Controllers
 {
@@ -18,15 +22,18 @@ namespace TravelAgency.Controllers
         private readonly string _connectionString;
         private readonly NotificationService _notificationService;
         private readonly EmailService _emailService;
+        private readonly IWebHostEnvironment _env;
 
 
-        public CartController(IConfiguration config, NotificationService notificationService, EmailService emailService)
+        public CartController(IConfiguration config, NotificationService notificationService, EmailService emailService, IWebHostEnvironment env)
         {
             _connectionString = config.GetConnectionString("DefaultConnection")
-                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+                                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             _notificationService = notificationService;
             _emailService = emailService;
+            _env = env;
         }
+
 
         private int? GetUserId()
         {
@@ -46,7 +53,10 @@ namespace TravelAgency.Controllers
             using var cmd = new SqlCommand(@"
                 SELECT COUNT(*)
                 FROM shoppingcart
-                WHERE userId = @uid AND inactive = 0;", conn);
+                WHERE userId = @uid
+                  AND inactive = 0
+                  AND ExpiresAt > GETDATE();", conn);
+
 
             cmd.Parameters.AddWithValue("@uid", userId);
 
@@ -83,8 +93,10 @@ namespace TravelAgency.Controllers
             using var cmd = new SqlCommand(@"
                 SELECT ISNULL(SUM(sum),0)
                 FROM shoppingcart
-                WHERE userId=@uid AND inactive=0;", conn);
+                WHERE userId=@uid AND inactive=0 AND ExpiresAt > GETDATE();", conn);
 
+            
+            
             cmd.Parameters.AddWithValue("@uid", userId);
             return (int)cmd.ExecuteScalar();
         }
@@ -233,8 +245,10 @@ else
     FROM shoppingcart sc
     INNER JOIN Package p ON p.Id = sc.PackageId AND p.inactive = 0
     WHERE sc.userId = @uid
-      AND sc.inactive = 0;
+      AND sc.inactive = 0
+      AND sc.ExpiresAt > GETDATE();
 ", conn, tx))
+
                     {
                         cntCmd.Parameters.AddWithValue("@uid", userId.Value);
                         int activeCount = (int)cntCmd.ExecuteScalar();
@@ -260,8 +274,10 @@ else
     WHERE userId = @uid
       AND PackageId = @pid
       AND numPersons = @n
-      AND inactive = 0;
+      AND inactive = 0
+      AND ExpiresAt > GETDATE();
 ", conn, tx))
+
                     {
                         dupCmd.Parameters.AddWithValue("@uid", userId.Value);
                         dupCmd.Parameters.AddWithValue("@pid", packageId);
@@ -353,9 +369,12 @@ VALUES(@uid, @pid, @sum, 0, @n, GETDATE(), DATEADD(MINUTE, 15, GETDATE()), @offe
                     try { tx.Rollback(); } catch { }
 
                     Console.WriteLine("ADD FAILED: " + ex);
-                    TempData["CartError"] = "Could not add to cart. Please try again. (DEV: " + ex.Message + ")";
+                    TempData["CartError"] = "Could not add to cart. Please try again.";
 
                     return RedirectToAction("Gallery", "Package");
+
+
+                    
                 }
 
             }
@@ -510,8 +529,10 @@ else
     FROM shoppingcart sc
     INNER JOIN Package p ON p.Id = sc.PackageId AND p.inactive = 0
     WHERE sc.userId = @uid
-      AND sc.inactive = 0;
+      AND sc.inactive = 0
+      AND sc.ExpiresAt > GETDATE();
 ", conn, tx))
+
                     {
                         cntCmd.Parameters.AddWithValue("@uid", userId.Value);
                         int activeCount = (int)cntCmd.ExecuteScalar();
@@ -533,7 +554,8 @@ else
     WHERE userId = @uid
       AND PackageId = @pid
       AND numPersons = @n
-      AND inactive = 0;
+      AND inactive = 0
+      AND ExpiresAt > GETDATE();
 ", conn, tx))
                     {
                         dupCmd.Parameters.AddWithValue("@uid", userId.Value);
@@ -624,9 +646,10 @@ VALUES(@uid, @pid, @sum, 0, @n, GETDATE(), DATEADD(MINUTE, 15, GETDATE()), @offe
                     try { tx.Rollback(); } catch { }
 
                     Console.WriteLine("BUYNOW FAILED: " + ex);
-                    TempData["CartError"] = "Could not add to cart. Please try again. (DEV: " + ex.Message + ")";
+                    TempData["CartError"] = "Could not add to cart. Please try again.";
 
                     return RedirectToAction("Gallery", "Package");
+
                 }
 
             }
@@ -710,12 +733,16 @@ VALUES(@uid, @pid, @sum, 0, @n, GETDATE(), DATEADD(MINUTE, 15, GETDATE()), @offe
            (SELECT TOP 1 ImageLocation FROM ImagesPackage WHERE PackageId = p.Id ORDER BY Id) as ImageLocation
     FROM shoppingcart sc
     INNER JOIN Package p ON p.Id = sc.PackageId
-    WHERE sc.userId = @uid AND sc.inactive = 0
-    ORDER BY sc.Id DESC;", conn);
+    WHERE sc.userId = @uid
+      AND sc.inactive = 0
+      AND sc.ExpiresAt > GETDATE()
+    ORDER BY sc.Id DESC;
+", conn);
 
                 cmd.Parameters.AddWithValue("@uid", userId.Value);
 
                 using var r = cmd.ExecuteReader();
+
                 while (r.Read())
                 {
                     items.Add(new CartItem
@@ -775,7 +802,7 @@ public IActionResult RemoveRow(int rowId)
                 using (var sel = new SqlCommand(@"
                     SELECT PackageId, numPersons, OfferId
                     FROM shoppingcart
-                    WHERE Id = @rid AND userId = @uid AND inactive = 0 AND ExpiresAt > GETDATE();", conn, tx))
+                   WHERE Id = @rid AND userId = @uid AND inactive = 0;", conn, tx))
                 {
                     sel.Parameters.AddWithValue("@rid", rowId);
                     sel.Parameters.AddWithValue("@uid", userId.Value);
@@ -984,7 +1011,7 @@ try
     OUTPUT INSERTED.Id
     SELECT userId, PackageId, 0, numPersons, sum
     FROM shoppingcart
-    WHERE userId = @uid AND inactive = 0;
+    WHERE userId = @uid AND inactive = 0 AND ExpiresAt > GETDATE();
 ", conn, tx))
             {
                 insHist.Parameters.AddWithValue("@uid", userId.Value);
@@ -1010,7 +1037,7 @@ try
             using (var updCart = new SqlCommand(@"
     UPDATE shoppingcart
     SET inactive = 1
-    WHERE userId = @uid AND inactive = 0;
+     WHERE userId = @uid AND inactive = 0 AND ExpiresAt > GETDATE();
 ", conn, tx))
             {
                 updCart.Parameters.AddWithValue("@uid", userId.Value);
@@ -1027,35 +1054,69 @@ try
         }
     }
 
+    // ✅ Calculate the REAL total charged from the reservations inserted in THIS payment
+    int chargedTotal = GetReservationsTotal(userId.Value, insertedReservationIds);
+
     _notificationService.Create(
         userId.Value,
         title: "Payment Successful",
-        message: $"Your payment was completed successfully. Total charged: ${total}",
+        message: $"Your payment was completed successfully. Total charged: ${chargedTotal}",
         type: "success",
         linkUrl: null
     );
 
-// ✅ Send email with PDF attachment (only on success)
+    // ✅ Send email with PDF attachment (only on success, and only if PDF is NOT empty)
     try
     {
         var email = GetUserEmail(userId.Value);
-        if (!string.IsNullOrWhiteSpace(email))
+
+        if (string.IsNullOrWhiteSpace(email))
         {
-            // IMPORTANT: insertedReservationIds exists from the insert section above
-            var pdfBytes = BuildPaymentReceiptPdf(userId.Value, insertedReservationIds, total);
+            // Debug-friendly message (you can remove later)
+            TempData["PaymentToastError"] = "Email not sent: your account has no email address.";
+        }
+        else
+        {
+            var pdfBytes = BuildPaymentReceiptPdf(userId.Value, insertedReservationIds, chargedTotal);
 
-            var subject = "TravelAgency - Payment Receipt (PDF attached)";
-            var body = "Hi,\n\nYour payment was successful. Please find your receipt attached as a PDF.\n\nThank you,\nTravelAgency";
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                TempData["PaymentToastError"] = "Email not sent: receipt PDF generation failed.";
+            }
+            else
+            {
+                // Use the first reservation id as "receipt number" (simple and valid)
+                int receiptNo = insertedReservationIds != null && insertedReservationIds.Count > 0
+                    ? insertedReservationIds[0]
+                    : 0;
 
-            var fileName = $"Receipt_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+                var subject = $"TravelAgency - Payment Receipt #{receiptNo}";
+                var body = "";
 
-            _emailService.SendWithAttachment(email, subject, body, pdfBytes, fileName);
+                var receiptFileName = $"Receipt_{receiptNo}_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+                var detailsFileName = $"Trip_Details_{receiptNo}_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+
+                var detailsPdfBytes = BuildTripDetailsPdf(userId.Value, insertedReservationIds);
+
+                _emailService.SendWithAttachments(
+                    email.Trim(),
+                    subject,
+                    body,
+                    new (byte[] Bytes, string FileName, string ContentType)[]
+                    {
+                        (pdfBytes, receiptFileName, "application/pdf"),
+                        (detailsPdfBytes, detailsFileName, "application/pdf")
+                    }
+                );
+            }
         }
     }
+
     catch (Exception mailEx)
     {
-        // לא מפילים תשלום בגלל מייל
-        Console.WriteLine("Email send failed: " + mailEx.Message);
+        // ✅ Show exact error so you can fix SMTP quickly (remove later if you want)
+        TempData["PaymentToastError"] = "Email send failed: " + mailEx.Message;
+        Console.WriteLine("Email send failed: " + mailEx);
     }
 
     RefreshCartCount(userId.Value);
@@ -1213,6 +1274,28 @@ WHERE Id = @pid;
 }
 
 // -------------------- EMAIL + PDF helpers --------------------
+
+        private class TripDetailsPdfRow
+        {
+            public int ReservationId { get; set; }
+            public int NumPersons { get; set; }
+
+            public int TotalSum { get; set; }
+            public int PricePerPerson { get; set; }
+
+            public string Destination { get; set; } = "";
+            public string Country { get; set; } = "";
+            public DateTime StartDate { get; set; }
+            public DateTime EndDate { get; set; }
+            public int AgeLimit { get; set; }
+            public int CancelDays { get; set; }
+            public string Information { get; set; } = "";
+            public string CategoryName { get; set; } = "";
+            public string ImageLocation { get; set; } = "";
+        }
+
+        
+
 private string? GetUserEmail(int userId)
 {
     using var conn = new SqlConnection(_connectionString);
@@ -1231,20 +1314,265 @@ private string? GetUserEmail(int userId)
     return string.IsNullOrWhiteSpace(email) ? null : email.Trim();
 }
 
+
+// ✅ Sum the exact total for THIS payment (only these reservation ids)
+private int GetReservationsTotal(int userId, List<int> reservationIds)
+{
+    if (reservationIds == null || reservationIds.Count == 0)
+        return 0;
+
+    using var conn = new SqlConnection(_connectionString);
+    conn.Open();
+
+    var ridParams = reservationIds.Select((id, i) => $"@rid{i}").ToList();
+    var inClause = string.Join(", ", ridParams);
+
+    using var cmd = new SqlCommand($@"
+        SELECT ISNULL(SUM(h.sum), 0)
+        FROM HistoryReservation h
+        WHERE h.UserId = @uid
+          AND h.inactive = 0
+          AND h.Id IN ({inClause});
+    ", conn);
+
+    cmd.Parameters.AddWithValue("@uid", userId);
+
+    for (int i = 0; i < reservationIds.Count; i++)
+        cmd.Parameters.AddWithValue($"@rid{i}", reservationIds[i]);
+
+    return Convert.ToInt32(cmd.ExecuteScalar());
+}
+
 private byte[] BuildPaymentReceiptPdf(int userId, List<int> reservationIds, int totalCharged)
 {
-    // Pull details for the reservations we just inserted
-    var rows = new List<dynamic>();
+    // Receipt rows (NO itinerary/info)
+    var rows = new List<TripDetailsPdfRow>();
 
     using (var conn = new SqlConnection(_connectionString))
     {
         conn.Open();
 
-        // ✅ safety: אם אין IDs — אין מה למשוך
         if (reservationIds == null || reservationIds.Count == 0)
             return Array.Empty<byte>();
 
-        // ✅ build IN (@rid0,@rid1,...) with parameters
+        var ridParams = reservationIds
+            .Select((id, i) => $"@rid{i}")
+            .ToList();
+
+        var inClause = string.Join(", ", ridParams);
+
+        using var cmd = new SqlCommand($@"
+SELECT
+    h.Id as ReservationId,
+    h.numPersons,
+    h.sum as TotalSum,
+    p.destination,
+    ISNULL(p.country,'') as country,
+    p.startDate,
+    p.endDate,
+    p.sum as PricePerPerson
+FROM HistoryReservation h
+INNER JOIN Package p ON p.Id = h.PackageId
+WHERE h.UserId = @uid
+  AND h.inactive = 0
+  AND h.Id IN ({inClause})
+ORDER BY h.Id DESC;
+", conn);
+
+        cmd.Parameters.AddWithValue("@uid", userId);
+
+        for (int i = 0; i < reservationIds.Count; i++)
+            cmd.Parameters.AddWithValue($"@rid{i}", reservationIds[i]);
+
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            rows.Add(new TripDetailsPdfRow
+            {
+                ReservationId = r.GetInt32(0),
+                NumPersons = r.IsDBNull(1) ? 1 : r.GetInt32(1),
+                TotalSum = r.IsDBNull(2) ? 0 : Convert.ToInt32(r["TotalSum"]),
+                Destination = r["destination"]?.ToString() ?? "",
+                Country = r["country"]?.ToString() ?? "",
+                StartDate = Convert.ToDateTime(r["startDate"]),
+                EndDate = Convert.ToDateTime(r["endDate"]),
+                PricePerPerson = Convert.ToInt32(r["PricePerPerson"])
+            });
+        }
+    }
+
+    QuestPDF.Settings.License = LicenseType.Community;
+
+    // ✅ get user display name
+    string firstName = "", lastName = "", username = "";
+    using (var connU = new SqlConnection(_connectionString))
+    {
+        connU.Open();
+        using var cmdU = new SqlCommand(@"
+        SELECT ISNULL(firstName,''), ISNULL(lastName,''), ISNULL(Username,'')
+        FROM Users
+        WHERE Id = @uid AND inactive = 0;", connU);
+
+        cmdU.Parameters.AddWithValue("@uid", userId);
+
+        using var ru = cmdU.ExecuteReader();
+        if (ru.Read())
+        {
+            firstName = ru.GetString(0);
+            lastName = ru.GetString(1);
+            username = ru.GetString(2);
+        }
+    }
+
+    string fullName = (firstName + " " + lastName).Trim();
+    if (string.IsNullOrWhiteSpace(fullName)) fullName = username;
+
+    // receipt number: first reservation id (simple)
+    int receiptNo = reservationIds != null && reservationIds.Count > 0 ? reservationIds[0] : 0;
+
+    byte[] pdfBytes = Document.Create(container =>
+    {
+        container.Page(page =>
+        {
+            page.Size(PageSizes.A4);
+            page.Margin(32);
+            page.DefaultTextStyle(x => x.FontSize(12));
+
+            page.Header().Column(h =>
+            {
+                h.Item().Text("Payment Receipt").FontSize(22).SemiBold().FontColor("#5A189A");
+                h.Item().Text($"Receipt #: {receiptNo}").FontSize(11).FontColor(Colors.Grey.Darken2);
+                h.Item().Text($"Generated: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10).FontColor(Colors.Grey.Darken2);
+                h.Item().PaddingTop(8).LineHorizontal(1).LineColor("#E6E6F0");
+            });
+
+            page.Content().PaddingTop(16).Column(col =>
+            {
+                col.Spacing(12);
+
+                col.Item().Row(r =>
+                {
+                    r.RelativeItem().Text("Paid by:").SemiBold();
+                    r.RelativeItem().AlignRight().Text(fullName);
+                });
+
+    col.Item().PaddingTop(6).LineHorizontal(1).LineColor("#E6E6F0");
+
+// ✅ Cards layout (same info, no table)
+foreach (var x in rows)
+{
+    string tripLabel = string.IsNullOrWhiteSpace(x.Country)
+        ? x.Destination
+        : $"{x.Destination}, {x.Country}";
+
+    string dates = $"{x.StartDate:dd/MM/yyyy} – {x.EndDate:dd/MM/yyyy}";
+
+    col.Item().Element(card =>
+    {
+        card
+            .Border(1).BorderColor("#E6E6F0")
+            .Background("#FAFAFF")
+            .Padding(14)
+            .Column(c =>
+            {
+                c.Spacing(8);
+
+                // Title
+                c.Item().Text(tripLabel).SemiBold().FontSize(14);
+
+                // Dates line
+                c.Item().Text(dates).FontSize(10).FontColor(Colors.Grey.Darken2);
+
+                // Details grid
+                c.Item().Column(colDetails =>
+                {
+                    colDetails.Spacing(6);
+
+                    colDetails.Item().Row(rr =>
+                    {
+                        rr.RelativeItem().Text("Passengers:").SemiBold();
+                        rr.ConstantItem(80).AlignRight().Text($"{x.NumPersons}");
+                    });
+
+                    colDetails.Item().Row(rr =>
+                    {
+                        rr.RelativeItem().Text("Price per person:").SemiBold();
+                        rr.ConstantItem(80).AlignRight().Text($"${x.PricePerPerson}");
+                    });
+
+                    // ✅ Line total מתחת למחיר
+                    colDetails.Item().Row(rr =>
+                    {
+                        rr.RelativeItem().Text("Line total:").SemiBold();
+                        rr.ConstantItem(80).AlignRight().Text($"${x.TotalSum}").SemiBold();
+                    });
+                });
+
+            });
+    });
+}
+
+col.Item().PaddingTop(10).LineHorizontal(1).LineColor("#E6E6F0");
+
+col.Item().Row(r =>
+{
+    r.RelativeItem().Text("Total charged:").FontSize(14).SemiBold();
+    r.RelativeItem().AlignRight().Text($"${totalCharged}").FontSize(14).SemiBold().FontColor("#5A189A");
+});
+
+            });
+
+            page.Footer().AlignCenter().Text(x =>
+            {
+                x.Span("TravelAgency • ").FontSize(9).FontColor(Colors.Grey.Darken2);
+                x.Span("Payment receipt generated automatically").FontSize(9).FontColor(Colors.Grey.Darken2);
+            });
+        });
+    }).GeneratePdf();
+
+    return pdfBytes;
+}
+
+// -------------------------------------------------------------
+
+
+        private string? ResolveWwwRootPathFromImageLocation(string? imageLocation)
+        {
+
+            if (string.IsNullOrWhiteSpace(imageLocation))
+                return null;
+
+            // ImageLocation in DB is typically like "/uploads/packages/abc.jpg" or "uploads/packages/abc.jpg"
+            var rel = imageLocation.Trim();
+
+            // ignore remote urls
+            if (rel.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                rel.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            if (rel.StartsWith("/"))
+                rel = rel.Substring(1);
+
+            // combine with wwwroot
+            var full = System.IO.Path.Combine(_env.WebRootPath, rel.Replace("/", System.IO.Path.DirectorySeparatorChar.ToString()));
+
+            if (!System.IO.File.Exists(full))
+                return null;
+
+            return full;
+        }
+private byte[] BuildTripDetailsPdf(int userId, List<int> reservationIds)
+{
+    // Pull details for the reservations we just inserted
+    var rows = new List<TripDetailsPdfRow>();
+
+    using (var conn = new SqlConnection(_connectionString))
+    {
+        conn.Open();
+
+        if (reservationIds == null || reservationIds.Count == 0)
+            return Array.Empty<byte>();
+
         var ridParams = reservationIds
             .Select((id, i) => $"@rid{i}")
             .ToList();
@@ -1261,7 +1589,16 @@ SELECT
     p.startDate,
     p.endDate,
     p.sum as PricePerPerson,
-    ISNULL(c.name,'') as CategoryName
+    ISNULL(c.name,'') as CategoryName,
+    ISNULL(p.ageLimit, 0) as AgeLimit,
+    ISNULL(p.cancelationDays, 0) as cancelationDays,
+    ISNULL(p.Information, '') as Information,
+    ISNULL((
+        SELECT TOP 1 ImageLocation
+        FROM ImagesPackage
+        WHERE PackageId = p.Id
+        ORDER BY Id
+    ), '') as ImageLocation
 FROM HistoryReservation h
 INNER JOIN Package p ON p.Id = h.PackageId
 LEFT JOIN Category c ON c.Id = p.idCategory
@@ -1273,14 +1610,13 @@ ORDER BY h.Id DESC;
 
         cmd.Parameters.AddWithValue("@uid", userId);
 
-        // ✅ add reservation id parameters
         for (int i = 0; i < reservationIds.Count; i++)
             cmd.Parameters.AddWithValue($"@rid{i}", reservationIds[i]);
 
         using var r = cmd.ExecuteReader();
         while (r.Read())
         {
-            rows.Add(new
+            rows.Add(new TripDetailsPdfRow
             {
                 ReservationId = r.GetInt32(0),
                 NumPersons = r.IsDBNull(1) ? 1 : r.GetInt32(1),
@@ -1290,12 +1626,40 @@ ORDER BY h.Id DESC;
                 StartDate = Convert.ToDateTime(r["startDate"]),
                 EndDate = Convert.ToDateTime(r["endDate"]),
                 PricePerPerson = Convert.ToInt32(r["PricePerPerson"]),
-                CategoryName = r["CategoryName"]?.ToString() ?? ""
+                CategoryName = r["CategoryName"]?.ToString() ?? "",
+                AgeLimit = Convert.ToInt32(r["AgeLimit"]),
+                CancelDays = Convert.ToInt32(r["cancelationDays"]),
+                Information = r["Information"]?.ToString() ?? "",
+                ImageLocation = r["ImageLocation"]?.ToString() ?? ""
             });
         }
     }
 
     QuestPDF.Settings.License = LicenseType.Community;
+
+    // ✅ get user display name for footer ("Booked by")
+    string firstName = "", lastName = "", username = "";
+    using (var connU = new SqlConnection(_connectionString))
+    {
+        connU.Open();
+        using var cmdU = new SqlCommand(@"
+        SELECT ISNULL(firstName,''), ISNULL(lastName,''), ISNULL(Username,'')
+        FROM Users
+        WHERE Id = @uid AND inactive = 0;", connU);
+
+        cmdU.Parameters.AddWithValue("@uid", userId);
+
+        using var ru = cmdU.ExecuteReader();
+        if (ru.Read())
+        {
+            firstName = ru.GetString(0);
+            lastName = ru.GetString(1);
+            username = ru.GetString(2);
+        }
+    }
+
+    string fullName = (firstName + " " + lastName).Trim();
+    if (string.IsNullOrWhiteSpace(fullName)) fullName = username;
 
     byte[] pdfBytes = Document.Create(container =>
     {
@@ -1307,55 +1671,146 @@ ORDER BY h.Id DESC;
 
             page.Header().Column(h =>
             {
-                h.Item().Text("Payment Receipt").FontSize(22).SemiBold();
-                h.Item().Text($"Date: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10).FontColor(Colors.Grey.Darken2);
-                h.Item().PaddingTop(8).LineHorizontal(1).LineColor("#E6E6F0");
+                h.Item().Row(row =>
+                {
+                    row.RelativeItem().Column(col =>
+                    {
+                        col.Item().Text("Trip Summary").FontSize(22).SemiBold().FontColor("#5A189A");
+
+                        col.Item().Text($"Generated: {DateTime.Now:dd/MM/yyyy HH:mm}")
+                            .FontSize(10).FontColor(Colors.Grey.Darken2);
+                    });
+                });
+
+                h.Item().PaddingTop(10).LineHorizontal(1).LineColor("#E6E6F0");
             });
 
-            page.Content().PaddingTop(16).Column(col =>
+            page.Content().PaddingTop(18).Column(col =>
             {
-                col.Spacing(10);
-
-                col.Item().Text($"Total charged: ${totalCharged}").FontSize(14).SemiBold();
+                col.Spacing(14);
 
                 foreach (var x in rows)
                 {
-                    col.Item().Element(box =>
+                    string cancelText = x.CancelDays <= 0
+                        ? "Cancellation is not available for this trip."
+                        : $"Cancellation is available up to {x.CancelDays} day(s) before departure.";
+
+                    col.Item().Row(row =>
                     {
-                        box.Border(1).BorderColor("#E6E6F0").Background("#FAFAFF").Padding(12).Column(c =>
+                        row.RelativeItem().Column(c =>
                         {
-                            c.Spacing(4);
+                            c.Item().Text($"{x.Destination} — {x.Country}")
+                                .SemiBold().FontSize(16);
 
-                            c.Item().Text($"{x.Destination} — {x.Country}").SemiBold();
                             if (!string.IsNullOrWhiteSpace(x.CategoryName))
-                                c.Item().Text($"Category: {x.CategoryName}").FontSize(10).FontColor(Colors.Grey.Darken2);
+                                c.Item().Text($"Category: {x.CategoryName}")
+                                    .FontSize(11).FontColor(Colors.Grey.Darken2);
 
-                            c.Item().Text($"Dates: {x.StartDate:dd/MM/yyyy} – {x.EndDate:dd/MM/yyyy}");
-                            c.Item().Text($"Passengers: {x.NumPersons}");
-                            c.Item().Text($"Price per person: ${x.PricePerPerson}");
-                            c.Item().Text($"Line total: ${x.TotalSum}").SemiBold();
+                            c.Item().Text($"{x.StartDate:dd/MM/yyyy}  –  {x.EndDate:dd/MM/yyyy}")
+                                .FontSize(11).FontColor(Colors.Grey.Darken2);
+                        });
+
+                        row.ConstantItem(150).AlignRight().Element(imgBox =>
+                        {
+                            try
+                            {
+                                var imgPath = ResolveWwwRootPathFromImageLocation(x.ImageLocation);
+                                if (!string.IsNullOrWhiteSpace(imgPath))
+                                {
+                                    imgBox
+                                        .Height(90)
+                                        .Border(1).BorderColor("#E6E6F0")
+                                        .Background("#FFFFFF")
+                                        .Padding(3)
+                                        .Image(imgPath, ImageScaling.FitArea);
+                                    return;
+                                }
+                            }
+                            catch { }
+
+                            imgBox.Height(90).Border(1).BorderColor("#E6E6F0").Background("#FAFAFF");
                         });
                     });
-                }
 
-                col.Item().PaddingTop(10).LineHorizontal(1).LineColor("#E6E6F0");
-                col.Item().Text("Thank you for booking with TravelAgency!").FontSize(11).FontColor(Colors.Grey.Darken2);
+                    col.Item().Element(box =>
+                    {
+                        box.Border(1).BorderColor("#E6E6F0").Background("#FAFAFF").Padding(14).Column(c =>
+                        {
+                            c.Spacing(6);
+
+                            c.Item().Row(rr =>
+                            {
+                                rr.RelativeItem().Text("Passengers:").SemiBold();
+                                rr.RelativeItem().AlignRight().Text($"{x.NumPersons}");
+                            });
+
+                            c.Item().Row(rr =>
+                            {
+                                rr.RelativeItem().Text("Age limit:").SemiBold();
+                                rr.RelativeItem().AlignRight().Text($"{x.AgeLimit}+");
+                            });
+
+                            c.Item().Row(rr =>
+                            {
+                                rr.RelativeItem().Text("Cancellation:").SemiBold();
+                                rr.RelativeItem().AlignRight().Text(cancelText);
+                            });
+
+                            c.Item().Row(rr =>
+                            {
+                                rr.RelativeItem().Text("Travel dates:").SemiBold();
+                                rr.RelativeItem().AlignRight().Text($"{x.StartDate:dd/MM/yyyy} – {x.EndDate:dd/MM/yyyy}");
+                            });
+                        });
+                    });
+
+                    var info = (x.Information ?? "").ToString();
+                    info = info.Replace("\r\n", "\n").Replace("\r", "\n");
+
+                    col.Item().Text("Itinerary & Information").FontSize(15).SemiBold().FontColor("#5A189A");
+
+                    col.Item().Element(e =>
+                    {
+                        e.Border(1).BorderColor("#EFE7F7").Padding(14).Column(c =>
+                        {
+                            c.Spacing(6);
+
+                            foreach (var p in info.Split(new[] { "\n\n" }, StringSplitOptions.None))
+                            {
+                                var paragraph = (p ?? "").Trim();
+                                if (string.IsNullOrWhiteSpace(paragraph)) continue;
+                                c.Item().Text(paragraph);
+                            }
+                        });
+                    });
+                    
+
+                    col.Item().PaddingTop(10).LineHorizontal(1).LineColor("#E6E6F0");
+                }
+                col.Item().Row(rr =>
+                {
+                    rr.RelativeItem().Text("Booked by: ").SemiBold();
+                    rr.RelativeItem().Text(fullName);
+                });
+
             });
 
             page.Footer().AlignCenter().Text(x =>
             {
                 x.Span("TravelAgency • ").FontSize(9).FontColor(Colors.Grey.Darken2);
-                x.Span("This receipt was generated automatically").FontSize(9).FontColor(Colors.Grey.Darken2);
+                x.Span("Trip details generated automatically").FontSize(9).FontColor(Colors.Grey.Darken2);
             });
         });
     }).GeneratePdf();
 
     return pdfBytes;
 }
-// -------------------------------------------------------------
+
+
+    } 
+}     
 
 
     
  
-    }
-}
+  
