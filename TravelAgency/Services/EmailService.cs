@@ -19,7 +19,9 @@ namespace TravelAgency.Services
             var host = _config["Smtp:Host"];
             var portStr = _config["Smtp:Port"];
             var user = _config["Smtp:Username"];
-            var pass = _config["Smtp:Password"];
+            var pass = Environment.GetEnvironmentVariable("SMTP_PASSWORD")
+                       ?? _config["Smtp:Password"];
+
             var from = _config["Smtp:From"];
             var enableSslStr = _config["Smtp:EnableSsl"];
 
