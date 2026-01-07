@@ -12,7 +12,6 @@ public class PackageView
     [Required(ErrorMessage = "Start date is required")]
     public DateTime StartDate { get; set; }
     [Required(ErrorMessage = "End date is required")]
-    [DateGreaterThan("StartDate", ErrorMessage = "End date must be after start date")]
     public DateTime EndDate { get; set; }
     [Required(ErrorMessage = "Price is required")]
     [Range(1, int.MaxValue, ErrorMessage = "Price must be greater than 0")]
@@ -77,7 +76,7 @@ public class DateGreaterThanAttribute1 : ValidationAttribute
         if (comparisonValue == null)
             return ValidationResult.Success;
 
-        // ⚠ דרישה חדשה: StartDate חייב להיות לפחות יום אחד אחרי היום
+        
       
 
         // בדיקה רגילה: EndDate > StartDate
