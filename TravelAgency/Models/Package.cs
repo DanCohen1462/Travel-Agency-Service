@@ -30,7 +30,7 @@ public class Package
     public int UserId { get; set; }
     
     [Required(ErrorMessage = "Description is required")]
-    [StringLength(1000, MinimumLength = 2, ErrorMessage = "Description must be between 2 until 1000 characters")]
+    [StringLength(5000, MinimumLength = 2, ErrorMessage = "Description must be between 2 until 5000 characters")]
     public string? information { get; set; }
     
     public bool inactive {get; set; }

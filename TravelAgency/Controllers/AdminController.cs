@@ -551,7 +551,7 @@ public class AdminController : Controller
                 FROM WaitingList w
                 JOIN Users u ON w.UserId = u.Id
                 
-                WHERE w.PackageId = @pid
+                WHERE w.PackageId = @pid and w.inactive = 0 and w.Reason='full'
                 ORDER BY w.JoinDate";
 
             using (SqlCommand cmd = new SqlCommand(qWait, conn))
@@ -575,7 +575,36 @@ public class AdminController : Controller
             }
 
             ViewBag.WaitingList = waitingList1;
+            List<waitingList> waitingList2 = new List<waitingList>();
 
+            string qWait2 = @"
+                SELECT u.Id, u.firstName, u.lastName, u.email, w.numPersons
+                FROM WaitingList w
+                JOIN Users u ON w.UserId = u.Id
+                
+                WHERE w.PackageId = @pid and w.inactive = 0 and w.Reason='cart'
+                ORDER BY w.JoinDate";
+            using (SqlCommand cmd = new SqlCommand(qWait2, conn))
+            {
+                cmd.Parameters.AddWithValue("@pid", id);
+
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        waitingList2.Add(new waitingList
+                        {
+                            Id = r.GetInt32(0),
+                            firstName = r.GetString(1),
+                            lastName = r.GetString(2),
+                            email = r.GetString(3),
+                            numPersons=r.GetInt32(4)
+                        });
+                    }
+                }
+            }
+
+            ViewBag.WaitingList2 = waitingList2;
         
         }
         

@@ -129,6 +129,11 @@
                     Waiting List
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="waitingListCart-tab" data-bs-toggle="tab" data-bs-target="#waitingListCart" type="button" role="tab">
+                    Waiting List cart
+                </button>
+            </li>
         </ul>
 
         <!-- Tabs Content -->
@@ -151,7 +156,7 @@
                                     <strong>@u.firstName @u.lastName -- amount: @u.numPersons </strong><br />
                                     <small class="text-muted">@u.email</small>
                                 </span>
-                                <span class="badge bg-primary rounded-pill">@u.Id</span>
+                                
                             </li>
                         }
                     </ul>
@@ -164,6 +169,23 @@
                 {
                     <ul class="list-group">
                         @foreach (var user in ViewBag.WaitingList)
+                        {
+                            <li class="list-group-item">
+                                @user.firstName @user.lastName – @user.email - amount: @user.numPersons
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="text-muted">No users are currently on the waiting list.</p>
+                }
+            </div>
+            <div class="tab-pane fade" id="waitingListCart" role="tabpanel">
+                @if (ViewBag.WaitingList2 != null && ViewBag.WaitingList2.Count > 0)
+                {
+                    <ul class="list-group">
+                        @foreach (var user in ViewBag.WaitingList2)
                         {
                             <li class="list-group-item">
                                 @user.firstName @user.lastName – @user.email - amount: @user.numPersons

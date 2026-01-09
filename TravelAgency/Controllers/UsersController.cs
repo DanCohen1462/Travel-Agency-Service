@@ -115,7 +115,6 @@ namespace TravelAgency.Controllers
                         int type = reader.GetInt32(8);
 
                         if (type == 1) return RedirectToAction("Index", "Admin");
-                        if (type == 2) return RedirectToAction("Panel", "Worker");
 
                         model.Id = reader.GetInt32(0);
                         model.Username = reader.GetString(1);
