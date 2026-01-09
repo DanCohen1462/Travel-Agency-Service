@@ -112,12 +112,18 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
     string carouselId = "detailsCarousel";
     }
 
-    <div id="@carouselId" class="carousel slide" data-bs-ride="carousel">
+    <div id="@carouselId"
+         class="carousel slide"
+         data-bs-ride="carousel"
+         data-bs-interval="3500"
+         data-bs-pause="false">
         <div class="carousel-inner">
+
             @for (int i = 0; i < imgs.Count; i++)
             {
             <div class="carousel-item @(i == 0 ? "active" : "")">
-                <img src="@imgs[i]" class="header-img" alt="@pkg.destination" />
+                <img src="@imgs[i]" class="header-img" alt="@pkg.destination" loading="lazy" />
+
             </div>
             }
         </div>
