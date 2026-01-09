@@ -21,7 +21,7 @@ public class PackageView
     public int ageLimit { get; set; }
     public string? image { get; set; }
     [Required(ErrorMessage = "Available spots is required")]
-    [Range(1, 500, ErrorMessage = "Available spots must be at least 1")]
+    
     public int numFreePlaces { get; set; }
     [Required(ErrorMessage = "Category is required")]
     public int idCategory { get; set; }
