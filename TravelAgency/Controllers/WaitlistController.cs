@@ -180,35 +180,63 @@ public IActionResult Info(int packageId)
 
                 // לא להוסיף כפול לאותו משתמש/אותה חבילה אם כבר פעיל
                 string existsSql = @"
-                    SELECT COUNT(*)
-                    FROM WaitingList
-                    WHERE UserId=@u AND PackageId=@p AND inactive=0;
-                ";
+    SELECT TOP 1 numPersons
+    FROM WaitingList
+    WHERE UserId=@u AND PackageId=@p AND inactive=0
+    ORDER BY JoinDate ASC, Id ASC;
+";
 
                 using (var existsCmd = new SqlCommand(existsSql, conn))
                 {
                     existsCmd.Parameters.AddWithValue("@u", userId);
                     existsCmd.Parameters.AddWithValue("@p", packageId);
 
-                    int exists = (int)existsCmd.ExecuteScalar();
-                    if (exists > 0)
+                    var obj = existsCmd.ExecuteScalar();
+                    if (obj != null && obj != DBNull.Value)
                     {
-                        // ✅ Toast (לא חלונית)
-                        TempData["WaitlistToast"] = $"You joined the waiting list for {numPersons} passenger(s).";
+                        int existingNumPersons = Convert.ToInt32(obj);
+
+                        TempData["WaitlistToast"] = $"You are already on the waiting list for {existingNumPersons} passenger(s).";
 
                         if (!string.IsNullOrEmpty(referer))
                             return Redirect(referer);
 
                         return RedirectToAction("Gallery", "Package");
                     }
-
-
-                    
                 }
 
+
+                bool hasActiveTempBlocks;
+                using (var cmd = new SqlCommand(@"
+    SELECT CASE 
+        WHEN EXISTS (
+            SELECT 1
+            FROM shoppingcart
+            WHERE PackageId = @pid
+              AND inactive = 0
+              AND ExpiresAt > GETDATE()
+        )
+        OR EXISTS (
+            SELECT 1
+            FROM WaitlistOffers
+            WHERE PackageId = @pid
+              AND IsUsed = 0
+              AND OfferEnd > GETDATE()
+              AND ExpiredAt IS NULL
+        )
+        THEN 1 ELSE 0
+    END;
+", conn))
+                {
+                    cmd.Parameters.AddWithValue("@pid", packageId);
+                    hasActiveTempBlocks = ((int)cmd.ExecuteScalar()) == 1;
+                }
+
+                string finalReason = hasActiveTempBlocks ? "cart" : "full";
+                
                 string insertSql = @"
-                    INSERT INTO WaitingList (UserId, PackageId, JoinDate, inactive, numPersons)
-                    VALUES (@u, @p, GETDATE(), 0, @n);
+                    INSERT INTO WaitingList (UserId, PackageId, JoinDate, inactive, numPersons, Reason)
+                    VALUES (@u, @p, GETDATE(), 0, @n, @reason);
                 ";
 
                 using (var cmd = new SqlCommand(insertSql, conn))
@@ -216,6 +244,8 @@ public IActionResult Info(int packageId)
                     cmd.Parameters.AddWithValue("@u", userId);
                     cmd.Parameters.AddWithValue("@p", packageId);
                     cmd.Parameters.AddWithValue("@n", numPersons);
+                    cmd.Parameters.AddWithValue("@reason", finalReason);
+
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -227,6 +257,53 @@ public IActionResult Info(int packageId)
             return RedirectToAction("Gallery", "Package");
             
         }
+
+        [HttpPost]
+        public IActionResult Update(int packageId, int numPersons = 1)
+        {
+            var userIdStr = HttpContext.Session.GetString("UserId");
+            if (string.IsNullOrEmpty(userIdStr))
+                return RedirectToAction("Login", "Auth");
+
+            int userId = int.Parse(userIdStr);
+            if (numPersons < 1) numPersons = 1;
+
+            var referer = Request.Headers["Referer"].ToString();
+
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                conn.Open();
+
+                // Update only if user already has an active row (keep JoinDate for fairness)
+                using (var cmd = new SqlCommand(@"
+                    UPDATE WaitingList
+                    SET numPersons = @n
+                    WHERE UserId = @u
+                      AND PackageId = @p
+                      AND inactive = 0;
+                ", conn))
+                {
+                    cmd.Parameters.AddWithValue("@u", userId);
+                    cmd.Parameters.AddWithValue("@p", packageId);
+                    cmd.Parameters.AddWithValue("@n", numPersons);
+
+                    int rows = cmd.ExecuteNonQuery();
+                    if (rows <= 0)
+                    {
+                        TempData["WaitlistToast"] = "You are not on the waiting list for this trip.";
+                        if (!string.IsNullOrEmpty(referer)) return Redirect(referer);
+                        return RedirectToAction("Gallery", "Package");
+                    }
+                }
+            }
+
+            TempData["WaitlistToast"] = $"Your waiting list request was updated to {numPersons} passenger(s).";
+            if (!string.IsNullOrEmpty(referer))
+                return Redirect(referer);
+
+            return RedirectToAction("Gallery", "Package");
+        }
     }
     
 }
+

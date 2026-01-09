@@ -362,7 +362,7 @@
 
 <div class="container mt-3 mb-5">
     
-    }
+    
 
     <!-- ============ SEARCH (same idea as SearchStart) ============ -->
  <div class="search-shell">
@@ -669,9 +669,39 @@
         </div>
     </div>
 
+    <!-- ✅ DETAILS UPDATE MODAL (same style) -->
+    <div class="modal fade" id="waitlistUpdateModalDetails" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:16px;">
+
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Update Waiting List</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p class="mb-2" id="wlDU0">Requested travelers: 0</p>
+                    <p class="mb-2" id="wlDU1">You are currently registered for 0 traveler(s).</p>
+                    <p class="fw-bold mt-3">Would you like to update your waiting list request?</p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary fw-bold" data-bs-dismiss="modal">Cancel</button>
+
+                    <form method="post" asp-controller="Waitlist" asp-action="Update" class="m-0" data-keep-scroll="1">
+                        <input type="hidden" name="packageId" id="wlDUPackageId" value="" />
+                        <input type="hidden" name="numPersons" id="wlDUNumPersons" value="" />
+                        <button type="submit" class="btn btn-primary fw-bold">Update</button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
 
 
-@section Scripts {
+
+    @section Scripts {
 
     <script>
         (function () {
@@ -860,9 +890,31 @@
 
                 const data = await res.json();
                 if (data.alreadyJoined === true) {
-                    showToast("You are already on the waiting list for this trip.", "info");
+                    const joined = parseInt(data.joinedNumPersons || "0");
+                    const requested = parseInt(numPersons || "0");
+
+                    // same amount -> toast only
+                    if (joined > 0 && joined === requested) {
+                        showToast(`You are already on the waiting list for ${joined} passenger(s).`, "info");
+                        return;
+                    }
+
+                    // different amount -> open Update modal
+                    // different amount -> open Update modal
+                    document.getElementById('wlDUPackageId').value = packageId;
+                    document.getElementById('wlDUNumPersons').value = requested;
+
+                    document.getElementById('wlDU0').textContent = `Requested travelers: ${requested}`;
+                    document.getElementById('wlDU1').textContent = `You are currently registered for ${joined} traveler(s).`;
+
+// open update modal
+                    const updateEl = document.getElementById('waitlistUpdateModalDetails');
+                    const updateModal = new bootstrap.Modal(updateEl);
+                    updateModal.show();
                     return;
+
                 }
+
 
                 // ✅ not joined -> open modal and show info (we already have it)
                 document.getElementById('wlPackageId').value = packageId;
