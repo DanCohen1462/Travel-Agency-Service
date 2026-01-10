@@ -23,14 +23,16 @@ namespace TravelAgency.Controllers
         private readonly string _connectionString;
         private readonly NotificationService _notificationService;
         private readonly IWebHostEnvironment _env;
+        private readonly EmailService _emailService;
 
-        public UsersController(IConfiguration config, NotificationService notificationService, IWebHostEnvironment env)
+        public UsersController(IConfiguration config, NotificationService notificationService, IWebHostEnvironment env, EmailService emailService)
         {
             _connectionString = config.GetConnectionString("DefaultConnection")
                                 ?? throw new InvalidOperationException(
                                     "Connection string 'DefaultConnection' not found.");
             _notificationService = notificationService;
             _env = env;
+            _emailService = emailService;
         }
 
         // ---------- Dashboard (GET) - דף נחיתה ללקוח רגיל (המלבנים) ----------
@@ -969,7 +971,23 @@ private static string NormalizeInfo(string text)
     return text.Trim();
 }
 
+private string? GetUserEmail(int userId)
+{
+    using var conn = new SqlConnection(_connectionString);
+    conn.Open();
 
+    using var cmd = new SqlCommand(@"
+        SELECT TOP 1 email
+        FROM Users
+        WHERE Id = @uid AND inactive = 0;
+    ", conn);
+
+    cmd.Parameters.AddWithValue("@uid", userId);
+
+    var obj = cmd.ExecuteScalar();
+    var email = obj?.ToString();
+    return string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+}
 
 private static IEnumerable<string> SplitParagraphs(string text)
 {
@@ -1320,6 +1338,24 @@ WHERE Id = @pid;
             type: "success",
             linkUrl: $"/Package/PackageDetails?id={packageId}&adults={numPersons}&children=0"
         );
+
+        try
+        {
+            var email = GetUserEmail(userId);
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var subject = "Spot available!";
+                var body =
+                    $"Spot available!\n\n" +
+                    $"A spot is available for {tripLabel} for {numPersons} passenger(s). You have {minutes} minutes to add it to your cart.";
+
+                _emailService.Send(email.Trim(), subject, body);
+            }
+        }
+        catch (Exception mailEx)
+        {
+            Console.WriteLine("Spot available email failed: " + mailEx);
+        }
 
     }
 }

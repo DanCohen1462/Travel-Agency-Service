@@ -59,6 +59,45 @@ namespace TravelAgency.Services
                       client.Send(msg);
         }
 
+        public void Send(string toEmail, string subject, string body)
+        {
+            var host = _config["Smtp:Host"];
+            var portStr = _config["Smtp:Port"];
+            var user = _config["Smtp:Username"];
+            var pass = Environment.GetEnvironmentVariable("SMTP_PASSWORD")
+                       ?? _config["Smtp:Password"];
+
+            var from = _config["Smtp:From"];
+            var enableSslStr = _config["Smtp:EnableSsl"];
+
+            if (string.IsNullOrWhiteSpace(host) ||
+                string.IsNullOrWhiteSpace(portStr) ||
+                string.IsNullOrWhiteSpace(user) ||
+                string.IsNullOrWhiteSpace(pass) ||
+                string.IsNullOrWhiteSpace(from))
+            {
+                throw new InvalidOperationException("SMTP settings are missing in appsettings.json (Smtp section).");
+            }
+
+            int port = int.Parse(portStr);
+            bool enableSsl = string.IsNullOrWhiteSpace(enableSslStr) ? true : bool.Parse(enableSslStr);
+
+            using var smtp = new SmtpClient(host, port)
+            {
+                Credentials = new NetworkCredential(user, pass),
+                EnableSsl = enableSsl
+            };
+
+            using var msg = new MailMessage(from, toEmail, subject, body)
+            {
+                IsBodyHtml = false
+            };
+
+            smtp.Send(msg);
+        }
+
+
+        
         public void SendWithAttachments(
             string toEmail,
             string subject,

@@ -47,6 +47,7 @@ namespace TravelAgency.Services
         {
             using var scope = _scopeFactory.CreateScope();
             var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
+            var emailService = scope.ServiceProvider.GetRequiredService<EmailService>();
 
             var cs = _config.GetConnectionString("DefaultConnection")
                      ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -127,7 +128,7 @@ WHERE Id = @pid;
     // 0.3) לתת Offer הבא בתור (לפי אותו reason)
     try
     {
-        CreateOffersFromWaitlist(conn, notificationService, off.PackageId, reason: off.Reason);
+        await CreateOffersFromWaitlist(conn, notificationService, emailService, off.PackageId, reason: off.Reason, ct);
     }
     catch { }
 }
@@ -255,7 +256,8 @@ WHERE Id = @pid;
 // 3) אחרי קומיט – ליצור offers (בלי tx)
                 try
                 {
-                    CreateOffersFromWaitlist(conn, notificationService, row.PackageId, reason: row.OfferReason);
+                    await CreateOffersFromWaitlist(conn, notificationService, emailService, row.PackageId, reason: row.OfferReason, ct);
+                
 
                 }
                 catch { }
@@ -349,6 +351,22 @@ WHERE UserId = @uid
 
     }
 
+        private static async Task<string?> GetUserEmailAsync(SqlConnection conn, int userId, CancellationToken ct)
+        {
+            using var cmd = new SqlCommand(@"
+SELECT TOP 1 email
+FROM Users
+WHERE Id = @uid
+  AND inactive = 0;
+", conn);
+
+            cmd.Parameters.AddWithValue("@uid", userId);
+
+            var obj = await cmd.ExecuteScalarAsync(ct);
+            var email = obj == null ? null : obj.ToString();
+
+            return string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+        }
 
         
         private static List<string> ExtractTripLabelsFromExpiredMessage(string msg)
@@ -392,7 +410,13 @@ WHERE UserId = @uid
             return res;
         }
         // העתקתי את אותה פונקציה שלך, רק עם NotificationService כפרמטר
-        private void CreateOffersFromWaitlist(SqlConnection conn, NotificationService notificationService, int packageId, string reason)
+        private async Task CreateOffersFromWaitlist(
+            SqlConnection conn,
+            NotificationService notificationService,
+            EmailService emailService,
+            int packageId,
+            string reason,
+            CancellationToken ct)
         {
             int minutes = (reason == "cancel") ? 60 : 15;
 
@@ -404,7 +428,8 @@ SELECT numFreePlaces FROM Package WHERE Id = @pid;
 ", conn))
                 {
                     cmdFree.Parameters.AddWithValue("@pid", packageId);
-                    freePlaces = (int)cmdFree.ExecuteScalar();
+                    freePlaces = (int)(await cmdFree.ExecuteScalarAsync(ct) ?? 0);
+
                 }
 
                 if (freePlaces <= 0) break;
@@ -422,12 +447,13 @@ ORDER BY JoinDate ASC, Id ASC;
                     cmd.Parameters.AddWithValue("@pid", packageId);
                     cmd.Parameters.AddWithValue("@free", freePlaces);
 
-                    using var r = cmd.ExecuteReader();
-                    if (!r.Read()) break;
+                    using var r = await cmd.ExecuteReaderAsync(ct);
+                    if (!await r.ReadAsync(ct)) break;
 
                     waitId = r.GetInt32(0);
                     userId = r.GetInt32(1);
                     numPersons = r.IsDBNull(2) ? 1 : r.GetInt32(2);
+
                 }
 
                 using (var cmdInact = new SqlCommand(@"
@@ -476,8 +502,8 @@ WHERE Id = @pid;
 ", conn))
                 {
                     cmdTrip.Parameters.AddWithValue("@pid", packageId);
-                    using var rr = cmdTrip.ExecuteReader();
-                    if (rr.Read())
+                    using var rr = await cmdTrip.ExecuteReaderAsync(ct);
+                    if (await rr.ReadAsync(ct))
                     {
                         dest = rr.IsDBNull(0) ? "" : rr.GetString(0);
                         country = rr.IsDBNull(1) ? "" : rr.GetString(1);
@@ -492,9 +518,28 @@ WHERE Id = @pid;
                     title: "Spot available!",
                     message: $"A spot is available for {tripLabel} for {numPersons} passenger(s). You have {minutes} minutes to add it to your cart.",
                     type: "success",
-                    linkUrl: $"/Package/PackageDetails?packageId={packageId}&adults={numPersons}&children=0"
-                );
+                    linkUrl: $"/Package/PackageDetails?id={packageId}&adults={numPersons}&children=0"
 
+                );
+                
+                try
+                {
+                    var toEmail = await GetUserEmailAsync(conn, userId, ct);
+                    if (!string.IsNullOrWhiteSpace(toEmail))
+                    {
+                        string subject = "Spot available!";
+                        string body =
+                            $"A spot is available for {tripLabel} for {numPersons} passenger(s).\n" +
+                            $"You have {minutes} minutes to add it to your cart.";
+
+                        // NOTE: use your EmailService method name (see below)
+                        emailService.Send(toEmail, subject, body);
+                    }
+                }
+                catch
+                {
+                    // silent on purpose - do not break cleanup
+                }
 
             }
         }

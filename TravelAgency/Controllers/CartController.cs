@@ -1270,6 +1270,23 @@ WHERE Id = @pid;
             linkUrl: $"/Package/PackageDetails?id={packageId}&adults={numPersons}&children=0"
         );
 
+        try
+        {
+            var email = GetUserEmail(userId);
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var subject = "Spot available!";
+                var body =
+                    $"Spot available!\n\n" +
+                    $"A spot is available for {tripLabel} for {numPersons} passenger(s). You have {minutes} minutes to add it to your cart.";
+
+                _emailService.Send(email.Trim(), subject, body);
+            }
+        }
+        catch (Exception mailEx)
+        {
+            Console.WriteLine("Spot available email failed: " + mailEx);
+        }
     }
 }
 
