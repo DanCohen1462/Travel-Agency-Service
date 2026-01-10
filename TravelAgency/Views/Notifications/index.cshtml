@@ -90,18 +90,18 @@
                 {
                     var t = (n.Type ?? "info").ToLower();
                     var typeClass = t == "success" ? "type-success"
-                                 : t == "warning" ? "type-warning"
-                                 : t == "danger"  ? "type-danger"
-                                 : "type-info";
+                        : t == "warning" ? "type-warning"
+                        : t == "danger"  ? "type-danger"
+                        : "type-info";
 
                     var iconBg = t == "success" ? "bg-light-green"
-                               : t == "danger"  ? "bg-light-red"
-                               : "bg-light-blue";
+                        : t == "danger"  ? "bg-light-red"
+                        : "bg-light-blue";
 
                     var icon = t == "success" ? "bi-check-lg"
-                             : t == "warning" ? "bi-exclamation-circle"
-                             : t == "danger"  ? "bi-exclamation-triangle"
-                             : "bi-info-circle";
+                        : t == "warning" ? "bi-exclamation-circle"
+                        : t == "danger"  ? "bi-exclamation-triangle"
+                        : "bi-info-circle";
 
                     <div class="notification-card @typeClass d-flex align-items-start">
 
@@ -129,13 +129,26 @@
 
                             @if (!string.IsNullOrWhiteSpace(n.LinkUrl))
                             {
-                                <div class="mt-2">
+                                var isSpotOffer = (n.Title ?? "").ToLower().Contains("spot available");
+
+                                <div class="mt-2 d-flex gap-2">
                                     <form asp-controller="Notifications" asp-action="Open" method="post" class="m-0">
                                         <input type="hidden" name="id" value="@n.Id" />
                                         <button type="submit" class="btn btn-sm btn-outline-primary">Open</button>
                                     </form>
+
+                                    @if (isSpotOffer)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger btn-open-decline"
+                                                data-notif-id="@n.Id">
+                                            Decline
+                                        </button>
+                                    }
+
                                 </div>
                             }
+
                         </div>
 
                     </div>
@@ -146,3 +159,56 @@
     </div>
 
 </div>
+<!-- ✅ Decline Offer Modal -->
+<div class="modal fade" id="declineOfferModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Decline Offer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <p class="mb-0">
+                    Are you sure you want to decline this offer?<br/>
+                    If you decline, the offer will be passed to the next user.
+                </p>
+            </div>
+
+            <div class="modal-footer">
+                <!-- NO: closes modal and keeps everything as-is -->
+                <button type="button" class="btn btn-outline-secondary fw-bold" data-bs-dismiss="modal">No</button>
+
+                <!-- YES: submits to server -->
+                <form method="post" asp-controller="Notifications" asp-action="DeclineOffer" class="m-0" data-keep-scroll="1">
+                    <input type="hidden" name="id" id="declineNotifId" value="" />
+                    <button type="submit" class="btn btn-danger fw-bold">Yes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+    (function () {
+        const modalEl = document.getElementById('declineOfferModal');
+        if (!modalEl) return;
+
+        const modal = new bootstrap.Modal(modalEl);
+        const hiddenId = document.getElementById('declineNotifId');
+
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.btn-open-decline');
+            if (!btn) return;
+
+            const notifId = btn.getAttribute('data-notif-id');
+            if (!notifId || !hiddenId) return;
+
+            hiddenId.value = notifId;
+            modal.show();
+        });
+    })();
+</script>
+}
+
