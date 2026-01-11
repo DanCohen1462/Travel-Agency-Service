@@ -1077,7 +1077,12 @@ try
         }
         else
         {
-            var pdfBytes = BuildPaymentReceiptPdf(userId.Value, insertedReservationIds, chargedTotal);
+            var pdfBytes = BuildPaymentReceiptPdf(
+                userId.Value,
+                insertedReservationIds,
+                chargedTotal,
+                model.FullName
+            );
 
             if (pdfBytes == null || pdfBytes.Length == 0)
             {
@@ -1360,7 +1365,7 @@ private int GetReservationsTotal(int userId, List<int> reservationIds)
     return Convert.ToInt32(cmd.ExecuteScalar());
 }
 
-private byte[] BuildPaymentReceiptPdf(int userId, List<int> reservationIds, int totalCharged)
+private byte[] BuildPaymentReceiptPdf(int userId, List<int> reservationIds, int totalCharged, string? paidByName)
 {
     // Receipt rows (NO itinerary/info)
     var rows = new List<TripDetailsPdfRow>();
@@ -1420,29 +1425,36 @@ ORDER BY h.Id DESC;
 
     QuestPDF.Settings.License = LicenseType.Community;
 
-    // ✅ get user display name
-    string firstName = "", lastName = "", username = "";
-    using (var connU = new SqlConnection(_connectionString))
+// ✅ Paid by in RECEIPT should be the name typed in the payment form (cardholder name)
+    string fullName = (paidByName ?? "").Trim();
+
+// fallback (safety): if empty, use the user display name as before
+    if (string.IsNullOrWhiteSpace(fullName))
     {
-        connU.Open();
-        using var cmdU = new SqlCommand(@"
+        string firstName = "", lastName = "", username = "";
+        using (var connU = new SqlConnection(_connectionString))
+        {
+            connU.Open();
+            using var cmdU = new SqlCommand(@"
         SELECT ISNULL(firstName,''), ISNULL(lastName,''), ISNULL(Username,'')
         FROM Users
         WHERE Id = @uid AND inactive = 0;", connU);
 
-        cmdU.Parameters.AddWithValue("@uid", userId);
+            cmdU.Parameters.AddWithValue("@uid", userId);
 
-        using var ru = cmdU.ExecuteReader();
-        if (ru.Read())
-        {
-            firstName = ru.GetString(0);
-            lastName = ru.GetString(1);
-            username = ru.GetString(2);
+            using var ru = cmdU.ExecuteReader();
+            if (ru.Read())
+            {
+                firstName = ru.GetString(0);
+                lastName = ru.GetString(1);
+                username = ru.GetString(2);
+            }
         }
+
+        fullName = (firstName + " " + lastName).Trim();
+        if (string.IsNullOrWhiteSpace(fullName)) fullName = username;
     }
 
-    string fullName = (firstName + " " + lastName).Trim();
-    if (string.IsNullOrWhiteSpace(fullName)) fullName = username;
 
     // receipt number: first reservation id (simple)
     int receiptNo = reservationIds != null && reservationIds.Count > 0 ? reservationIds[0] : 0;
