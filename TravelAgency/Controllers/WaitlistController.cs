@@ -114,38 +114,53 @@ public IActionResult Info(int packageId)
         }
 
 
-        bool hasActiveTempBlocks; // carts OR offers
+        // ✅ Determine ETA unit (15 vs 60) based on the REAL temporary block reason:
+        // - Active cart hold => 15
+        // - Active offer reason='cart' => 15
+        // - Active offer reason='cancel' => 60
+        // - No temp blocks => 60
+        int minutesPerUser;
 
         using (var cmd = new SqlCommand(@"
-    SELECT CASE 
-        WHEN EXISTS (
-            SELECT 1
-            FROM shoppingcart
-            WHERE PackageId = @pid
-              AND inactive = 0
-              AND ExpiresAt > GETDATE()
-        )
-        OR EXISTS (
-            SELECT 1
-            FROM WaitlistOffers
-            WHERE PackageId = @pid
-              AND IsUsed = 0
-              AND OfferEnd > GETDATE()
-              AND ExpiredAt IS NULL
-        )
-        THEN 1 ELSE 0
-    END;
-", conn))
+            SELECT CASE
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM shoppingcart
+                    WHERE PackageId = @pid
+                      AND inactive = 0
+                      AND ExpiresAt > GETDATE()
+                ) THEN 15
+
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM WaitlistOffers
+                    WHERE PackageId = @pid
+                      AND IsUsed = 0
+                      AND OfferEnd > GETDATE()
+                      AND ExpiredAt IS NULL
+                      AND Reason = 'cart'
+                ) THEN 15
+
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM WaitlistOffers
+                    WHERE PackageId = @pid
+                      AND IsUsed = 0
+                      AND OfferEnd > GETDATE()
+                      AND ExpiredAt IS NULL
+                      AND Reason = 'cancel'
+                ) THEN 60
+
+                ELSE 60
+            END;
+        ", conn))
         {
             cmd.Parameters.AddWithValue("@pid", packageId);
-            hasActiveTempBlocks = ((int)cmd.ExecuteScalar()) == 1;
+            minutesPerUser = Convert.ToInt32(cmd.ExecuteScalar());
         }
 
-// Option A: usersAhead לפי WaitingList, זמן לפי חסימה זמנית/קבועה
-        int minutesPerUser = hasActiveTempBlocks ? 15 : 60;
+        // ✅ Option A: usersAhead לפי WaitingList, זמן לפי הסיבה (15/60), ותמיד מכפילים ב-1 מינימום
         int estimatedMinutes = Math.Max(1, usersAhead) * minutesPerUser;
-
-
 
         return Json(new
         {
@@ -154,6 +169,7 @@ public IActionResult Info(int packageId)
             alreadyJoined = alreadyJoined,
             joinedNumPersons = joinedNumPersons
         });
+
 
 
 

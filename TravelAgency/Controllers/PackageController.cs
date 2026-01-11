@@ -892,7 +892,7 @@ ORDER BY f.Id DESC;
     // אם המשתמש הוא לא אדמין (1) וגם לא עובד (2)
     if (userType != "1" && userType != "2")
     {
-        // תעיף אותו לדף הבית או להתחברות
+       
         return RedirectToAction("Index", "Home"); 
     }
 
