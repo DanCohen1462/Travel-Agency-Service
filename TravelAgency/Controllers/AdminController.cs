@@ -293,21 +293,22 @@ public class AdminController : Controller
             conn.Open();
 
             string query = @"
-                SELECT 
-                    p.Id,
-                    p.destination,
-                    p.StartDate,
-                    p.EndDate,
-                    p.sum,
-                    (
-                        SELECT TOP 1 discountPercent
-                        FROM Discount d
-                        WHERE d.packageId = p.Id
-                        AND GETDATE() BETWEEN d.startDate AND d.endDate
-                    ) AS ActiveDiscount,
-                    p.country
-                FROM Package p
-                WHERE p.inactive = 0";
+                SELECT
+                p.Id,
+                p.destination,
+                p.StartDate,
+                p.EndDate,
+                p.sum,
+                (
+                    SELECT TOP 1 discountPercent
+                    FROM Discount d
+                    WHERE d.packageId = p.Id
+                      AND GETDATE() BETWEEN d.startDate AND d.endDate
+                ) AS ActiveDiscount,
+                p.country
+            FROM Package p
+            WHERE p.inactive = 0
+            order by p.startDate,p.endDate";
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -514,10 +515,11 @@ public class AdminController : Controller
             List<waitingList> registeredUsers = new List<waitingList>();
 
             string reservationsQuery = @"
-            SELECT u.Id, u.firstName, u.lastName, u.email,h.numPersons
+            SELECT u.Id, u.firstName, u.lastName, u.email,sum(h.numPersons) as numPersons
             FROM HistoryReservation h
             JOIN Users u ON h.userId = u.Id
-            WHERE h.packageId = @pid";
+            WHERE h.packageId = @pid
+            group by u.Id, u.firstName, u.lastName, u.email ";
 
             using (SqlCommand cmd = new SqlCommand(reservationsQuery, conn))
             {
@@ -1014,66 +1016,88 @@ public class AdminController : Controller
 
     public IActionResult Analytics()
     {
-        Dictionary<string, int> usersByType = new();
-        Dictionary<string, int> packagesByCategory = new();
-        Dictionary<string, int> reservationsByMonth = new();
+       // 1. נתונים לגרף שיבוץ (Assigned vs Unassigned)
+    int unassignedPackages = 0;
+    int assignedPackages = 0;
 
-        using (SqlConnection conn = new SqlConnection(_connectionString))
+    // 2. נתונים לעומס עבודה של מדריכים (Guide Name -> Count)
+    Dictionary<string, int> guidesWorkload = new();
+
+    // 3. נתונים ליעדים פופולריים (Label -> Total Travelers)
+    Dictionary<string, int> popularPackages = new();
+
+    using (SqlConnection conn = new SqlConnection(_connectionString))
+    {
+        conn.Open();
+
+        // --- שאילתה 1: חבילות ללא שיבוץ לעומת משובצות ---
+        // בודק את שדה UserId בטבלת Package
+        string q1 = @"
+            SELECT 
+                CASE WHEN UserId = 0 THEN 'Unassigned' ELSE 'Assigned' END AS Status, 
+                COUNT(*) AS Count
+            FROM Package 
+            GROUP BY CASE WHEN UserId = 0 THEN 'Unassigned' ELSE 'Assigned' END";
+
+        using (SqlCommand cmd = new SqlCommand(q1, conn))
+        using (SqlDataReader r = cmd.ExecuteReader())
         {
-            conn.Open();
-
-            // ----- Users by Type -----
-            string q1 = @"SELECT T.name, COUNT(*) 
-                      FROM Users U
-                      JOIN Types T ON U.type = T.Id
-                      GROUP BY T.name";
-
-            using (SqlCommand cmd = new SqlCommand(q1, conn))
-            using (SqlDataReader r = cmd.ExecuteReader())
+            while (r.Read())
             {
-                while (r.Read())
-                {
-                    usersByType[r.GetString(0)] = r.GetInt32(1);
-                }
+                if (r["Status"].ToString() == "Unassigned")
+                    unassignedPackages = Convert.ToInt32(r["Count"]);
+                else
+                    assignedPackages = Convert.ToInt32(r["Count"]);
             }
-
-            // ----- Packages by Category -----
-            string q2 = @"SELECT C.name, COUNT(*)
-                      FROM Package P
-                      JOIN Category C ON P.idCategory = C.Id
-                      GROUP BY C.name";
-
-            using (SqlCommand cmd = new SqlCommand(q2, conn))
-            using (SqlDataReader r = cmd.ExecuteReader())
-            {
-                while (r.Read())
-                {
-                    packagesByCategory[r.GetString(0)] = r.GetInt32(1);
-                }
-            }
-
-            // ----- Reservations per Month -----
-            // string q3 = @"
-            // SELECT FORMAT(date,'yyyy-MM') AS Month, COUNT(*) 
-            // FROM HistoryReservation
-            // GROUP BY FORMAT(date,'yyyy-MM')
-            // ORDER BY Month";
-            //
-            // using (SqlCommand cmd = new SqlCommand(q3, conn))
-            // using (SqlDataReader r = cmd.ExecuteReader())
-            // {
-            //     while (r.Read())
-            //     {
-            //         reservationsByMonth[r.GetString(0)] = r.GetInt32(1);
-            //     }
-            // }
         }
 
-        ViewBag.UsersByType = usersByType;
-        ViewBag.PackagesByCategory = packagesByCategory;
-        // ViewBag.ReservationsPerMonth = reservationsByMonth;
+        // --- שאילתה 2: עומס עבודה של מדריכים ---
+        // מחבר את טבלת החבילות למשתמשים כדי לקבל את שם המדריך
+        string q2 = @"
+            SELECT U.Username, COUNT(P.Id) as TripCount
+            FROM Package P
+            JOIN Users U ON P.UserId = U.Id
+            WHERE P.UserId <> 0
+            GROUP BY U.Username
+            ORDER BY TripCount DESC";
 
-        return View();
+        using (SqlCommand cmd = new SqlCommand(q2, conn))
+        using (SqlDataReader r = cmd.ExecuteReader())
+        {
+            while (r.Read())
+            {
+                guidesWorkload[r.GetString(0)] = r.GetInt32(1);
+            }
+        }
+
+        // --- שאילתה 3: היעדים הפופולריים ביותר (איחוד לפי יעד, מדינה וקטגוריה) ---
+        // סופר את סך הנוסעים (numPersons) מתוך היסטוריית ההזמנות
+        string q3 = @"
+            SELECT P.destination, P.country, C.name as CategoryName, SUM(H.numPersons) as TotalTravelers
+            FROM HistoryReservation H
+            JOIN Package P ON H.PackageId = P.Id
+            JOIN Category C ON P.idCategory = C.Id
+            GROUP BY P.destination, P.country, C.name
+            ORDER BY TotalTravelers DESC";
+
+        using (SqlCommand cmd = new SqlCommand(q3, conn))
+        using (SqlDataReader r = cmd.ExecuteReader())
+        {
+            while (r.Read())
+            {
+                // יצירת לייבל ידידותי לגרף: "יעד (מדינה) - קטגוריה"
+                string label = $"{r.GetString(0)} ({r.GetString(1)}) - {r.GetString(2)}";
+                popularPackages[label] = r.GetInt32(3);
+            }
+        }
+    }
+
+    // העברת הנתונים ל-View באמצעות ViewBag
+    ViewBag.UnassignedData = new { unassigned = unassignedPackages, assigned = assignedPackages };
+    ViewBag.GuidesWorkload = guidesWorkload;
+    ViewBag.PopularPackages = popularPackages;
+
+    return View();
     }
     
     
@@ -1368,7 +1392,60 @@ public class AdminController : Controller
         return RedirectToAction("CategoryIndex");
     }
     //Deactivate
+    public IActionResult WorkerRegister() => View();
+     [HttpPost]
+    public IActionResult WorkerRegister(UserView model)
+    {
+        if (!ModelState.IsValid)
+        {
+            foreach (var kvp in ModelState)
+            {
+                foreach (var error in kvp.Value.Errors)
+                {
+                    Console.WriteLine($"❌ FIELD: {kvp.Key} → ERROR: {error.ErrorMessage}");
+                }
+            }
+            return View(model);
+        }
 
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            string checkQuery = "SELECT COUNT(*) FROM Users WHERE Username = @Username";
+            using (SqlCommand cmd = new SqlCommand(checkQuery, conn))
+            {
+                cmd.Parameters.AddWithValue("@Username", model.Username);
+
+                int exists = (int)cmd.ExecuteScalar();
+                if (exists > 0)
+                {
+                    ModelState.AddModelError("Username", "Username already exists");
+                    return View(model);
+                }
+            }
+
+            string insertQuery = @"INSERT INTO Users 
+            (Username, firstName, lastName, birthDate, gender, phoneNumber, email, Password, type)
+            VALUES (@Username, @firstName, @lastName, @birthDate, @gender, @phoneNumber, @email, @Password, 2)";
+
+            using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
+            {
+                cmd.Parameters.AddWithValue("@Username", model.Username);
+                cmd.Parameters.AddWithValue("@firstName", model.firstName);
+                cmd.Parameters.AddWithValue("@lastName", model.lastName);
+                cmd.Parameters.AddWithValue("@birthDate", (object?)model.birthDate ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@gender", (object?)model.gender ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@phoneNumber", (object?)model.phoneNumber ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@email", model.email);
+                cmd.Parameters.AddWithValue("@Password", model.Password);
+
+                cmd.ExecuteNonQuery();
+            }
+        }
+       
+        return RedirectToAction("Index");
+    }
 
 
 }

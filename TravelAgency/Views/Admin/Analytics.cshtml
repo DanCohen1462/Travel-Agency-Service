@@ -1,82 +1,135 @@
 @{
     Layout = "_Layout";
+    ViewData["Title"] = "Operations Analytics";
 }
 
-<div class="container mt-4">
-
-    <h2 class="fw-bold mb-4">Analytics Dashboard</h2>
+<div class="container-fluid py-4" style="background-color: #f8f9fc; min-height: 100vh;">
+    
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h2 class="h3 mb-0 text-gray-800 fw-bold">Management Insights</h2>
+        <button class="btn btn-sm btn-primary shadow-sm" onclick="window.print()">
+            <i class="fas fa-download fa-sm text-white-50 me-1"></i> Generate Report
+        </button>
+    </div>
 
     <div class="row g-4">
 
-        <!-- Chart 1: Users by Type -->
-        <div class="col-md-6">
-            <div class="card shadow-sm p-3">
-                <h5 class="text-center">Users by Type</h5>
-                <canvas id="usersChart"></canvas>
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow border-0 h-100" style="border-radius: 15px;">
+                <div class="card-header py-3 bg-white border-0">
+                    <h6 class="m-0 font-weight-bold text-primary">Guide Assignment Status</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 250px;">
+                        <canvas id="assignmentChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center small">
+                        <span class="badge bg-danger p-2 me-2">Unassigned</span>
+                        <span class="badge bg-primary p-2">Assigned</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Chart 2: Packages by Category -->
-        <div class="col-md-6">
-            <div class="card shadow-sm p-3">
-                <h5 class="text-center">Packages by Category</h5>
-                <canvas id="categoriesChart"></canvas>
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow border-0 h-100" style="border-radius: 15px;">
+                <div class="card-header py-3 bg-white border-0">
+                    <h6 class="m-0 font-weight-bold text-primary">Top 5 Destinations (By Travelers)</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 320px;">
+                        <canvas id="popularChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Chart 3: Reservations per Month -->
-        @* <div class="col-md-12"> *@
-        @*     <div class="card shadow-sm p-3"> *@
-        @*         <h5 class="text-center">Reservations per Month</h5> *@
-        @*         <canvas id="reservationsChart"></canvas> *@
-        @*     </div> *@
-        @* </div> *@
+        <div class="col-12">
+            <div class="card shadow border-0" style="border-radius: 15px;">
+                <div class="card-header py-3 bg-white border-0">
+                    <h6 class="m-0 font-weight-bold text-primary">Instructor Workload (Number of Trips)</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="guidesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 </div>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    // ---------- Users by Type ----------
-    const usersData = @Html.Raw(Json.Serialize(ViewBag.UsersByType));
-    new Chart(document.getElementById('usersChart'), {
-        type: 'pie',
+    // שליפת הנתונים מה-ViewBag (שימוש ב-camelCase כפי שהם עוברים ב-JSON)
+    const assignData = @Html.Raw(Json.Serialize(ViewBag.UnassignedData));
+    const popularData = @Html.Raw(Json.Serialize(ViewBag.PopularPackages));
+    const guidesData = @Html.Raw(Json.Serialize(ViewBag.GuidesWorkload));
+
+    // 1. גרף שיבוץ - Doughnut
+    new Chart(document.getElementById('assignmentChart'), {
+        type: 'doughnut',
         data: {
-            labels: Object.keys(usersData),
+            labels: ['Unassigned', 'Assigned'],
             datasets: [{
-                data: Object.values(usersData),
-                backgroundColor: ['#007bff', '#28a745', '#ffc107']
+                data: [assignData.unassigned, assignData.assigned],
+                backgroundColor: ['#e74a3b', '#4e73df'],
+                hoverOffset: 10,
+                borderWidth: 0
             }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: { legend: { display: false } }
         }
     });
 
-    // ---------- Packages by Category ----------
-    const categoriesData = @Html.Raw(Json.Serialize(ViewBag.PackagesByCategory));
-    new Chart(document.getElementById('categoriesChart'), {
+    // 2. גרף יעדים פופולריים - Horizontal Bar
+    new Chart(document.getElementById('popularChart'), {
         type: 'bar',
         data: {
-            labels: Object.keys(categoriesData),
+            labels: Object.keys(popularData),
             datasets: [{
-                label: 'Packages',
-                data: Object.values(categoriesData),
-                backgroundColor: '#17a2b8'
+                label: 'Total Travelers',
+                data: Object.values(popularData),
+                backgroundColor: '#36b9cc',
+                borderRadius: 5
             }]
+        },
+        options: {
+            indexAxis: 'y', // הופך את הגרף לאופקי
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { stepSize: 1 } },
+                y: { grid: { display: false } }
+            }
         }
     });
 
-    // ---------- Reservations per Month ----------
-    // const reservationsData = @Html.Raw(Json.Serialize(ViewBag.ReservationsPerMonth));
-    // new Chart(document.getElementById('reservationsChart'), {
-    //     type: 'line',
-    //     data: {
-    //         labels: Object.keys(reservationsData),
-    //         datasets: [{
-    //             label: 'Reservations',
-    //             data: Object.values(reservationsData),
-    //             borderColor: '#dc3545',
-    //             fill: false
-    //         }]
-    //     }
-   // });
+    // 3. גרף עומס מדריכים - Standard Bar
+    new Chart(document.getElementById('guidesChart'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(guidesData),
+            datasets: [{
+                label: 'Packages Handled',
+                data: Object.values(guidesData),
+                backgroundColor: '#f6c23e',
+                barThickness: 50
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
 </script>

@@ -127,69 +127,69 @@ public class AuthController : Controller
                     string lastName = reader.GetString(3);
 
                   HttpContext.Session.SetString("UserId", userId.ToString());
-HttpContext.Session.SetString("Username", username);
-HttpContext.Session.SetString("FullName", firstName + " " + lastName);
-HttpContext.Session.SetString("UserType", userType.ToString());
+                HttpContext.Session.SetString("Username", username);
+                HttpContext.Session.SetString("FullName", firstName + " " + lastName);
+                HttpContext.Session.SetString("UserType", userType.ToString());
 
-bool createdWelcomeNow = false;
+                bool createdWelcomeNow = false;
 
-using (var conn2 = new SqlConnection(_connectionString))
-{
-    conn2.Open();
+                using (var conn2 = new SqlConnection(_connectionString))
+                {
+                    conn2.Open();
 
 
-    using (var checkCmd = new SqlCommand(@"
-        SELECT COUNT(*)
-        FROM dbo.Notifications
-        WHERE UserId = @uid
-          AND Title = 'Welcome!';", conn2))
-    {
-        checkCmd.Parameters.AddWithValue("@uid", userId);
-        int hasWelcome = (int)checkCmd.ExecuteScalar();
+                    using (var checkCmd = new SqlCommand(@"
+                        SELECT COUNT(*)
+                        FROM dbo.Notifications
+                        WHERE UserId = @uid
+                          AND Title = 'Welcome!';", conn2))
+                    {
+                        checkCmd.Parameters.AddWithValue("@uid", userId);
+                        int hasWelcome = (int)checkCmd.ExecuteScalar();
 
-        if (hasWelcome == 0)
-        {
-            using (var insCmd = new SqlCommand(@"
-                INSERT INTO dbo.Notifications
-                    (UserId, Title, Message, Type, LinkUrl, IsRead, CreatedAt, inactive)
-                VALUES
-                    (@uid, 'Welcome!', @msg, 'success', '/Users/Dashboard', 0, GETDATE(), 0);", conn2))
-            {
-                insCmd.Parameters.AddWithValue("@uid", userId);
-                insCmd.Parameters.AddWithValue("@msg", $"Welcome {firstName}! Enjoy your next adventure ✈️");
-                insCmd.ExecuteNonQuery();
-                createdWelcomeNow = true;
-            }
-        }
-    }
+                        if (hasWelcome == 0)
+                        {
+                            using (var insCmd = new SqlCommand(@"
+                                INSERT INTO dbo.Notifications
+                                    (UserId, Title, Message, Type, LinkUrl, IsRead, CreatedAt, inactive)
+                                VALUES
+                                    (@uid, 'Welcome!', @msg, 'success', '/Users/Dashboard', 0, GETDATE(), 0);", conn2))
+                            {
+                                insCmd.Parameters.AddWithValue("@uid", userId);
+                                insCmd.Parameters.AddWithValue("@msg", $"Welcome {firstName}! Enjoy your next adventure ✈️");
+                                insCmd.ExecuteNonQuery();
+                                createdWelcomeNow = true;
+                            }
+                        }
+                    }
 
-    // ✅ refresh unread badge once
-    using (var countCmd = new SqlCommand(@"
-        SELECT COUNT(*)
-        FROM dbo.Notifications
-        WHERE UserId = @uid
-          AND inactive = 0
-          AND IsRead = 0;", conn2))
-    {
-        countCmd.Parameters.AddWithValue("@uid", userId);
-        int notifCount = (int)countCmd.ExecuteScalar();
-        HttpContext.Session.SetInt32("NotifCount", notifCount);
-    }
-}
+                    // ✅ refresh unread badge once
+                    using (var countCmd = new SqlCommand(@"
+                        SELECT COUNT(*)
+                        FROM dbo.Notifications
+                        WHERE UserId = @uid
+                          AND inactive = 0
+                          AND IsRead = 0;", conn2))
+                    {
+                        countCmd.Parameters.AddWithValue("@uid", userId);
+                        int notifCount = (int)countCmd.ExecuteScalar();
+                        HttpContext.Session.SetInt32("NotifCount", notifCount);
+                    }
+                }
 
-// ✅ show toast only if we created welcome now
-if (createdWelcomeNow)
-{
-    TempData["WelcomeToast"] = $"Hello {firstName}! Welcome to TravelAgency ✨";
-}
+                // ✅ show toast only if we created welcome now
+                if (createdWelcomeNow)
+                {
+                    TempData["WelcomeToast"] = $"Hello {firstName}! Welcome to TravelAgency ✨";
+                }
 
-if (userType == 1) // Admin
-    return RedirectToAction("index", "Admin");
+                if (userType == 1) // Admin
+                    return RedirectToAction("index", "Admin");
 
-if (userType == 2) // Worker
-    return RedirectToAction("EmployeeDashboard", "Employee");
+                if (userType == 2) // Worker
+                    return RedirectToAction("EmployeeDashboard", "Employee");
 
-return RedirectToAction("Dashboard", "Users");
+                return RedirectToAction("Dashboard", "Users");
 
                 }
             }

@@ -1,0 +1,97 @@
+@model TravelAgency.Models.UserView
+@{
+    Layout = "_AuthLayout";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+<div class="container d-flex justify-content-center align-items-center py-5" style="min-height: 100vh; background-color: #f8f9fa;">
+    <div class="card border-0 shadow-lg" style="width: 100%; max-width: 700px; border-radius: 16px; overflow: hidden;">
+        
+        <div class="card-header bg-primary text-white text-center py-4">
+            <h3 class="mb-1" style="font-weight: 700; letter-spacing: 0.5px;">Employee Registration</h3>
+            <p class="mb-0 opacity-75">Fill in the details to create a new employee profile</p>
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+            <form asp-action="WorkerRegister" method="post">
+                
+                <div class="row g-3">
+                    <div class="col-md-12 mb-2">
+                        <label asp-for="Username" class="form-label fw-bold text-secondary"></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-user-tag text-muted"></i></span>
+                            <input asp-for="Username" class="form-control border-start-0 bg-light" placeholder="e.g. john_d" />
+                        </div>
+                        <span asp-validation-for="Username" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="firstName" class="form-label fw-bold text-secondary">First Name</label>
+                        <input asp-for="firstName" class="form-control" placeholder="John" />
+                        <span asp-validation-for="firstName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="lastName" class="form-label fw-bold text-secondary">Last Name</label>
+                        <input asp-for="lastName" class="form-control" placeholder="Doe" />
+                        <span asp-validation-for="lastName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="birthDate" class="form-label fw-bold text-secondary">Birth Date</label>
+                        <input asp-for="birthDate" type="date" class="form-control" />
+                        <span asp-validation-for="birthDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="gender" class="form-label fw-bold text-secondary">Gender</label>
+                        <select asp-for="gender" class="form-select">
+                            <option value="">Select</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                        <span asp-validation-for="gender" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="phoneNumber" class="form-label fw-bold text-secondary">Phone Number</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="fas fa-phone text-muted"></i></span>
+                            <input asp-for="phoneNumber" class="form-control" placeholder="050-0000000" />
+                        </div>
+                        <span asp-validation-for="phoneNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="email" class="form-label fw-bold text-secondary">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="fas fa-envelope text-muted"></i></span>
+                            <input asp-for="email" type="email" class="form-control" placeholder="name@company.com" />
+                        </div>
+                        <span asp-validation-for="email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-12 mb-4">
+                        <label asp-for="Password" class="form-label fw-bold text-secondary"></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="fas fa-lock text-muted"></i></span>
+                            <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary w-100 py-2 mb-3 shadow-sm" style="border-radius: 8px; font-weight: 600; font-size: 1.1rem;">
+                    <i class="fas fa-user-plus me-2"></i> Create Employee Account
+                </button>
+
+
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+}
