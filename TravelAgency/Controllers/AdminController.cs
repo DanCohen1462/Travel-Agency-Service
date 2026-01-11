@@ -1283,49 +1283,44 @@ public class AdminController : Controller
     public IActionResult EditCategory(int id)
     {
         Category cat = null;
-
         using (SqlConnection conn = new SqlConnection(_connectionString))
         {
             conn.Open();
-            string query = "SELECT Id, name FROM Category WHERE Id = @id and active = 0";
+            // שינוי ל-active = 1 או הסרת התנאי בהתאם ללוגיקה שלך
+            string query = "SELECT Id, name FROM Category WHERE Id = @id"; 
             SqlCommand cmd = new SqlCommand(query, conn);
             cmd.Parameters.AddWithValue("@id", id);
 
-            SqlDataReader r = cmd.ExecuteReader();
-
-            if (r.Read())
+            using (SqlDataReader r = cmd.ExecuteReader())
             {
-                cat = new Category
+                if (r.Read())
                 {
-                    Id = r.GetInt32(0),
-                    name = r.GetString(1),
-                    
-                };
+                    cat = new Category {
+                        Id = r.GetInt32(0),
+                        name = r.GetString(1)
+                    };
+                }
             }
         }
 
+        if (cat == null) return NotFound(); // הגנה במקרה שה-ID לא קיים
         return View(cat);
     }
+
     [HttpPost]
     public IActionResult EditCategory(Category model)
     {
-        if (!ModelState.IsValid)
-            return View(model);
+        if (!ModelState.IsValid) return View(model);
 
         using (SqlConnection conn = new SqlConnection(_connectionString))
         {
             conn.Open();
-            string query = "UPDATE Category SET name=@n WHERE Id=@id and active = 0";
-
+            string query = "UPDATE Category SET name=@n WHERE Id=@id";
             SqlCommand cmd = new SqlCommand(query, conn);
-
             cmd.Parameters.AddWithValue("@id", model.Id);
             cmd.Parameters.AddWithValue("@n", model.name);
-            
-
             cmd.ExecuteNonQuery();
         }
-
         return RedirectToAction("CategoryIndex");
     }
     [HttpPost]

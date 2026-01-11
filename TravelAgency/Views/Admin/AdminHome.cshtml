@@ -2,78 +2,161 @@
     Layout = "_Layout";
 }
 
-<div class="container mt-5">
-    <h2 class="fw-bold mb-4">Admin Dashboard</h2>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
+<div class="container py-5">
+    <div class="d-flex align-items-center mb-5">
+        <div class="bg-primary text-white rounded-3 p-3 me-3 shadow-sm">
+            <i class="fas fa-user-shield fa-2x"></i>
+        </div>
+        <div>
+            <h2 class="fw-bold mb-0">Admin Control Center</h2>
+            <p class="text-muted mb-0">Manage your travel agency operations and system settings</p>
+        </div>
+    </div>
+
+    <h5 class="text-secondary fw-bold mb-3 uppercase small letter-spacing-1">Daily Operations</h5>
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-lg-3">
+            <a href="/Admin/Users" class="admin-card">
+                <div class="card h-100 border-0 shadow-sm p-4 text-center">
+                    <div class="icon-box bg-blue-soft text-primary mb-3">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h5 class="fw-bold">Users</h5>
+                    <p class="small text-muted">Edit, activate or change roles</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <a href="/Admin/Packages" class="admin-card">
+                <div class="card h-100 border-0 shadow-sm p-4 text-center">
+                    <div class="icon-box bg-orange-soft text-warning mb-3">
+                        <i class="fas fa-boxes-packing"></i>
+                    </div>
+                    <h5 class="fw-bold">Packages</h5>
+                    <p class="small text-muted">Manage existing travel deals</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <a href="/Admin/AssignGuide" class="admin-card">
+                <div class="card h-100 border-0 shadow-sm p-4 text-center">
+                    <div class="icon-box bg-cyan-soft text-info mb-3">
+                        <i class="fas fa-chalkboard-user"></i>
+                    </div>
+                    <h5 class="fw-bold">Assign Guides</h5>
+                    <p class="small text-muted">Match guides to packages</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <a href="/Admin/Analytics" class="admin-card">
+                <div class="card h-100 border-0 shadow-sm p-4 text-center">
+                    <div class="icon-box bg-purple-soft text-purple mb-3">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h5 class="fw-bold">Analytics</h5>
+                    <p class="small text-muted">View system statistics</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <h5 class="text-secondary fw-bold mb-3 uppercase small letter-spacing-1">System Configuration</h5>
     <div class="row g-4">
-
-        <!-- ניהול משתמשים -->
         <div class="col-md-4">
-            <a href="/Admin/Users" class="text-decoration-none">
-                <div class="card shadow p-4 text-center">
-                    <h4>👥 Manage Users</h4>
-                    <p class="text-muted">Edit, activate or change roles</p>
+            <a href="/Admin/CreatePackage" class="admin-card">
+                <div class="card h-100 border-0 shadow-sm p-4 flex-row align-items-center">
+                    <div class="icon-box-sm bg-green-soft text-success me-3">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-1">New Package</h6>
+                        <p class="small text-muted mb-0">Create travel offer</p>
+                    </div>
                 </div>
             </a>
         </div>
 
-        <!-- ניהול חבילות -->
         <div class="col-md-4">
-            <a href="/Admin/Packages" class="text-decoration-none">
-                <div class="card shadow p-4 text-center">
-                    <h4>📦 Manage Packages</h4>
-                    <p class="text-muted">Edit or delete packages</p>
+            <a href="/Admin/WorkerRegister" class="admin-card">
+                <div class="card h-100 border-0 shadow-sm p-4 flex-row align-items-center">
+                    <div class="icon-box-sm bg-blue-soft text-primary me-3">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-1">Add Worker</h6>
+                        <p class="small text-muted mb-0">Register staff members</p>
+                    </div>
                 </div>
             </a>
         </div>
 
-        <!-- יצירת חבילה -->
         <div class="col-md-4">
-            <a href="/Admin/CreatePackage" class="text-decoration-none">
-                <div class="card shadow p-4 text-center">
-                    <h4>➕ Create Package</h4>
-                    <p class="text-muted">Add a new travel package</p>
+            <a href="/Admin/CategoryIndex" class="admin-card">
+                <div class="card h-100 border-0 shadow-sm p-4 flex-row align-items-center">
+                    <div class="icon-box-sm bg-indigo-soft text-indigo me-3">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-1">Categories</h6>
+                        <p class="small text-muted mb-0">Manage travel types</p>
+                    </div>
                 </div>
             </a>
         </div>
-
-        <!-- ניהול מדריכים -->
-        <div class="col-md-4">
-            <a href="/Admin/AssignGuide" class="text-decoration-none">
-                <div class="card shadow p-4 text-center">
-                    <h4>🧑‍🏫 Manage Guides</h4>
-                    <p class="text-muted">Assign guides to packages</p>
-                </div>
-            </a>
-        </div>
-
-        <!-- גרפים וסטטיסטיקות -->
-        <div class="col-md-4">
-            <a href="/Admin/Analytics" class="text-decoration-none">
-                <div class="card shadow p-4 text-center bg-primary text-white">
-                    <h4>📊 Analytics & Reports</h4>
-                    <p>View system statistics</p>
-                </div>
-            </a>
-        </div>
-        
-        
-        <div class="col-md-4">
-            <a href="/Admin/WorkerRegister" class="text-decoration-none">
-                <div class="card shadow p-4 text-center bg-primary text-white">
-                    <h4>Add worker</h4>
-                    
-                </div>
-            </a>
-        </div>
-        <div class="col-md-4">
-            <a href="/Admin/CategoryIndex" class="text-decoration-none">
-                <div class="card shadow p-4 text-center bg-primary text-white">
-                    <h4>manage category</h4>
-                    
-                </div>
-            </a>
-        </div>
-
     </div>
 </div>
+
+<style>
+    .admin-card { text-decoration: none !important; color: inherit; }
+    
+    .card {
+        transition: all 0.3s ease;
+        border-radius: 16px;
+    }
+
+    .admin-card:hover .card {
+        transform: translateY(-5px);
+        shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        background-color: #fff;
+    }
+
+    .icon-box {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin: 0 auto;
+    }
+
+    .icon-box-sm {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+
+    /* Soft Background Colors for Icons */
+    .bg-blue-soft { background-color: #e7f1ff; }
+    .bg-orange-soft { background-color: #fff5e9; }
+    .bg-cyan-soft { background-color: #e2f9fb; }
+    .bg-purple-soft { background-color: #f3e8ff; }
+    .bg-green-soft { background-color: #e8faf0; }
+    .bg-indigo-soft { background-color: #eef2ff; }
+    
+    .text-purple { color: #8e44ad; }
+    .text-indigo { color: #4e73df; }
+    
+    .letter-spacing-1 { letter-spacing: 1px; }
+</style>
