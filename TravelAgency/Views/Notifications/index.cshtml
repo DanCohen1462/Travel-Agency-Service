@@ -134,7 +134,11 @@
                                 <div class="mt-2 d-flex gap-2">
                                     <form asp-controller="Notifications" asp-action="Open" method="post" class="m-0">
                                         <input type="hidden" name="id" value="@n.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-primary">Open</button>
+                                        @if (!string.Equals(n.Title, "Cart reservation expired", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <a class="btn btn-sm btn-outline-primary" href="@n.LinkUrl">Open</a>
+                                        }
+
                                     </form>
 
                                     @if (isSpotOffer)

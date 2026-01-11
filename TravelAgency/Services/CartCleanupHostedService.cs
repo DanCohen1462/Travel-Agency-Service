@@ -117,6 +117,22 @@ WHERE Id = @pid;
             await back.ExecuteNonQueryAsync(ct);
         }
 
+        // ✅ 0.2.1) לכבות את ההתראה "Spot available!" של אותו Offer (שלא תישאר אחרי שפג)
+        using (var deactSpot = new SqlCommand(@"
+UPDATE Notifications
+SET inactive = 1
+WHERE UserId = @uid
+  AND inactive = 0
+  AND Title = 'Spot available!'
+  AND LinkUrl = @link;
+", conn, tx))
+        {
+            deactSpot.Parameters.AddWithValue("@uid", off.UserId);
+            deactSpot.Parameters.AddWithValue("@link",
+                $"/Package/PackageDetails?id={off.PackageId}&adults={off.NumPersons}&children=0");
+            await deactSpot.ExecuteNonQueryAsync(ct);
+        }
+
         tx.Commit();
     }
     catch
@@ -226,6 +242,21 @@ WHERE Id = @pid;
                                 back.Parameters.AddWithValue("@n", row.NumPersons);
                                 back.Parameters.AddWithValue("@pid", row.PackageId);
                                 await back.ExecuteNonQueryAsync(ct);
+                            }
+                            // ✅ לכבות את "Spot available!" הרלוונטי (כדי שלא תישאר אחרי שה-Offer נסגר)
+                            using (var deactSpot = new SqlCommand(@"
+UPDATE Notifications
+SET inactive = 1
+WHERE UserId = @uid
+  AND inactive = 0
+  AND Title = 'Spot available!'
+  AND LinkUrl = @link;
+", conn, tx))
+                            {
+                                deactSpot.Parameters.AddWithValue("@uid", row.UserId);
+                                deactSpot.Parameters.AddWithValue("@link",
+                                    $"/Package/PackageDetails?id={row.PackageId}&adults={row.NumPersons}&children=0");
+                                await deactSpot.ExecuteNonQueryAsync(ct);
                             }
                         }
                     }

@@ -247,15 +247,14 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
 
 
                 {
-                    <!-- Open modal (not direct join) -->
                     <button type="button"
                             class="btn-action mt-3"
-                            data-bs-toggle="modal"
-                            data-bs-target="#waitlistModalDetails"
+                            data-wl-open="details"
                             data-package-id="@pkg.Id"
                             data-num-persons="@totalPassengers">
                         Join Waitlist
                     </button>
+
 
                     <a asp-controller="Package"
                        asp-action="Gallery"
@@ -427,7 +426,7 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
 
 <script>
     (function () {
-        const btn = document.querySelector('[data-bs-target="#waitlistModalDetails"]');
+        const btn = document.querySelector('[data-wl-open="details"]');
         const modalEl = document.getElementById('waitlistModalDetails');
         if (!modalEl) return;
 
@@ -446,7 +445,7 @@ int totalPassengers = Math.Max(1, qAdults) + Math.Max(0, qChildren);
 
         // ✅ intercept click: do not open modal if already joined
         document.addEventListener('click', async function (e) {
-            const openBtn = e.target.closest('[data-bs-target="#waitlistModalDetails"]');
+            const openBtn = e.target.closest('[data-wl-open="details"]');
             if (!openBtn) return;
 
             // stop Bootstrap from auto-opening

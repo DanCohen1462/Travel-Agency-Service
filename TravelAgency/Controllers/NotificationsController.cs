@@ -83,34 +83,102 @@ namespace TravelAgency.Controllers
                   AND inactive = 0
                 ORDER BY CreatedAt DESC, Id DESC;", conn);
 
-            cmd.Parameters.AddWithValue("@uid", userId.Value);
-            using var r = cmd.ExecuteReader();
-            while (r.Read())
+cmd.Parameters.AddWithValue("@uid", userId.Value);
+
+// ✅ 1) קודם קוראים את כל ההתראות לזיכרון (כדי לסגור את ה-Reader)
+var raw = new List<(int Id, string Title, string Message, string Type, string? LinkUrl, bool IsRead, DateTime CreatedUtc)>();
+
+using (var r = cmd.ExecuteReader())
+{
+    while (r.Read())
+    {
+        int notifId = r.GetInt32(0);
+        string title = r.IsDBNull(1) ? "" : r.GetString(1);
+        string message = r.IsDBNull(2) ? "" : r.GetString(2);
+        string type = r.IsDBNull(3) ? "" : r.GetString(3);
+        string? link = r.IsDBNull(4) ? null : r.GetString(4);
+        bool isRead = !r.IsDBNull(5) && r.GetBoolean(5);
+
+        DateTime createdUtc = r.IsDBNull(6) ? DateTime.UtcNow : r.GetDateTime(6);
+        createdUtc = DateTime.SpecifyKind(createdUtc, DateTimeKind.Utc);
+
+        raw.Add((notifId, title, message, type, link, isRead, createdUtc));
+    }
+}
+
+// ✅ 2) עכשיו ה-Reader סגור, מותר להריץ ExecuteScalar/ExecuteNonQuery על אותו conn
+foreach (var n in raw)
+{
+    int notifId = n.Id;
+    string title = n.Title;
+    string? link = n.LinkUrl;
+
+    // ✅ אם זו "Spot available!" ואין Offer פעיל — מכבים את ההתראה ולא מציגים אותה
+    if (string.Equals(title, "Spot available!", StringComparison.OrdinalIgnoreCase) &&
+        !string.IsNullOrWhiteSpace(link))
+    {
+        int? packageId = TryGetIntFromQuery(link, "id") ?? TryGetIntFromQuery(link, "packageId");
+        int adults = TryGetIntFromQuery(link, "adults") ?? 1;
+        int children = TryGetIntFromQuery(link, "children") ?? 0;
+        int numPersons = Math.Max(1, adults) + Math.Max(0, children);
+
+        bool hasActiveOffer = false;
+
+        if (packageId.HasValue)
+        {
+            using (var chk = new SqlCommand(@"
+                            SELECT CASE WHEN EXISTS (
+                                SELECT 1
+                                FROM dbo.WaitlistOffers
+                                WHERE UserId = @uid
+                                  AND PackageId = @pid
+                                  AND NumPersons = @n
+                                  AND IsUsed = 0
+                                  AND OfferEnd > GETDATE()
+                                  AND ExpiredAt IS NULL
+                            ) THEN 1 ELSE 0 END;", conn))
             {
-                // 1) להביא CreatedAt מה-DB (עמודה 6)
-                DateTime createdUtc = r.IsDBNull(6)
-                    ? DateTime.UtcNow
-                    : r.GetDateTime(6);
+                chk.Parameters.AddWithValue("@uid", userId.Value);
+                chk.Parameters.AddWithValue("@pid", packageId.Value);
+                chk.Parameters.AddWithValue("@n", numPersons);
 
-                // 2) SQL מחזיר DateTime בלי Kind -> נסמן כ-UTC
-                createdUtc = DateTime.SpecifyKind(createdUtc, DateTimeKind.Utc);
-
-                // 3) להמיר לשעון ישראל
-                var israelTz = TimeZoneInfo.FindSystemTimeZoneById("Israel Standard Time");
-                var israelTime = TimeZoneInfo.ConvertTimeFromUtc(createdUtc, israelTz);
-
-                // 4) להוסיף לרשימה
-                list.Add(new NotificationItem
-                {
-                    Id = r.GetInt32(0),
-                    Title = r.IsDBNull(1) ? "" : r.GetString(1),
-                    Message = r.IsDBNull(2) ? "" : r.GetString(2),
-                    Type = r.IsDBNull(3) ? "" : r.GetString(3),
-                    LinkUrl = r.IsDBNull(4) ? null : r.GetString(4),
-                    IsRead = !r.IsDBNull(5) && r.GetBoolean(5),
-                    CreatedAt = israelTime
-                });
+                hasActiveOffer = Convert.ToInt32(chk.ExecuteScalar()) == 1;
             }
+        }
+
+        if (!hasActiveOffer)
+        {
+            using (var off = new SqlCommand(@"
+                            UPDATE dbo.Notifications
+                            SET inactive = 1
+                            WHERE Id = @id AND UserId = @uid AND inactive = 0;", conn))
+            {
+                off.Parameters.AddWithValue("@id", notifId);
+                off.Parameters.AddWithValue("@uid", userId.Value);
+                off.ExecuteNonQuery();
+            }
+
+            continue; // ✅ לא מוסיפים לרשימה => לא יוצג
+        }
+    }
+
+    // 3) להמיר לשעון ישראל
+    var israelTz = TimeZoneInfo.FindSystemTimeZoneById("Israel Standard Time");
+    var israelTime = TimeZoneInfo.ConvertTimeFromUtc(n.CreatedUtc, israelTz);
+
+    // 4) להוסיף לרשימה
+    list.Add(new NotificationItem
+    {
+        Id = notifId,
+        Title = title,
+        Message = n.Message,
+        Type = n.Type,
+        LinkUrl = link,
+        IsRead = n.IsRead,
+        CreatedAt = israelTime
+    });
+}
+
 
 
             RefreshNotifCount(userId.Value); // ✅ חשוב
@@ -162,14 +230,14 @@ namespace TravelAgency.Controllers
             return RedirectToAction("Index");
         }
 
-        // ✅ סימון נקרא + מעבר ללינק (אם יש)
         [HttpPost]
         public IActionResult Open(int id)
         {
             var userId = GetUserId();
             if (!userId.HasValue) return RedirectToAction("Login", "Auth");
 
-            string? linkUrl;
+            string? linkUrl = null;
+            string title = "";
 
             using var conn = new SqlConnection(_connectionString);
             conn.Open();
@@ -177,23 +245,32 @@ namespace TravelAgency.Controllers
             using (var cmd = new SqlCommand(@"
                 UPDATE dbo.Notifications
                 SET IsRead = 1
-                OUTPUT INSERTED.LinkUrl
+                OUTPUT INSERTED.Title, INSERTED.LinkUrl
                 WHERE Id = @id AND UserId = @uid AND inactive = 0;", conn))
             {
                 cmd.Parameters.AddWithValue("@id", id);
                 cmd.Parameters.AddWithValue("@uid", userId.Value);
 
-                var result = cmd.ExecuteScalar();
-                linkUrl = result == DBNull.Value ? null : result as string;
+                using var r = cmd.ExecuteReader();
+                if (r.Read())
+                {
+                    title = r.IsDBNull(0) ? "" : r.GetString(0);
+                    linkUrl = r.IsDBNull(1) ? null : r.GetString(1);
+                }
             }
 
-            RefreshNotifCount(userId.Value); // ✅ חשוב
+            RefreshNotifCount(userId.Value);
+
+            // ✅ לא עושים Redirect לעגלה/לינק במקרה שזה "Cart reservation expired"
+            if (string.Equals(title, "Cart reservation expired", StringComparison.OrdinalIgnoreCase))
+                return RedirectToAction("Index");
 
             if (!string.IsNullOrWhiteSpace(linkUrl))
                 return Redirect(linkUrl);
 
             return RedirectToAction("Index");
         }
+
                 // ✅ Decline offer (for "Spot available!" notification)
         [HttpPost]
         public IActionResult DeclineOffer(int id)
