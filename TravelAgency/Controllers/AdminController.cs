@@ -1096,12 +1096,17 @@ public class AdminController : Controller
         // --- שאילתה 3: היעדים הפופולריים ביותר (איחוד לפי יעד, מדינה וקטגוריה) ---
         // סופר את סך הנוסעים (numPersons) מתוך היסטוריית ההזמנות
         string q3 = @"
-            SELECT P.destination, P.country, C.name as CategoryName, SUM(H.numPersons) as TotalTravelers
+            SELECT TOP 5
+                P.destination,
+                P.country,
+                C.name as CategoryName,
+                SUM(H.numPersons) as TotalTravelers
             FROM HistoryReservation H
             JOIN Package P ON H.PackageId = P.Id
             JOIN Category C ON P.idCategory = C.Id
             GROUP BY P.destination, P.country, C.name
             ORDER BY TotalTravelers DESC";
+
 
         using (SqlCommand cmd = new SqlCommand(q3, conn))
         using (SqlDataReader r = cmd.ExecuteReader())

@@ -132,10 +132,18 @@ ViewData["Title"] = "Operations Analytics";
             labels: Object.keys(popularData),
             datasets: [{
                 data: Object.values(popularData),
-                backgroundColor: '#00C9A7',
+                backgroundColor: [
+                    '#0D9488', // Teal (גרסה עמוקה יותר של הטורקיז שלך לחיבור עיצובי)
+                    '#F472B6', // Soft Pink (ורוד עדין יותר מהרוז)
+                    '#FB923C', // Soft Orange (כתום שקיעה - פחות אגרסיבי מאדום)
+                    '#818CF8', // Indigo (סגול-כחול שמתחבר יפה לטורקיז)
+                    '#94A3B8'  // Slate Blue (אפור-כחול שנותן לגרף "לנשום")
+                ],
                 borderRadius: 10,
                 barThickness: 25
             }]
+
+
         },
         options: {
             ...commonOptions,
