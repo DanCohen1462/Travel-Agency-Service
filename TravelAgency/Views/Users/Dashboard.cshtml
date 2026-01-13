@@ -4,97 +4,173 @@
 @{
     ViewData["Title"] = "Customer Dashboard";
     Layout = "_Layout";
-}
-
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-
-@{
     var fullName = HttpContextAccessor.HttpContext?.Session.GetString("FullName") ?? "Customer";
 }
 
 <style>
-    .user-card {
-        border-radius: 15px;
-        transition: transform 0.2s, box-shadow 0.2s;
-        border-left: 5px solid #1C6DD0;
-        text-align: center;
+    body { background-color: #f8f9fa; }
+
+    .feature-card {
+        border: none;
+        border-radius: 16px;
+        background: #ffffff;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
     }
-    .user-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15) !important;
+
+    .feature-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
     }
-    .card-icon { color: #1C6DD0; }
-    .card-trip { border-left-color: #1C6DD0; }
-    .card-search { border-left-color: #0dcaf0; }
-    .card-profile { border-left-color: #ffc107; }
-    .card-cart { border-left-color: #198754; }
-    .card-notifications { border-left-color: #dc3545; }
+
+    .icon-wrapper {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    /* צבעים */
+    .gradient-blue { background: linear-gradient(135deg, #0d6efd, #0dcaf0); }
+    .gradient-red { background: linear-gradient(135deg, #dc3545, #ff6b6b); }
+    .gradient-green { background: linear-gradient(135deg, #198754, #20c997); }
+    .gradient-yellow { background: linear-gradient(135deg, #ffc107, #ff9800); }
+    .gradient-purple { background: linear-gradient(135deg, #6f42c1, #a645b7); }
+
+    /* צבע חדש לקובייה של הטיולים שלי */
+    .gradient-teal { background: linear-gradient(135deg, #20c997, #0dcaf0); }
+
+    .card-title { font-weight: 700; font-size: 1.2rem; color: #2c3e50; }
+    .card-desc { color: #6c757d; font-size: 0.9rem; line-height: 1.5; }
+
+    .action-link {
+        margin-top: 1rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #adb5bd;
+        transition: color 0.3s;
+        display: flex;
+        align-items: center;
+    }
+    .feature-card:hover .action-link { color: #0d6efd; }
+
+    .hero-banner {
+        background: linear-gradient(120deg, #2b32b2, #1488cc);
+        color: white;
+        border-radius: 16px;
+        padding: 3rem 2rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
 </style>
 
-<h2 class="fw-bold mb-4 text-primary">👋 Welcome Back, @fullName!</h2>
-<hr/>
-<h4 class="mb-4 text-secondary">Your Travel Quick Access Panel</h4>
+<div class="container py-4">
 
-<div class="row g-4">
-
-    <div class="col-lg-4 col-md-6">
-        <a asp-controller="Users" asp-action="MyTrips" class="card text-decoration-none h-100 shadow-sm user-card card-trip">
-            <div class="card-body p-4">
-                <i class="fas fa-suitcase-rolling fa-3x mb-3 card-icon"></i>
-                <h5 class="card-title fw-bold">1. My Trips</h5>
-                <p class="card-text text-muted">View all your active and past reservations.</p>
-            </div>
-        </a>
+    <div class="hero-banner d-flex align-items-center justify-content-between flex-wrap">
+        <div>
+            <h1 class="fw-bold mb-2">Hello, @fullName! 👋</h1>
+            <p class="mb-0 opacity-75 lead">Ready for your next adventure? Manage everything from here.</p>
+        </div>
+        <div class="d-none d-md-block opacity-50">
+            <i class="bi bi-calendar-event fs-1"></i>
+            <span class="ms-2 fs-5">@DateTime.Now.ToString("MMMM dd, yyyy")</span>
+        </div>
     </div>
 
-    <div class="col-lg-4 col-md-6">
-        <a asp-controller="Package" asp-action="SearchStart" class="card text-decoration-none h-100 shadow-sm user-card card-search">
-            <div class="card-body p-4">
-                <i class="fas fa-globe-americas fa-3x mb-3 card-icon" style="color: #0dcaf0;"></i>
-                <h5 class="card-title fw-bold">2. Search Trip</h5>
-                <p class="card-text text-muted">Search & filter available travel packages.</p>
-            </div>
-        </a>
-    </div>
+    <div class="row g-4 row-cols-1 row-cols-md-2 row-cols-lg-3">
 
-    <div class="col-lg-4 col-md-6">
-        <a asp-controller="Cart" asp-action="Index" class="card text-decoration-none h-100 shadow-sm user-card card-cart">
-            <div class="card-body p-4">
-                <i class="fas fa-shopping-cart fa-3x mb-3 card-icon" style="color: #198754;"></i>
-                <h5 class="card-title fw-bold">3. My Cart</h5>
-                <p class="card-text text-muted">Review items added to your booking cart.</p>
-            </div>
-        </a>
-    </div>
+        <!-- 1) My Trips (same link as before) -->
+        <div class="col">
+            <a asp-controller="Users" asp-action="MyTrips" class="text-decoration-none">
+                <div class="feature-card p-4">
+                    <div class="icon-wrapper gradient-teal">
+                        <i class="bi bi-airplane"></i>
+                    </div>
+                    <h5 class="card-title">My Trips</h5>
+                    <p class="card-desc">View your personal booking history and vacations.</p>
+                    <div class="action-link">View Trips <i class="bi bi-arrow-right ms-2"></i></div>
+                </div>
+            </a>
+        </div>
 
-    <div class="col-lg-4 col-md-6">
-        <a asp-controller="Users" asp-action="Profile" class="card text-decoration-none h-100 shadow-sm user-card card-profile">
-            <div class="card-body p-4">
-                <i class="fas fa-user-circle fa-3x mb-3 card-icon" style="color: #ffc107;"></i>
-                <h5 class="card-title fw-bold">4. My Profile</h5>
-                <p class="card-text text-muted">Update your personal details and settings.</p>
-            </div>
-        </a>
-    </div>
+        <!-- 2) Search Trip (same link as before) -->
+        <div class="col">
+            <a asp-controller="Package" asp-action="SearchStart" class="text-decoration-none">
+                <div class="feature-card p-4">
+                    <div class="icon-wrapper gradient-purple">
+                        <i class="bi bi-search"></i>
+                    </div>
+                    <h5 class="card-title">Search Trip</h5>
+                    <p class="card-desc">Browse the full gallery to book a new trip.</p>
+                    <div class="action-link">Start Exploring <i class="bi bi-arrow-right ms-2"></i></div>
+                </div>
+            </a>
+        </div>
 
-    <div class="col-lg-4 col-md-6">
-        <a asp-controller="Notifications" asp-action="Index" class="card text-decoration-none h-100 shadow-sm user-card card-notifications">
-            <div class="card-body p-4">
-                <i class="fas fa-bell fa-3x mb-3 card-icon" style="color: #dc3545;"></i>
-                <h5 class="card-title fw-bold">5. Notifications</h5>
-                <p class="card-text text-muted">View system alerts and updates.</p>
-            </div>
-        </a>
-    </div>
+        <!-- 3) My Cart (same link as before) -->
+        <div class="col">
+            <a asp-controller="Cart" asp-action="Cart" class="text-decoration-none">
+                <div class="feature-card p-4">
+                    <div class="icon-wrapper gradient-blue">
+                        <i class="bi bi-cart3"></i>
+                    </div>
+                    <h5 class="card-title">My Cart</h5>
+                    <p class="card-desc">Review items added to your booking cart.</p>
+                    <div class="action-link">Open Cart <i class="bi bi-arrow-right ms-2"></i></div>
+                </div>
+            </a>
+        </div>
 
-    <div class="col-lg-4 col-md-6">
-        <a asp-controller="Home" asp-action="ContactUs" class="card text-decoration-none h-100 shadow-sm user-card" style="border-left-color: #6c757d;">
-            <div class="card-body p-4">
-                <i class="fas fa-headset fa-3x mb-3 card-icon" style="color: #6c757d;"></i>
-                <h5 class="card-title fw-bold">6. Contact Us</h5>
-                <p class="card-text text-muted">Get assistance from our support team.</p>
-            </div>
-        </a>
-    </div>
+        <!-- 4) Notifications (same link as before) -->
+        <div class="col">
+            <a asp-controller="Notifications" asp-action="Index" class="text-decoration-none">
+                <div class="feature-card p-4">
+                    <div class="icon-wrapper gradient-red">
+                        <i class="bi bi-bell"></i>
+                    </div>
+                    <h5 class="card-title">Notifications</h5>
+                    <p class="card-desc">View system alerts and important updates.</p>
+                    <div class="action-link">View Alerts <i class="bi bi-arrow-right ms-2"></i></div>
+                </div>
+            </a>
+        </div>
 
+        <!-- 5) My Profile (same link as before) -->
+        <div class="col">
+            <a asp-controller="Users" asp-action="Profile" class="text-decoration-none">
+                <div class="feature-card p-4">
+                    <div class="icon-wrapper gradient-yellow">
+                        <i class="bi bi-person-circle"></i>
+                    </div>
+                    <h5 class="card-title">My Profile</h5>
+                    <p class="card-desc">Update your personal info and account settings.</p>
+                    <div class="action-link">Edit Profile <i class="bi bi-arrow-right ms-2"></i></div>
+                </div>
+            </a>
+        </div>
+
+        <!-- 6) Help & Support (same link as before) -->
+        <div class="col">
+            <a asp-controller="Home" asp-action="ContactUs" class="text-decoration-none">
+                <div class="feature-card p-4">
+                    <div class="icon-wrapper gradient-green">
+                        <i class="bi bi-headset"></i>
+                    </div>
+                    <h5 class="card-title">Help & Support</h5>
+                    <p class="card-desc">Get assistance from our support team.</p>
+                    <div class="action-link">Get Help <i class="bi bi-arrow-right ms-2"></i></div>
+                </div>
+            </a>
+        </div>
+
+    </div>
 </div>

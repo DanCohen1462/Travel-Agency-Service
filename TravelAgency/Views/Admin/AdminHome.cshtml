@@ -1,162 +1,186 @@
 @{
-    Layout = "_Layout";
+Layout = "_Layout";
 }
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
-<div class="container py-5">
-    <div class="d-flex align-items-center mb-5">
-        <div class="bg-primary text-white rounded-3 p-3 me-3 shadow-sm">
+<style>
+    body { background-color: #f8f9fa; }
+
+    .feature-card {
+        border: none;
+        border-radius: 16px;
+        background: #ffffff;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    }
+
+    .feature-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    }
+
+    .icon-wrapper {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    /* צבעים – זהה לעובד */
+    .gradient-blue { background: linear-gradient(135deg, #0d6efd, #0dcaf0); }
+    .gradient-red { background: linear-gradient(135deg, #dc3545, #ff6b6b); }
+    .gradient-green { background: linear-gradient(135deg, #198754, #20c997); }
+    .gradient-yellow { background: linear-gradient(135deg, #ffc107, #ff9800); }
+    .gradient-purple { background: linear-gradient(135deg, #6f42c1, #a645b7); }
+    .gradient-teal { background: linear-gradient(135deg, #20c997, #0dcaf0); }
+
+    .card-title { font-weight: 700; font-size: 1.2rem; color: #2c3e50; }
+    .card-desc { color: #6c757d; font-size: 0.9rem; line-height: 1.5; }
+
+    .action-link {
+        margin-top: 1rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #adb5bd;
+        transition: color 0.3s;
+        display: flex;
+        align-items: center;
+    }
+    .feature-card:hover .action-link { color: #0d6efd; }
+
+    .hero-banner {
+        background: linear-gradient(120deg, #2b32b2, #1488cc);
+        color: white;
+        border-radius: 16px;
+        padding: 3rem 2rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+</style>
+
+<div class="container py-4">
+
+    <div class="hero-banner d-flex align-items-center justify-content-between flex-wrap">
+        <div>
+            <h1 class="fw-bold mb-2">Admin Control Center</h1>
+            <p class="mb-0 opacity-75 lead">Manage your travel agency operations and system settings</p>
+        </div>
+        <div class="d-none d-md-block opacity-50">
             <i class="fas fa-user-shield fa-2x"></i>
         </div>
-        <div>
-            <h2 class="fw-bold mb-0">Admin Control Center</h2>
-            <p class="text-muted mb-0">Manage your travel agency operations and system settings</p>
-        </div>
     </div>
 
-    <h5 class="text-secondary fw-bold mb-3 uppercase small letter-spacing-1">Daily Operations</h5>
-    <div class="row g-4 mb-5">
-        <div class="col-md-6 col-lg-3">
-            <a href="/Admin/Users" class="admin-card">
-                <div class="card h-100 border-0 shadow-sm p-4 text-center">
-                    <div class="icon-box bg-blue-soft text-primary mb-3">
+    <h5 class="text-secondary fw-bold mb-3" style="letter-spacing:1px;">Daily Operations</h5>
+
+    <div class="row g-4 mb-5 row-cols-1 row-cols-md-2 row-cols-lg-4">
+
+        <div class="col">
+            <a href="/Admin/Users" class="text-decoration-none">
+                <div class="feature-card p-4 text-center">
+                    <div class="icon-wrapper gradient-blue mx-auto">
                         <i class="fas fa-users"></i>
                     </div>
-                    <h5 class="fw-bold">Users</h5>
-                    <p class="small text-muted">Edit, activate or change roles</p>
+                    <h5 class="card-title">Users</h5>
+                    <p class="card-desc">Edit, activate or change roles</p>
+                    <div class="action-link justify-content-center">Open <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-3">
-            <a href="/Admin/Packages" class="admin-card">
-                <div class="card h-100 border-0 shadow-sm p-4 text-center">
-                    <div class="icon-box bg-orange-soft text-warning mb-3">
+        <div class="col">
+            <a href="/Admin/Packages" class="text-decoration-none">
+                <div class="feature-card p-4 text-center">
+                    <div class="icon-wrapper gradient-purple mx-auto">
                         <i class="fas fa-boxes-packing"></i>
                     </div>
-                    <h5 class="fw-bold">Packages</h5>
-                    <p class="small text-muted">Manage existing travel deals</p>
+                    <h5 class="card-title">Packages</h5>
+                    <p class="card-desc">Manage existing travel deals</p>
+                    <div class="action-link justify-content-center">Open <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-3">
-            <a href="/Admin/AssignGuide" class="admin-card">
-                <div class="card h-100 border-0 shadow-sm p-4 text-center">
-                    <div class="icon-box bg-cyan-soft text-info mb-3">
+        <div class="col">
+            <a href="/Admin/AssignGuide" class="text-decoration-none">
+                <div class="feature-card p-4 text-center">
+                    <div class="icon-wrapper gradient-teal mx-auto">
                         <i class="fas fa-chalkboard-user"></i>
                     </div>
-                    <h5 class="fw-bold">Assign Guides</h5>
-                    <p class="small text-muted">Match guides to packages</p>
+                    <h5 class="card-title">Assign Guides</h5>
+                    <p class="card-desc">Match guides to packages</p>
+                    <div class="action-link justify-content-center">Open <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-6 col-lg-3">
-            <a href="/Admin/Analytics" class="admin-card">
-                <div class="card h-100 border-0 shadow-sm p-4 text-center">
-                    <div class="icon-box bg-purple-soft text-purple mb-3">
+        <div class="col">
+            <a href="/Admin/Analytics" class="text-decoration-none">
+                <div class="feature-card p-4 text-center">
+                    <div class="icon-wrapper gradient-red mx-auto">
                         <i class="fas fa-chart-pie"></i>
                     </div>
-                    <h5 class="fw-bold">Analytics</h5>
-                    <p class="small text-muted">View system statistics</p>
+                    <h5 class="card-title">Analytics</h5>
+                    <p class="card-desc">View system statistics</p>
+                    <div class="action-link justify-content-center">Open <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
+
     </div>
 
-    <h5 class="text-secondary fw-bold mb-3 uppercase small letter-spacing-1">System Configuration</h5>
-    <div class="row g-4">
-        <div class="col-md-4">
-            <a href="/Admin/CreatePackage" class="admin-card">
-                <div class="card h-100 border-0 shadow-sm p-4 flex-row align-items-center">
-                    <div class="icon-box-sm bg-green-soft text-success me-3">
+    <h5 class="text-secondary fw-bold mb-3" style="letter-spacing:1px;">System Configuration</h5>
+
+    <div class="row g-4 row-cols-1 row-cols-md-2 row-cols-lg-3">
+
+        <div class="col">
+            <a href="/Admin/CreatePackage" class="text-decoration-none">
+                <div class="feature-card p-4">
+                    <div class="icon-wrapper gradient-green">
                         <i class="fas fa-plus"></i>
                     </div>
-                    <div>
-                        <h6 class="fw-bold mb-1">New Package</h6>
-                        <p class="small text-muted mb-0">Create travel offer</p>
-                    </div>
+                    <h5 class="card-title">Create Package</h5>
+                    <p class="card-desc">Create a new travel offer</p>
+                    <div class="action-link">Open <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-4">
-            <a href="/Admin/WorkerRegister" class="admin-card">
-                <div class="card h-100 border-0 shadow-sm p-4 flex-row align-items-center">
-                    <div class="icon-box-sm bg-blue-soft text-primary me-3">
+        <div class="col">
+            <a href="/Admin/WorkerRegister" class="text-decoration-none">
+                <div class="feature-card p-4">
+                    <div class="icon-wrapper gradient-blue">
                         <i class="fas fa-user-plus"></i>
                     </div>
-                    <div>
-                        <h6 class="fw-bold mb-1">Add Worker</h6>
-                        <p class="small text-muted mb-0">Register staff members</p>
-                    </div>
+                    <h5 class="card-title">Add Worker</h5>
+                    <p class="card-desc">Register staff members</p>
+                    <div class="action-link">Open <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-4">
-            <a href="/Admin/CategoryIndex" class="admin-card">
-                <div class="card h-100 border-0 shadow-sm p-4 flex-row align-items-center">
-                    <div class="icon-box-sm bg-indigo-soft text-indigo me-3">
+        <div class="col">
+            <a href="/Admin/CategoryIndex" class="text-decoration-none">
+                <div class="feature-card p-4">
+                    <div class="icon-wrapper gradient-yellow">
                         <i class="fas fa-tags"></i>
                     </div>
-                    <div>
-                        <h6 class="fw-bold mb-1">Categories</h6>
-                        <p class="small text-muted mb-0">Manage travel types</p>
-                    </div>
+                    <h5 class="card-title">Categories</h5>
+                    <p class="card-desc">Manage travel types</p>
+                    <div class="action-link">Open <i class="bi bi-arrow-right ms-2"></i></div>
                 </div>
             </a>
         </div>
+
     </div>
+
 </div>
-
-<style>
-    .admin-card { text-decoration: none !important; color: inherit; }
-    
-    .card {
-        transition: all 0.3s ease;
-        border-radius: 16px;
-    }
-
-    .admin-card:hover .card {
-        transform: translateY(-5px);
-        shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-        background-color: #fff;
-    }
-
-    .icon-box {
-        width: 60px;
-        height: 60px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        margin: 0 auto;
-    }
-
-    .icon-box-sm {
-        width: 45px;
-        height: 45px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.1rem;
-    }
-
-    /* Soft Background Colors for Icons */
-    .bg-blue-soft { background-color: #e7f1ff; }
-    .bg-orange-soft { background-color: #fff5e9; }
-    .bg-cyan-soft { background-color: #e2f9fb; }
-    .bg-purple-soft { background-color: #f3e8ff; }
-    .bg-green-soft { background-color: #e8faf0; }
-    .bg-indigo-soft { background-color: #eef2ff; }
-    
-    .text-purple { color: #8e44ad; }
-    .text-indigo { color: #4e73df; }
-    
-    .letter-spacing-1 { letter-spacing: 1px; }
-</style>
