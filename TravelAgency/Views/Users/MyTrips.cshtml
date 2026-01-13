@@ -113,7 +113,10 @@ bool showHistory = tab == "history";
                                     <div class="price-tag">$@item.TotalPrice</div>
                                 </div>
                                 <div class="card-body">
-                                    <h5 class="trip-title">@item.Destination</h5>
+                                    <h5 class="trip-title">
+                                        <i class="fa-solid fa-location-dot text-danger me-2"></i>@item.Destination
+                                    </h5>
+
                                     <div class="trip-meta">
                                         <i class="bi bi-calendar-event"></i>
                                         <strong>@item.StartDate.ToShortDateString()</strong> – <strong>@item.EndDate.ToShortDateString()</strong>
@@ -225,7 +228,9 @@ bool showHistory = tab == "history";
                                     <div class="price-tag">$@item.TotalPrice</div>
                                 </div>
                                 <div class="card-body">
-                                    <h5 class="trip-title">@item.Destination</h5>
+                                    <h5 class="trip-title">
+                                        <i class="fa-solid fa-location-dot text-danger me-2"></i>@item.Destination
+                                    </h5>
                                     <div class="trip-meta"><i class="bi bi-calendar-check"></i> @item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</div>
                                     <div class="trip-meta"><i class="bi bi-people"></i> @item.NumPersons People</div>
 

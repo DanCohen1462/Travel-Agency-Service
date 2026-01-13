@@ -849,8 +849,26 @@ ORDER BY f.Id DESC;
             using (SqlConnection conn = new SqlConnection(_connectionString))
             {
                 conn.Open();
-                // שליפה לפי העמודות בתמונה שלך
-                string sql = "SELECT * FROM Package WHERE UserId = @EmpId AND inactive = 0";
+// ✅ Pull package + first image (like MyTrips/Gallery)
+                string sql = @"
+    SELECT
+        p.Id,
+        p.destination,
+        p.sum,
+        ISNULL(p.Information,'') as Information,
+        p.startDate,
+        p.endDate,
+        ISNULL((
+            SELECT TOP 1 ip.ImageLocation
+            FROM ImagesPackage ip
+            WHERE ip.PackageId = p.Id
+            ORDER BY ip.Id
+        ), '/images/default.jpg') as ImageUrl
+    FROM Package p
+    WHERE p.UserId = @EmpId
+      AND p.inactive = 0
+    ORDER BY p.startDate DESC;
+";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
@@ -863,15 +881,17 @@ ORDER BY f.Id DESC;
                             pkg.Id = reader.GetInt32(reader.GetOrdinal("Id"));
                             pkg.destination = reader.GetString(reader.GetOrdinal("destination"));
                             pkg.sum = reader.GetInt32(reader.GetOrdinal("sum"));
-                            
-                            if (!reader.IsDBNull(reader.GetOrdinal("Information")))
-                                pkg.information = reader.GetString(reader.GetOrdinal("Information"));
-                            else 
-                                pkg.information = "";
 
-                            pkg.ImageUrl = "/images/default.jpg"; 
-                            
-                            // תאריכים
+                            pkg.information = reader.IsDBNull(reader.GetOrdinal("Information"))
+                                ? ""
+                                : reader.GetString(reader.GetOrdinal("Information"));
+
+                            // ✅ real image from ImagesPackage (or default)
+                            pkg.ImageUrl = reader.IsDBNull(reader.GetOrdinal("ImageUrl"))
+                                ? "/images/default.jpg"
+                                : reader.GetString(reader.GetOrdinal("ImageUrl"));
+
+                            // dates
                             pkg.StartDate = reader.GetDateTime(reader.GetOrdinal("startDate"));
                             pkg.EndDate = reader.GetDateTime(reader.GetOrdinal("endDate"));
 
@@ -879,6 +899,7 @@ ORDER BY f.Id DESC;
                         }
                     }
                 }
+
             }
 
             

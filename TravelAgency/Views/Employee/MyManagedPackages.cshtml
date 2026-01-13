@@ -3,7 +3,11 @@
 @{
     ViewData["Title"] = "My Managed Packages";
     Layout = "_Layout";
+
+    var tab = (Context.Request.Query["tab"].ToString() ?? "").ToLower();
+    bool showHistory = tab == "history";
 }
+
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
@@ -104,26 +108,46 @@
         margin-bottom: 1.5rem;
     }
 
-    /* כפתור הפעולה */
+    /* ✅ Buttons like MyTrips (purple) */
     .btn-manage {
-        background-color: #3498db;
-        color: white;
-        border: none;
+        background: #5A189A;
+        color: #fff !important;
+        border: 1px solid #5A189A;
         border-radius: 10px;
         padding: 10px 0;
         width: 100%;
         font-weight: 600;
-        transition: background 0.2s;
+        transition: background 0.2s, border-color 0.2s;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         font-size: 0.9rem;
+        text-decoration: none !important;
+        white-space: nowrap;
     }
 
     .btn-manage:hover {
-        background-color: #2980b9;
+        background: #4B147F;
+        border-color: #4B147F;
+        color: #fff !important;
+    }
+
+    /* ✅ Tabs style EXACTLY like MyTrips */
+    .nav-pills .nav-link {
+        color: #555;
+        border-radius: 50px;
+        padding: 10px 25px;
+        margin-right: 10px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .nav-pills .nav-link.active {
+        background-color: #1C6DD0;
         color: white;
     }
+
 </style>
+
 
 <div class="dashboard-header text-center">
     <div class="container">
@@ -146,50 +170,169 @@
     }
     else
     {
-        <div class="row g-4">
-            @foreach (var pkg in Model)
-            {
-                <div class="col-lg-4 col-md-6">
-                    <div class="manage-card">
-                        
-                        <div class="card-img-wrapper">
-                            <img src="@(string.IsNullOrEmpty(pkg.ImageUrl) ? "/images/default.jpg" : pkg.ImageUrl)" 
-                                 alt="@pkg.destination">
-                            
-                            <div class="price-badge">
-                                $@pkg.sum
+        <ul class="nav nav-pills mb-4 justify-content-center" id="emp-pills-tab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link @(showHistory ? "" : "active")"
+                        data-bs-toggle="pill"
+                        data-bs-target="#emp-upcoming"
+                        type="button">
+                    Assigned Upcoming
+                </button>
+            </li>
+
+            <li class="nav-item">
+                <button class="nav-link @(showHistory ? "active" : "")"
+                        data-bs-toggle="pill"
+                        data-bs-target="#emp-history"
+                        type="button">
+                    Assigned History
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="emp-pills-tabContent">
+
+            <div class="tab-pane fade @(showHistory ? "" : "show active")" id="emp-upcoming">
+                <div class="row g-4">
+                    @foreach (var pkg in Model.Where(p => p.StartDate.Date >= DateTime.Today))
+                    {
+                        <div class="col-lg-4 col-md-6">
+                            <div class="manage-card">
+
+                                <div class="card-img-wrapper">
+                                    <img src="@(string.IsNullOrEmpty(pkg.ImageUrl) ? "/images/default.jpg" : pkg.ImageUrl)"
+                                         alt="@pkg.destination">
+
+                                    <div class="price-badge">
+                                        $@pkg.sum
+                                    </div>
+                                </div>
+
+                                <div class="card-body">
+                                    <h5 class="package-title">
+                                        <i class="fa-solid fa-location-dot text-danger me-2"></i>@pkg.destination
+                                    </h5>
+
+                                    <div class="package-dates">
+                                        <i class="fa-regular fa-calendar"></i>
+                                        <span>
+                                            @pkg.StartDate.ToString("dd/MM/yyyy") - @pkg.EndDate.ToString("dd/MM/yyyy")
+                                        </span>
+                                    </div>
+
+                                    <!-- ✅ countdown like MyTrips (optional but added) -->
+                                    <div class="text-muted small mb-3">
+                                        <i class="bi bi-hourglass-split"></i>
+                                        <span class="trip-countdown" data-start="@pkg.StartDate.ToString("yyyy-MM-dd")"></span>
+                                    </div>
+
+                                    <a asp-controller="Package" asp-action="PackageDetails" asp-route-id="@pkg.Id"
+                                       class="btn btn-manage mb-2">
+                                        <i class="fa-solid fa-circle-info me-2"></i> View Details
+                                    </a>
+
+                                    <a asp-controller="Package" asp-action="ViewTravelers" asp-route-id="@pkg.Id"
+                                       class="btn btn-manage">
+                                        <i class="fa-solid fa-users me-2"></i> Travelers List
+                                    </a>
+
+                                </div>
                             </div>
                         </div>
+                    }
 
-                        <div class="card-body">
-                            <h5 class="package-title">
-                                <i class="fa-solid fa-location-dot text-danger me-2"></i>@pkg.destination
-                            </h5>
-
-                            <div class="package-dates">
-                                <i class="fa-regular fa-calendar"></i>
-                                <span>
-                                    @pkg.StartDate.ToString("dd/MM/yyyy") - @pkg.EndDate.ToString("dd/MM/yyyy")
-                                </span>
-                            </div>
-
-                            <p class="package-desc">
-                                @(string.IsNullOrEmpty(pkg.information) ? "No description available." : pkg.information)
-                            </p>
-
-                            <a asp-controller="Package" asp-action="PackageDetails" asp-route-id="@pkg.Id" 
-                               class="btn btn-manage mb-2">
-                                <i class="fa-solid fa-gear me-2"></i> Manage Details
-                            </a>
-
-                            <a asp-controller="Package" asp-action="ViewTravelers" asp-route-id="@pkg.Id" 
-                               class="btn btn-manage" style="background-color: #17a2b8;">
-                                <i class="fa-solid fa-users me-2"></i> Travelers List
-                            </a>
-                        </div>
-                    </div>
+                    @if (!Model.Any(p => p.StartDate.Date >= DateTime.Today))
+                    {
+                        <div class="text-center w-100 text-muted p-4">No upcoming assigned trips.</div>
+                    }
                 </div>
-            }
+            </div>
+
+            <div class="tab-pane fade @(showHistory ? "show active" : "")" id="emp-history">
+                <div class="row g-4">
+                    @foreach (var pkg in Model.Where(p => p.StartDate.Date < DateTime.Today))
+                    {
+                        <div class="col-lg-4 col-md-6">
+                            <div class="manage-card">
+
+                                <div class="card-img-wrapper">
+                                    <img src="@(string.IsNullOrEmpty(pkg.ImageUrl) ? "/images/default.jpg" : pkg.ImageUrl)"
+                                         alt="@pkg.destination">
+
+                                    <div class="price-badge">
+                                        $@pkg.sum
+                                    </div>
+                                </div>
+
+                                <div class="card-body">
+                                    <h5 class="package-title">
+                                        <i class="fa-solid fa-location-dot text-danger me-2"></i>@pkg.destination
+                                    </h5>
+
+                                    <div class="package-dates">
+                                        <i class="fa-regular fa-calendar"></i>
+                                        <span>
+                                            @pkg.StartDate.ToString("dd/MM/yyyy") - @pkg.EndDate.ToString("dd/MM/yyyy")
+                                        </span>
+                                    </div>
+
+                                    <a asp-controller="Package" asp-action="PackageDetails" asp-route-id="@pkg.Id"
+                                       class="btn btn-manage mb-2">
+                                        <i class="fa-solid fa-circle-info me-2"></i> View Details
+                                    </a>
+
+                                    <a asp-controller="Package" asp-action="ViewTravelers" asp-route-id="@pkg.Id"
+                                       class="btn btn-manage">
+                                        <i class="fa-solid fa-users me-2"></i> Travelers List
+                                    </a>
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!Model.Any(p => p.StartDate.Date < DateTime.Today))
+                    {
+                        <div class="text-center w-100 text-muted p-4">No past assigned trips.</div>
+                    }
+                </div>
+            </div>
+
         </div>
     }
+
 </div>
+
+<script>
+    (function () {
+        function pad(n){ return n.toString().padStart(2,'0'); }
+
+        function tick() {
+            document.querySelectorAll('.trip-countdown').forEach(el => {
+                const d = el.getAttribute('data-start'); // yyyy-MM-dd
+                if(!d) return;
+
+                // Start at 08:00 local time
+                const target = new Date(d + 'T08:00:00');
+                const now = new Date();
+                let diff = target - now;
+
+                if (diff <= 0) {
+                    el.textContent = 'Started';
+                    return;
+                }
+
+                const totalSec = Math.floor(diff / 1000);
+                const days = Math.floor(totalSec / 86400);
+                const hours = Math.floor((totalSec % 86400) / 3600);
+                const mins = Math.floor((totalSec % 3600) / 60);
+                const secs = totalSec % 60;
+
+                el.textContent = `Starts in: ${days}d ${pad(hours)}:${pad(mins)}:${pad(secs)}`;
+            });
+        }
+
+        tick();
+        setInterval(tick, 1000);
+    })();
+</script>
