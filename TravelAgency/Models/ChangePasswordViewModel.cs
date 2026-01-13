@@ -10,12 +10,14 @@ namespace TravelAgency.Models
         public string CurrentPassword { get; set; }
 
         [Required(ErrorMessage = "New password is required")]
-        [StringLength(12, MinimumLength = 8, ErrorMessage = "Password must be 8–12 characters")]
+        [StringLength(12, MinimumLength = 8,
+            ErrorMessage = "Password requirements: 8–12 characters, at least 1 uppercase letter, and at least 1 digit.")]
         [RegularExpression("^(?=.*[A-Z])(?=.*[0-9]).+$",
-            ErrorMessage = "Password must contain at least one uppercase letter and one digit")]
+            ErrorMessage = "Password requirements: 8–12 characters, at least 1 uppercase letter, and at least 1 digit.")]
         [DataType(DataType.Password)]
         [Display(Name = "New Password")]
         public string NewPassword { get; set; }
+
 
         [Required(ErrorMessage = "Please confirm the new password")]
         [DataType(DataType.Password)]

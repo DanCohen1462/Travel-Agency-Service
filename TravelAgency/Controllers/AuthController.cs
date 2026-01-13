@@ -253,9 +253,10 @@ public class AuthController : Controller
             }
         }
 
-        ViewBag.Success = "Password changed successfully.";
-        return View(new ChangePasswordViewModel());
+        TempData["Success"] = "Password changed successfully!";
+        return RedirectToAction("Profile", "Users");
     }
+
     
     
     
