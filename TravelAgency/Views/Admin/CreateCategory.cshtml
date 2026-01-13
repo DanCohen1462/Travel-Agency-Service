@@ -1,17 +1,98 @@
 @model Category
 
-<h2>Create Category</h2>
+@{
+    Layout = "_Layout";
+}
 
-<form method="post" class="mt-3">
+<style>
+    body { background-color: #f0f2f5; }
+    
+    /* Header Style - Matching "My Journeys" */
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
 
-    <div class="mb-3">
-        <label class="form-label fw-bold">Name</label>
-        <input asp-for="name" class="form-control" />
-        <span asp-validation-for="name" class="text-danger"></span>
+    /* Form Card Container */
+    .form-card {
+        background: #fff; border: none; border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 2.5rem;
+    }
+
+    /* Input Styling */
+    .form-label { color: #2c3e50; font-weight: 700; margin-bottom: 0.75rem; }
+    
+    .form-control-custom {
+        border-radius: 12px; border: 2px solid #eef2f7;
+        padding: 12px 15px; transition: all 0.3s;
+        background-color: #f8f9fa;
+    }
+    .form-control-custom:focus {
+        border-color: #1C6DD0; background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(28, 109, 208, 0.1);
+    }
+
+    /* Create Button Style */
+    .btn-create-category {
+        background: #00C9A7; color: #fff !important;
+        border-radius: 50px; padding: 12px 30px; font-weight: 700;
+        border: none; transition: all 0.3s; width: 100%;
+        margin-top: 1rem;
+    }
+    .btn-create-category:hover { 
+        background: #00b899; transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 201, 167, 0.3);
+    }
+
+    .btn-cancel {
+        color: #6c757d; text-decoration: none; font-weight: 600;
+        display: block; text-align: center; margin-top: 1.5rem;
+    }
+    .btn-cancel:hover { color: #2c3e50; }
+</style>
+
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">New Category</h1>
+        <p class="opacity-75 lead">Define a new travel category for your agency</p>
     </div>
+</div>
 
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            
+            <div class="form-card">
+                <div class="text-center mb-4">
+                    <div class="bg-light d-inline-block p-3 rounded-circle mb-3">
+                        <i class="fa-solid fa-folder-plus fa-2x text-primary"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark">Category Details</h4>
+                </div>
 
+                <form method="post">
+                    <div class="mb-4">
+                        <label asp-for="name" class="form-label">Category Name</label>
+                        <input asp-for="name" class="form-control form-control-custom" placeholder="e.g., Adventure, Luxury, Family" />
+                        <span asp-validation-for="name" class="text-danger small mt-1 d-block"></span>
+                    </div>
 
-    <button class="btn btn-success">Create</button>
+                    <button type="submit" class="btn btn-create-category">
+                        <i class="fa-solid fa-plus me-2"></i>Create Category
+                    </button>
 
-</form>
+                    <a href="/Admin/CategoryIndex" class="btn btn-cancel">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Back to List
+                    </a>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -5,198 +5,206 @@
     Layout = "_Layout";
 }
 
-<div class="container mt-5">
-    <div class="col-md-8 mx-auto">
+<style>
+    body { background-color: #f0f2f5; }
+    
+    /* Header Style - Matching "My Journeys" */
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
 
-        <div class="card shadow-lg" style="border-radius: 18px;">
-            <div class="card-header bg-warning text-white" style="border-radius: 18px 18px 0 0;">
-                <h3 class="py-2">Edit Package</h3>
-            </div>
+    /* Form Card Container */
+    .form-card {
+        background: #fff; border: none; border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 2.5rem; margin-bottom: 3rem;
+    }
 
-            <div class="card-body p-4">
+    /* Section Titles */
+    .section-title {
+        font-weight: 700; color: #1C6DD0; font-size: 0.9rem;
+        text-transform: uppercase; letter-spacing: 1px;
+        margin-bottom: 1.5rem; border-bottom: 2px solid #f0f2f5;
+        padding-bottom: 5px; display: inline-block;
+    }
 
-                <form method="post"
-                      asp-action="EditPackage"
-                      enctype="multipart/form-data">
-                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+    /* Input Styling from Model */
+    .form-label { color: #2c3e50; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.95rem; }
+    
+    .form-control-custom, .form-select-custom {
+        border-radius: 12px; border: 2px solid #eef2f7;
+        padding: 10px 15px; transition: all 0.3s;
+        background-color: #f8f9fa;
+    }
+    .form-control-custom:focus, .form-select-custom:focus {
+        border-color: #1C6DD0; background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(28, 109, 208, 0.1); outline: none;
+    }
 
+    /* Save Changes Button (Pill style) */
+    .btn-save-package {
+        background: #5A189A; color: #fff !important;
+        border-radius: 50px; padding: 14px; font-weight: 700;
+        border: none; transition: all 0.3s; font-size: 1.1rem;
+    }
+    .btn-save-package:hover { 
+        background: #4B147F; transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(90, 24, 154, 0.3);
+    }
+
+    /* Image Management */
+    .img-edit-box {
+        position: relative; border-radius: 12px; overflow: hidden;
+        border: 1px solid #eee; transition: 0.3s;
+    }
+    .img-edit-box:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .btn-delete-img {
+        position: absolute; top: 5px; right: 5px;
+        background: rgba(220, 53, 69, 0.9); border: none;
+        color: white; border-radius: 50%; width: 28px; height: 28px;
+        display: flex; align-items: center; justify-content: center;
+        transition: 0.2s;
+    }
+    .btn-delete-img:hover { background: #dc3545; transform: scale(1.1); }
+</style>
+
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">Edit Package</h1>
+        <p class="opacity-75 lead">Update details and refine your @Model.destination experience</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            
+            <div class="form-card">
+                <form method="post" asp-action="EditPackage" enctype="multipart/form-data">
+                    <div asp-validation-summary="All" class="text-danger small mb-3"></div>
                     <input type="hidden" name="Id" value="@Model.Id" />
 
-                    <!-- Destination -->
-                    <div class="mb-3">
-                       
-                        <label class="form-label fw-bold">Destination</label>
-                        <input name="destination"
-                               class="form-control"
-                               value="@Model.destination"
-                               required/>
-                        <span asp-validation-for="destination" class="text-danger"></span>
-
-                    </div>
-
-                    <!-- Country -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Country</label>
-                        <input name="country"
-                               class="form-control"
-                               value="@Model.country" />
-                        <span asp-validation-for="country" class="text-danger"></span>
-
-                    </div>
-
-                    <!-- Dates -->
                     <div class="row">
-                        <div class="col">
-                            <label class="form-label fw-bold">Start Date</label>
-                            <input type="date"
-                                   name="StartDate"
-                                   class="form-control"
-                                   value="@Model.StartDate.ToString("yyyy-MM-dd")"
-                                   required />
-                            <span asp-validation-for="StartDate" class="text-danger"></span>
-
+                        <div class="col-12"><span class="section-title">Core Information</span></div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Destination</label>
+                            <input name="destination" class="form-control form-control-custom" value="@Model.destination" required />
+                            <span asp-validation-for="destination" class="text-danger small"></span>
                         </div>
-
-                        <div class="col">
-                            <label class="form-label fw-bold">End Date</label>
-                            <input type="date"
-                                   name="EndDate"
-                                   class="form-control"
-                                   value="@Model.EndDate.ToString("yyyy-MM-dd")"
-                                   required />
-                            <span asp-validation-for="EndDate" class="text-danger"></span>
-
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Country</label>
+                            <input name="country" class="form-control form-control-custom" value="@Model.country" />
+                            <span asp-validation-for="country" class="text-danger small"></span>
                         </div>
                     </div>
 
-                    <!-- Price -->
-                    <div class="mb-3 mt-3">
-                        <label class="form-label fw-bold">Price ($)</label>
-                        <input name="sum"
-                               type="number"
-                               class="form-control"
-                               value="@Model.sum"
-                               required />
-                        <span asp-validation-for="sum" class="text-danger"></span>
-
+                    <div class="row mt-3">
+                        <div class="col-12"><span class="section-title">Logistics</span></div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" name="StartDate" class="form-control form-control-custom" value="@Model.StartDate.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="EndDate" class="form-control form-control-custom" value="@Model.EndDate.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Category</label>
+                            <select name="idCategory" class="form-select form-select-custom" required>
+                                @foreach (var cat in ViewBag.Categories)
+                                {
+                                    <option value="@cat.Id" selected="@(cat.Id == Model.idCategory)">@cat.name</option>
+                                }
+                            </select>
+                        </div>
                     </div>
 
-                    <!-- Age Limit -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Age Limit</label>
-                        <input name="ageLimit"
-                               type="number"
-                               class="form-control"
-                               value="@Model.ageLimit"
-                               required />
-                        <span asp-validation-for="ageLimit" class="text-danger"></span>
-
+                    <div class="row mt-3">
+                        <div class="col-12"><span class="section-title">Sales & Policy</span></div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Price ($)</label>
+                            <input name="sum" type="number" class="form-control form-control-custom" value="@Model.sum" required />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Age Limit</label>
+                            <input name="ageLimit" type="number" class="form-control form-control-custom" value="@Model.ageLimit" required />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Spots</label>
+                            <input name="numFreePlaces" type="number" class="form-control form-control-custom" value="@Model.numFreePlaces" required />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Cancel (Days)</label>
+                            <input name="cancelationDays" type="number" class="form-control form-control-custom" value="@Model.cancelationDays" />
+                        </div>
                     </div>
 
-                    <!-- Free Places -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Available Spots</label>
-                        <input name="numFreePlaces"
-                               type="number"
-                               class="form-control"
-                               value="@Model.numFreePlaces"
-                               required />
-                        <span asp-validation-for="numFreePlaces" class="text-danger"></span>
-
-                    </div>
-
-                    <!-- Cancellation Days -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Cancellation Days</label>
-                        <input name="cancelationDays"
-                               type="number"
-                               class="form-control"
-                               value="@Model.cancelationDays" />
-                        <span asp-validation-for="cancelationDays" class="text-danger"></span>
-
-                    </div>
-
-                    <!-- Category -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Category</label>
-                        <select name="idCategory"
-                                class="form-select"
-                                required>
-                            @foreach (var cat in ViewBag.Categories)
-                            {
-                                <option value="@cat.Id"
-                                        selected="@(cat.Id == Model.idCategory)">
-                                    @cat.name
-                                </option>
-                            }
-                        </select>
-                        <span asp-validation-for="idCategory" class="text-danger"></span>
-
-                    </div>
-
-                    <!-- Existing Images -->
-                    @if (ViewBag.Images != null)
-                    {
-                        <div class="row mt-4">
-                            @foreach (var img in (List<ImagePackage>)ViewBag.Images)
-                            {
-                                <div class="col-md-3 text-center mb-3">
-                                    <img src="@img.ImageLocation"
-                                         class="img-fluid rounded"
-                                         style="height:120px;object-fit:cover;" />
-
-                                    <button type="button"
-                                            class="btn btn-danger btn-sm mt-2"
-                                            onclick="deleteImage(@img.Id, @Model.Id)">
-                                        Delete
-                                    </button>
+                    <div class="row mt-3">
+                        <div class="col-12"><span class="section-title">Gallery Management</span></div>
+                        
+                        @if (ViewBag.Images != null)
+                        {
+                            <div class="col-12 mb-3">
+                                <label class="form-label d-block">Current Gallery</label>
+                                <div class="row g-2">
+                                    @foreach (var img in (List<ImagePackage>)ViewBag.Images)
+                                    {
+                                        <div class="col-6 col-md-3">
+                                            <div class="img-edit-box">
+                                                <img src="@img.ImageLocation" class="w-100" style="height:100px;object-fit:cover;" />
+                                                <button type="button" class="btn-delete-img" onclick="deleteImage(@img.Id, @Model.Id)">
+                                                    <i class="fa-solid fa-xmark"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
-                            }
+                            </div>
+                        }
+
+                        <div class="col-12 mb-4">
+                            <label class="form-label">Add More Images</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                                <input type="file" name="images" multiple class="form-control form-control-custom" />
+                            </div>
                         </div>
-                    }
-
-                    <!-- Upload Images -->
-                    <div class="mb-3 mt-3">
-                        <label class="form-label fw-bold">Upload Images</label>
-                        <input type="file"
-                               name="images"
-                               multiple
-                               class="form-control" />
                     </div>
 
-                    <!-- Description -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Description</label>
-                        <textarea name="information"
-                                  class="form-control"
-                                  rows="3">@Model.information</textarea>
-                        <span asp-validation-for="information" class="text-danger"></span>
-
+                    <div class="mb-4">
+                        <label class="form-label">Description</label>
+                        <textarea name="information" class="form-control form-control-custom" rows="4">@Model.information</textarea>
                     </div>
 
-                    <button class="btn btn-warning text-white w-100 fw-bold">
-                        Save Changes
-                    </button>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-8">
+                            <button type="submit" class="btn btn-save-package w-100">
+                                <i class="fa-solid fa-check-double me-2"></i>Save All Changes
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="/Admin/PackageDetails/@Model.Id" class="btn btn-outline-secondary w-100 py-3 rounded-pill fw-bold">
+                                Back to Details
+                            </a>
+                        </div>
+                    </div>
 
                 </form>
-
             </div>
         </div>
-
-        <a href="/Admin/PackageDetails/@Model.Id"
-           class="btn btn-secondary mt-3 mb-5">
-            Back
-        </a>
-
     </div>
 </div>
 
 <script>
     function deleteImage(imageId, packageId) {
-        fetch('/Admin/DeleteImage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `imageId=${imageId}&packageId=${packageId}`
-        }).then(() => location.reload());
+        if(confirm('Are you sure you want to delete this image?')) {
+            fetch('/Admin/DeleteImage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `imageId=${imageId}&packageId=${packageId}`
+            }).then(() => location.reload());
+        }
     }
 </script>

@@ -1,252 +1,279 @@
 @model TravelAgency.Models.Package;
 @using TravelAgency.Models
 
-
 @{
     Layout = "_Layout";
     var guide = ViewBag.Guide as User;
     string category = ViewBag.Category;
 }
 
-<div class="container mt-4">
+<style>
+    body { background-color: #f0f2f5; }
 
-    <div class="card shadow-lg mb-4" style="border-radius: 18px;">
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .details-card {
+        background: #fff; border: none; border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden;
+        margin-bottom: 3rem;
+    }
+
+    .carousel-item img {
+        height: 450px; object-fit: cover;
+    }
+
+    .info-section { padding: 2.5rem; }
+
+    .package-title { font-weight: 800; color: #2c3e50; font-size: 2.5rem; }
+
+    .meta-badge {
+        padding: 8px 16px; border-radius: 50px; font-weight: 700; font-size: 0.85rem;
+    }
+
+    .stat-box {
+        background: #f8f9fa; border-radius: 15px; padding: 1.5rem;
+        border: 1px solid #eef2f7; height: 100%;
+    }
+
+    .nav-pills-custom .nav-link {
+        color: #6c757d; font-weight: 700; border-radius: 50px; padding: 10px 20px;
+        transition: 0.3s; margin-right: 10px;
+    }
+
+    .nav-pills-custom .nav-link.active {
+        background-color: #1C6DD0; color: white; box-shadow: 0 4px 10px rgba(28, 109, 208, 0.2);
+    }
+
+    .btn-brand-purple {
+        background: #5A189A; color: #fff !important; border-radius: 50px;
+        padding: 10px 20px; font-weight: 700; border: none;
+    }
+    
+    .btn-brand-purple:hover { background: #4B147F; transform: translateY(-2px); }
+
+    .participant-list-item {
+        border: none; background: #f8f9fa; margin-bottom: 8px; border-radius: 12px;
+        padding: 15px 20px;
+    }
+</style>
+
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">Package Insights</h1>
+        <p class="opacity-75 lead">Detailed overview and management for @Model.destination</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="details-card">
         <div class="row g-0">
-
-            <!-- תמונה -->
-            @if (ViewBag.Images != null && ((List<string>)ViewBag.Images).Count > 0)
-            {
-                var imgs = (List<string>)ViewBag.Images;
-                <div id="packageCarousel" class="carousel slide" data-bs-ride="carousel">
-        
-                    <div class="carousel-inner">
-                        @for (int i = 0; i < imgs.Count; i++)
-                        {
-                            <div class="carousel-item @(i == 0 ? "active" : "")">
-                                <img src="@imgs[i]" class="d-block w-100" style="height:350px; object-fit:cover;">
-                            </div>
-                        }
-                    </div>
-
-                    <button class="carousel-control-prev" type="button" data-bs-target="#packageCarousel" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon"></span>
-                    </button>
-
-                    <button class="carousel-control-next" type="button" data-bs-target="#packageCarousel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon"></span>
-                    </button>
-                </div>
-            }
-            else
-            {
-                <img src="https://via.placeholder.com/600x350?text=No+Images" class="img-fluid rounded">
-            }
-
-
-            <!-- מידע -->
-            <div class="col-md-7">
-                <div class="card-body p-4">
-
-                    <h2 class="fw-bold mb-3">@Model.destination</h2>
-                    <p><strong>Country:</strong> @Model.country</p>
-
-                    <span class="badge bg-primary me-2">@category</span>
-
-                    @if (guide != null)
-                    {
-                        <span class="badge bg-success">Guide: @guide.firstName @guide.lastName</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-danger">No guide assigned</span>
-                    }
-
-                    <hr class="my-4">
-
-                    <p><strong>Dates:</strong> 
-                        @Model.StartDate.ToShortDateString() – @Model.EndDate.ToShortDateString()
-                    </p>
-
-                    <p><strong>Price:</strong> $@Model.sum</p>
-                    <p><strong>Age Limit:</strong> @Model.ageLimit+</p>
-                    <p><strong>Free Spots:</strong> @Model.numFreePlaces</p>
-                    <div class="alert alert-info mt-3">
-                        <strong>Total Registered:</strong> @ViewBag.RegisteredCount <br />
-                        <strong>Remaining Places:</strong> @ViewBag.RemainingPlaces
-                    </div>
-
-                    <hr class="my-4">
-
-                    <h5>Description</h5>
-                    <p class="text-muted">@Model.information</p>
-
-                    <div class="d-flex justify-content-between mt-4">
-
-                        <a href="/Admin/AssignGuide" class="btn btn-outline-primary">
-                            Change Guide
-                        </a>
-
-                        <form method="post" action="/Admin/DeletePackage">
-                            <input type="hidden" name="id" value="@Model.Id" />
-                            <button class="btn btn-danger"
-                                    onclick="return confirm('Delete this package?');">
-                                Delete Package
-                            </button>
-                        </form>
-                        <form method="get" action="/Admin/DuplicatePackage">
-                            <input type="hidden" name="id" value="@Model.Id" />
-                            <button class="btn btn-warning"
-                                    onclick="return confirm('Duplicate this package?');">
-                                Duplicate Package
-                            </button>
-                        </form>
-
-                        
-                        <a href="/Admin/EditPackage/@Model.Id" class="btn btn-warning text-white">
-                            Edit Package
-                        </a>
-                        <button class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#addDiscountModal">
-                            Add Discount
+            <div class="col-12">
+                @if (ViewBag.Images != null && ((List<string>)ViewBag.Images).Count > 0)
+                {
+                    var imgs = (List<string>)ViewBag.Images;
+                    <div id="packageCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            @for (int i = 0; i < imgs.Count; i++)
+                            {
+                                <div class="carousel-item @(i == 0 ? "active" : "")">
+                                    <img src="@imgs[i]" class="d-block w-100">
+                                </div>
+                            }
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#packageCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
                         </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#packageCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                    </div>
+                }
+            </div>
 
+            <div class="col-12 info-section">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-primary meta-badge text-uppercase">@category</span>
+                            @if (guide != null)
+                            {
+                                <span class="badge bg-success meta-badge">
+                                    <i class="fa-solid fa-user-tie me-1"></i> @guide.firstName @guide.lastName
+                                </span>
+                            }
+                        </div>
+                        <h2 class="package-title mb-1">@Model.destination</h2>
+                        <p class="text-muted fs-5"><i class="fa-solid fa-location-dot me-2"></i>@Model.country</p>
 
+                        <div class="mt-4">
+                            <h5 class="fw-bold text-dark">About this Journey</h5>
+                            <p class="text-muted lead" style="font-size: 1rem; line-height: 1.8;">@Model.information</p>
+                        </div>
                     </div>
 
+                    <div class="col-lg-4">
+                        <div class="stat-box">
+                            <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                                <span class="text-muted fw-600">Price</span>
+                                <span class="fw-bold text-primary fs-5">$@Model.sum</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                                <span class="text-muted">Dates</span>
+                                <span class="fw-bold">@Model.StartDate.ToShortDateString() - @Model.EndDate.ToShortDateString()</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                                <span class="text-muted">Age Limit</span>
+                                <span class="fw-bold">@Model.ageLimit+</span>
+                            </div>
+                            <div class="alert alert-primary border-0 mb-0 mt-4" style="border-radius: 12px;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="d-block opacity-75">Free Spots</small>
+                                        <h4 class="fw-bold mb-0">@ViewBag.RemainingPlaces</h4>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="d-block opacity-75">Registered</small>
+                                        <h4 class="fw-bold mb-0">@ViewBag.RegisteredCount</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-4 border-top">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="/Admin/EditPackage/@Model.Id" class="btn btn-brand-purple px-4">
+                            <i class="fa-solid fa-pen-to-square me-2"></i>Edit
+                        </a>
+                        <button class="btn btn-info text-white rounded-pill fw-bold px-4" data-bs-toggle="modal" data-bs-target="#addDiscountModal">
+                            <i class="fa-solid fa-tag me-2"></i>Add Discount
+                        </button>
+                        <a href="/Admin/AssignGuide" class="btn btn-outline-primary rounded-pill fw-bold px-4">
+                            <i class="fa-solid fa-user-plus me-2"></i>Change Guide
+                        </a>
+                        
+                        <form method="get" action="/Admin/DuplicatePackage" class="d-inline">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button class="btn btn-outline-warning rounded-pill fw-bold px-4" onclick="return confirm('Duplicate this package?');">
+                                <i class="fa-solid fa-copy me-2"></i>Duplicate
+                            </button>
+                        </form>
+
+                        <form method="post" action="/Admin/DeletePackage" class="ms-auto">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button class="btn btn-outline-danger rounded-pill fw-bold px-4" onclick="return confirm('Delete this package?');">
+                                <i class="fa-solid fa-trash-can me-2"></i>Delete
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
-            <hr class="my-4" />
 
-          <!-- Tabs Navigation -->
-        <ul class="nav nav-tabs mt-4" id="participantTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="registered-tab" data-bs-toggle="tab" data-bs-target="#registered" type="button" role="tab">
-                    Registered Participants
-                </button>
-            </li>
+            <div class="col-12 bg-light p-5 border-top">
+                <ul class="nav nav-pills nav-pills-custom mb-4" id="participantTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#registered">Registered Participants</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#waiting">Waiting List</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#waitingListCart">Waiting List Cart</button>
+                    </li>
+                </ul>
 
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="waiting-tab" data-bs-toggle="tab" data-bs-target="#waiting" type="button" role="tab">
-                    Waiting List
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="waitingListCart-tab" data-bs-toggle="tab" data-bs-target="#waitingListCart" type="button" role="tab">
-                    Waiting List cart
-                </button>
-            </li>
-        </ul>
-
-        <!-- Tabs Content -->
-        <div class="tab-content mt-3" id="participantTabsContent">
-
-            <!-- Registered participants -->
-            <div class="tab-pane fade show active" id="registered" role="tabpanel">
-
-                @if (ViewBag.Registered == null || (ViewBag.Registered).Count == 0)
-                {
-                    <p class="text-muted">No participants registered yet.</p>
-                }
-                else
-                {
-                    <ul class="list-group">
-                        @foreach (var u in ViewBag.Registered)
+                <div class="tab-content" id="participantTabsContent">
+                    <div class="tab-pane fade show active" id="registered">
+                        @if (ViewBag.Registered == null || (ViewBag.Registered).Count == 0)
                         {
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>
-                                    <strong>@u.firstName @u.lastName -- amount: @u.numPersons </strong><br />
-                                    <small class="text-muted">@u.email</small>
-                                </span>
-                                
-                            </li>
+                            <div class="text-center py-4 text-muted"><i class="fa-solid fa-users-slash mb-2 fs-3 d-block"></i>No participants registered yet.</div>
                         }
-                    </ul>
-                }
-            </div>
-
-            <!-- Waiting List -->
-            <div class="tab-pane fade" id="waiting" role="tabpanel">
-                @if (ViewBag.WaitingList != null && ViewBag.WaitingList.Count > 0)
-                {
-                    <ul class="list-group">
-                        @foreach (var user in ViewBag.WaitingList)
+                        else
                         {
-                            <li class="list-group-item">
-                                @user.firstName @user.lastName – @user.email - amount: @user.numPersons
-                            </li>
+                            @foreach (var u in ViewBag.Registered)
+                            {
+                                <div class="participant-list-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="fw-bold mb-0">@u.firstName @u.lastName</h6>
+                                        <small class="text-muted">@u.email</small>
+                                    </div>
+                                    <span class="badge bg-white text-primary border px-3 py-2 rounded-pill fw-bold">Amount: @u.numPersons</span>
+                                </div>
+                            }
                         }
-                    </ul>
-                }
-                else
-                {
-                    <p class="text-muted">No users are currently on the waiting list.</p>
-                }
-            </div>
-            <div class="tab-pane fade" id="waitingListCart" role="tabpanel">
-                @if (ViewBag.WaitingList2 != null && ViewBag.WaitingList2.Count > 0)
-                {
-                    <ul class="list-group">
-                        @foreach (var user in ViewBag.WaitingList2)
+                    </div>
+
+                    <div class="tab-pane fade" id="waiting">
+                        @if (ViewBag.WaitingList != null && ViewBag.WaitingList.Count > 0)
                         {
-                            <li class="list-group-item">
-                                @user.firstName @user.lastName – @user.email - amount: @user.numPersons
-                            </li>
+                            @foreach (var user in ViewBag.WaitingList)
+                            {
+                                <div class="participant-list-item">
+                                    <h6 class="fw-bold mb-0">@user.firstName @user.lastName</h6>
+                                    <small class="text-muted">@user.email • Guests: @user.numPersons</small>
+                                </div>
+                            }
                         }
-                    </ul>
-                }
-                else
-                {
-                    <p class="text-muted">No users are currently on the waiting list.</p>
-                }
+                        else { <p class="text-muted text-center py-4">Waiting list is currently empty.</p> }
+                    </div>
+
+                    <div class="tab-pane fade" id="waitingListCart">
+                         @if (ViewBag.WaitingList2 != null && ViewBag.WaitingList2.Count > 0)
+                        {
+                            @foreach (var user in ViewBag.WaitingList2)
+                            {
+                                <div class="participant-list-item">
+                                    <h6 class="fw-bold mb-0">@user.firstName @user.lastName</h6>
+                                    <small class="text-muted">@user.email • Guests: @user.numPersons</small>
+                                </div>
+                            }
+                        }
+                        else { <p class="text-muted text-center py-4">No cart waiting list entries found.</p> }
+                    </div>
+                </div>
             </div>
-
-        </div>
-
-
-
         </div>
     </div>
 
-    <a href="/Admin/Packages" class="btn btn-secondary mb-5">Back to Packages</a>
+    <a href="/Admin/Packages" class="btn btn-link text-decoration-none text-muted mb-5">
+        <i class="fa-solid fa-arrow-left me-2"></i>Back to Packages
+    </a>
 </div>
-<!-- Modal: Add Discount -->
+
 <div class="modal fade" id="addDiscountModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; overflow: hidden; border: none;">
             <form method="post" action="/Admin/AddDiscount">
-
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Discount to Package</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #1C6DD0, #5A189A);">
+                    <h5 class="modal-title fw-bold">Special Discount</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-
-                <div class="modal-body">
-
+                <div class="modal-body p-4">
                     <input type="hidden" name="packageId" value="@Model.Id" />
-
                     <div class="mb-3">
-                        <label class="form-label">Discount %</label>
-                        <input type="number" name="discountPercent" class="form-control" min="1" max="90" required />
+                        <label class="form-label fw-bold">Discount Percentage (%)</label>
+                        <input type="number" name="discountPercent" class="form-control form-control-lg bg-light rounded-3" min="1" max="90" required />
                     </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Start Date</label>
-                        <input type="date" name="startDate" class="form-control" required />
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small">Start Date</label>
+                            <input type="date" name="startDate" class="form-control bg-light" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small">End Date</label>
+                            <input type="date" name="endDate" class="form-control bg-light" required />
+                        </div>
                     </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">End Date</label>
-                        <input type="date" name="endDate" class="form-control" required />
-                    </div>
-
                 </div>
-
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Save Discount</button>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="submit" class="btn btn-save-user w-100">Activate Discount</button>
                 </div>
-
             </form>
-
         </div>
     </div>
 </div>

@@ -1,98 +1,139 @@
 @model TravelAgency.Models.AssignGuideViewModel
 
 @{
-    Layout = "_Layout";  // או _AdminLayout אם יש
+    Layout = "_Layout";
 }
 
-<div class="container mt-5">
+<style>
+    body { background-color: #f0f2f5; }
+    
+    /* Header Style from Model */
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
 
-    <h2 class="mb-4 text-center fw-bold">Assign Guide to Package</h2>
+    /* Card Style from Model */
+    .admin-card {
+        background: #fff; border: none; border-radius: 16px; overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05); height: 100%;
+    }
+    
+    .card-header-custom {
+        padding: 1.25rem; border-bottom: 1px solid #eee;
+        font-weight: 700; color: #2c3e50; font-size: 1.1rem;
+        display: flex; align-items: center; gap: 10px;
+    }
 
-    <div class="row">
+    /* Table Styling */
+    .table { margin-bottom: 0; }
+    .table thead th { 
+        background-color: #f8f9fa; border-top: none; 
+        color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .table td { vertical-align: middle; padding: 1rem 0.75rem; color: #444; }
 
-        <!-- חלק שמאל: מדריכים -->
-        <div class="col-md-5">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Available Guides</h5>
+    /* Buttons from Model */
+    .btn-assign-trigger {
+        background: #5A189A; color: #fff !important;
+        border-radius: 50px; padding: 6px 18px; font-weight: 600;
+        border: none; transition: all 0.3s;
+    }
+    .btn-assign-trigger:hover { background: #4B147F; transform: scale(1.05); }
+
+    .btn-submit-modal {
+        background: #00C9A7; color: #fff !important;
+        border-radius: 50px; padding: 10px; font-weight: 700; border: none;
+    }
+
+    /* Badges */
+    .guide-name { font-weight: 600; color: #1C6DD0; }
+    .package-dest { font-weight: 700; color: #2c3e50; }
+</style>
+
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">Guide Assignment</h1>
+        <p class="opacity-75 lead">Connect available experts with upcoming travel packages</p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-4">
+
+        <div class="col-md-4">
+            <div class="admin-card">
+                <div class="card-header-custom">
+                    <i class="fa-solid fa-user-tie text-primary"></i> Available Guides
                 </div>
-                <div class="card-body">
-
+                <div class="card-body p-0">
                     @if (!Model.Guides.Any())
                     {
-                        <p class="text-muted">No available guides.</p>
+                        <div class="p-4 text-center text-muted">No available guides.</div>
                     }
                     else
                     {
                         <table class="table table-hover">
                             <thead>
-                                <tr>
-                                    <th>Name</th>
-                                </tr>
+                                <tr><th>Full Name</th></tr>
                             </thead>
                             <tbody>
                                 @foreach (var g in Model.Guides)
                                 {
-                                    <tr>
-                                        <td>@g.firstName @g.lastName</td>
-                                    </tr>
+                                    <tr><td class="guide-name">@g.firstName @g.lastName</td></tr>
                                 }
                             </tbody>
                         </table>
                     }
-
                 </div>
             </div>
         </div>
 
-
-        <!-- חלק ימין: חבילות שלא שובצו -->
-        <div class="col-md-7">
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Packages Without Guide</h5>
+        <div class="col-md-8">
+            <div class="admin-card">
+                <div class="card-header-custom">
+                    <i class="fa-solid fa-box-archive text-success"></i> Pending Packages
                 </div>
-                <div class="card-body">
-
+                <div class="card-body p-0">
                     @if (!Model.UnassignedPackages.Any())
                     {
-                        <p class="text-muted">All packages have been assigned.</p>
+                        <div class="p-4 text-center text-muted">All packages have been assigned.</div>
                     }
                     else
                     {
-                        <table class="table table-bordered align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Destination</th>
-                                    <th>Dates</th>
-                                    <th>Assign</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                @foreach (var p in Model.UnassignedPackages)
-                                {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
                                     <tr>
-                                        <td>@p.destination</td>
-                                        <td>
-                                            @p.StartDate.ToShortDateString()
-                                            -
-                                            @p.EndDate.ToShortDateString()
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-outline-primary btn-sm"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#assignModal"
-                                                    data-package-id="@p.Id">
-                                                Assign
-                                            </button>
-                                        </td>
+                                        <th>Destination</th>
+                                        <th>Dates</th>
+                                        <th class="text-center">Action</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in Model.UnassignedPackages)
+                                    {
+                                        <tr>
+                                            <td class="package-dest">@p.destination</td>
+                                            <td class="text-muted small">
+                                                <i class="bi bi-calendar3 me-1"></i>
+                                                @p.StartDate.ToShortDateString() - @p.EndDate.ToShortDateString()
+                                            </td>
+                                            <td class="text-center">
+                                                <button class="btn-assign-trigger"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#assignModal"
+                                                        data-package-id="@p.Id">
+                                                    Assign Guide
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     }
-
                 </div>
             </div>
         </div>
@@ -100,27 +141,25 @@
     </div>
 </div>
 
-<!-- Modal לבחור מדריך -->
 <div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Assign Guide</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-content" style="border-radius: 20px; border: none; overflow: hidden;">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #1C6DD0, #5A189A);">
+                <h5 class="modal-title fw-bold">Assign Professional Guide</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
 
-            <div class="modal-body">
-
+            <div class="modal-body p-4">
                 <form method="post" action="/Admin/AssignGuideToPackage">
                     <input type="hidden" id="modal-package-id" name="packageId" />
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Select a Guide:</label>
+                    <div class="mb-4 text-center">
+                        <i class="fa-solid fa-id-card-clip fa-3x text-light mb-3"></i>
+                        <label class="form-label d-block fw-bold text-secondary">Select the most suitable guide:</label>
            
-                        <select class="form-select" name="guideId" required>
-                            <option disabled selected>Choose guide...</option>
-
+                        <select class="form-select form-select-lg" name="guideId" required 
+                                style="border-radius: 12px; background-color: #f8f9fa;">
+                            <option disabled selected>Choose from list...</option>
                             @foreach (var g in Model.Guides)
                             {
                                 if (g.IsAvailable)
@@ -129,31 +168,28 @@
                                 }
                                 else
                                 {
-                                    <option disabled class="text-muted">
-                                        @g.firstName @g.lastName (Unavailable)
-                                    </option>
+                                    <option disabled>@g.firstName @g.lastName (Unavailable)</option>
                                 }
                             }
                         </select>
-
                     </div>
 
-                    <button class="btn btn-success w-100">Assign</button>
+                    <button class="btn-submit-modal w-100 shadow-sm">
+                        Confirm Assignment
+                    </button>
                 </form>
-
             </div>
-
         </div>
     </div>
 </div>
 
 <script>
-    // כאשר לוחצים Assign על חבילה – מעדכן את modal
     var assignModal = document.getElementById('assignModal');
-
-    assignModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget;
-        var packageId = button.getAttribute('data-package-id');
-        document.getElementById('modal-package-id').value = packageId;
-    });
+    if(assignModal) {
+        assignModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var packageId = button.getAttribute('data-package-id');
+            document.getElementById('modal-package-id').value = packageId;
+        });
+    }
 </script>

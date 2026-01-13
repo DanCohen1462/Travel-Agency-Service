@@ -3,50 +3,126 @@
     Layout = "_Layout";
 }
 
-<div class="container mt-4 col-md-6">
+<style>
+    body { background-color: #f0f2f5; }
+    
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
 
-    <h2>Edit User</h2>
+    .form-card {
+        background: #fff; border: none; border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 2.5rem; margin-bottom: 3rem;
+    }
 
-    <form method="post" action="/Admin/EditUser">
+    .form-label-custom { color: #2c3e50; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.95rem; }
+    
+    .form-control-custom, .form-select-custom {
+        border-radius: 12px; border: 2px solid #eef2f7;
+        padding: 12px 15px; transition: all 0.3s;
+        background-color: #f8f9fa;
+    }
+    .form-control-custom:focus, .form-select-custom:focus {
+        border-color: #1C6DD0; background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(28, 109, 208, 0.1); outline: none;
+    }
 
-        <input type="hidden" name="Id" value="@Model.Id" />
+    .btn-save-user {
+        background: #5A189A; color: #fff !important;
+        border-radius: 50px; padding: 12px 30px; font-weight: 700;
+        border: none; transition: all 0.3s;
+    }
+    .btn-save-user:hover { 
+        background: #4B147F; transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(90, 24, 154, 0.3);
+    }
 
-        <div class="mb-3">
-            <label class="fw-bold">First Name</label>
-            <input class="form-control" name="firstName" value="@Model.firstName" />
+    .btn-cancel-custom {
+        border-radius: 50px; padding: 12px 30px; font-weight: 600;
+        color: #6c757d; border: 2px solid #eef2f7; transition: 0.3s;
+        text-decoration: none; display: inline-block; text-align: center;
+    }
+    .btn-cancel-custom:hover { background-color: #f8f9fa; color: #2c3e50; }
+
+    .user-avatar-placeholder {
+        width: 80px; height: 80px; background: #eef2f7;
+        color: #1C6DD0; border-radius: 50%; display: flex;
+        align-items: center; justify-content: center; margin: 0 auto 1.5rem;
+    }
+</style>
+
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">Edit User Profile</h1>
+        <p class="opacity-75 lead">Manage permissions and personal information for @Model.firstName</p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            
+            <div class="form-card">
+                <div class="user-avatar-placeholder">
+                    <i class="fa-solid fa-user-gear fa-2x"></i>
+                </div>
+
+                <form method="post" action="/Admin/EditUser">
+                    <input type="hidden" name="Id" value="@Model.Id" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label-custom">First Name</label>
+                            <input class="form-control form-control-custom" name="firstName" value="@Model.firstName" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label-custom">Last Name</label>
+                            <input class="form-control form-control-custom" name="lastName" value="@Model.lastName" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-custom">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-envelope text-muted"></i></span>
+                            <input class="form-control form-control-custom" style="border-radius: 0 12px 12px 0;" name="email" value="@Model.email" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-custom">Phone Number</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0" style="border-radius: 12px 0 0 12px;"><i class="fa-solid fa-phone text-muted"></i></span>
+                            <input class="form-control form-control-custom" style="border-radius: 0 12px 12px 0;" name="phoneNumber" value="@Model.phoneNumber" />
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label-custom">Access Level / User Type</label>
+                        <select name="type" class="form-select form-select-custom">
+                            @foreach (var t in (List<Type1>)ViewBag.Types)
+                            {
+                                <option value="@t.Id" selected="@(Model.type == t.Id ? "selected" : null)">
+                                    @t.name
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="d-flex gap-2 pt-2">
+                        <button type="submit" class="btn btn-save-user flex-grow-1">
+                            <i class="fa-solid fa-user-check me-2"></i>Save Settings
+                        </button>
+                        <a href="/Admin/Users" class="btn btn-cancel-custom flex-grow-1">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+
         </div>
-
-        <div class="mb-3">
-            <label class="fw-bold">Last Name</label>
-            <input class="form-control" name="lastName" value="@Model.lastName" />
-        </div>
-
-        <div class="mb-3">
-            <label class="fw-bold">Email</label>
-            <input class="form-control" name="email" value="@Model.email" />
-        </div>
-
-        <div class="mb-3">
-            <label class="fw-bold">Phone Number</label>
-            <input class="form-control" name="phoneNumber" value="@Model.phoneNumber" />
-        </div>
-        <div class="mb-3">
-            <label class="fw-bold">User Type</label>
-
-            <select name="type" class="form-select">
-                @foreach (var t in (List<Type1>)ViewBag.Types)
-                {
-                    <option 
-                        value="@t.Id" 
-                        selected="@(Model.type == t.Id ? "selected" : null)">
-                        @t.name
-                    </option>
-
-                }
-            </select>
-        </div>
-
-        <button class="btn btn-primary">Save</button>
-        <a href="/Admin/Users" class="btn btn-secondary">Cancel</a>
-    </form>
+    </div>
 </div>

@@ -1,56 +1,136 @@
 @model List<Category>
 
-<h2 class="mt-4">Category Management</h2>
+@{
+    Layout = "_Layout";
+}
 
-<a class="btn btn-primary my-3" href="/Admin/CreateCategory">+ Add Category</a>
-
-<table class="table table-bordered">
-    <thead class="table-light">
-    <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th style="width: 200px;">Actions</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    @foreach (var c in Model)
-    {
-        <tr>
-            <td>@c.Id</td>
-            <td>@c.name</td>
-
-            <td>
-                <!-- Edit Button -->
-                <a href="/Admin/EditCategory/@c.Id" class="btn btn-warning btn-sm me-1">Edit</a>
-
-                <!-- Toggle Active / Inactive -->
-                @if (c.inactive == false)
-                {
-                    <!-- Category is active → show DEACTIVATE -->
-                    <form method="post" asp-action="DeleteCategory" class="d-inline">
-                        <input type="hidden" name="id" value="@c.Id" />
-
-                        <button class="btn btn-danger btn-sm"
-                                onclick="return confirm('Are you sure you want to deactivate this category?');">
-                            Deactivate
-                        </button>
-                    </form>
-                }
-                else
-                {
-                    <!-- Category is inactive → show ACTIVATE -->
-                    <form method="post" asp-action="ActiveCategory" class="d-inline">
-                        <input type="hidden" name="id" value="@c.Id" />
-
-                        <button class="btn btn-success btn-sm"
-                                onclick="return confirm('Activate this category?');">
-                            Activate
-                        </button>
-                    </form>
-                }
-            </td>
-        </tr>
+<style>
+    body { background-color: #f0f2f5; }
+    
+    /* Header Style - Matching "My Journeys" */
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
-    </tbody>
-</table>
+
+    /* Admin Card Container */
+    .admin-card {
+        background: #fff; border: none; border-radius: 16px; overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    /* Action Buttons Styles */
+    .btn-add-new {
+        background: #5A189A; color: #fff !important; border-radius: 50px;
+        padding: 10px 25px; font-weight: 700; border: none; transition: 0.3s;
+        text-decoration: none; display: inline-block;
+    }
+    .btn-add-new:hover { background: #4B147F; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(90, 24, 154, 0.3); }
+
+    .btn-edit-custom {
+        background-color: #f1f4f9; color: #1C6DD0; border: none;
+        border-radius: 8px; font-weight: 600; transition: 0.2s;
+    }
+    .btn-edit-custom:hover { background-color: #1C6DD0; color: #fff; }
+
+    /* Table Styling */
+    .table thead th {
+        background-color: #f8f9fa; border: none; color: #6c757d;
+        font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; padding: 1.2rem;
+    }
+    .table td { vertical-align: middle; padding: 1.2rem; border-color: #f1f1f1; }
+
+    /* Badges */
+    .cat-id { font-family: monospace; color: #adb5bd; font-weight: bold; }
+    .cat-name { font-weight: 700; color: #2c3e50; font-size: 1.05rem; }
+    
+    .status-active { background-color: #d1e7dd; color: #0f5132; border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 700; }
+    .status-inactive { background-color: #f8d7da; color: #842029; border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 700; }
+</style>
+
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">Category Management</h1>
+        <p class="opacity-75 lead">Organize and manage your travel package categories</p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold text-dark m-0">System Categories</h4>
+        <a class="btn-add-new" href="/Admin/CreateCategory">
+            <i class="fa-solid fa-plus me-2"></i>Add New Category
+        </a>
+    </div>
+
+    <div class="admin-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Category Name</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        <tr>
+                            <td class="cat-id">#@c.Id.ToString("D3")</td>
+                            <td>
+                                <span class="cat-name">@c.name</span>
+                            </td>
+                            <td>
+                                @if (c.inactive == false)
+                                {
+                                    <span class="status-active">ACTIVE</span>
+                                }
+                                else
+                                {
+                                    <span class="status-inactive">INACTIVE</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a href="/Admin/EditCategory/@c.Id" class="btn btn-edit-custom btn-sm px-3 me-2 text-decoration-none">
+                                    <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+                                </a>
+
+                                @if (c.inactive == false)
+                                {
+                                    <form method="post" asp-action="DeleteCategory" class="d-inline">
+                                        <input type="hidden" name="id" value="@c.Id" />
+                                        <button class="btn btn-outline-danger btn-sm px-3 rounded-pill"
+                                                onclick="return confirm('Are you sure you want to deactivate this category?');">
+                                            Deactivate
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-action="ActiveCategory" class="d-inline">
+                                        <input type="hidden" name="id" value="@c.Id" />
+                                        <button class="btn btn-outline-success btn-sm px-3 rounded-pill"
+                                                onclick="return confirm('Activate this category?');">
+                                            Activate
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5">
+        <i class="fa-solid fa-tags fa-3x text-light mb-3"></i>
+        <h5 class="text-muted">No categories found in the system.</h5>
+    </div>
+}

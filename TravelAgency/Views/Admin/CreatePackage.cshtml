@@ -1,130 +1,174 @@
 @model Package
 
 @{
-    ViewBag.Title = "title";
+    ViewBag.Title = "Create Package";
     Layout = "_Layout";
 }
 
+<style>
+    body { background-color: #f0f2f5; }
+    
+    /* Header Style - Matching "My Journeys" */
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
 
+    /* Form Card Container */
+    .form-card {
+        background: #fff; border: none; border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 2.5rem; margin-bottom: 3rem;
+    }
 
-<div class="container mt-5">
+    /* Section Titles */
+    .section-title {
+        font-weight: 700; color: #1C6DD0; font-size: 0.9rem;
+        text-transform: uppercase; letter-spacing: 1px;
+        margin-bottom: 1.5rem; border-bottom: 2px solid #f0f2f5;
+        padding-bottom: 5px; display: inline-block;
+    }
+
+    /* Input Styling from Model */
+    .form-label { color: #2c3e50; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.95rem; }
+    
+    .form-control-custom, .form-select-custom {
+        border-radius: 12px; border: 2px solid #eef2f7;
+        padding: 10px 15px; transition: all 0.3s;
+        background-color: #f8f9fa;
+    }
+    .form-control-custom:focus, .form-select-custom:focus {
+        border-color: #1C6DD0; background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(28, 109, 208, 0.1); outline: none;
+    }
+
+    /* Button from Model */
+    .btn-create-package {
+        background: #5A189A; color: #fff !important;
+        border-radius: 50px; padding: 14px; font-weight: 700;
+        border: none; transition: all 0.3s; font-size: 1.1rem;
+    }
+    .btn-create-package:hover { 
+        background: #4B147F; transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(90, 24, 154, 0.3);
+    }
+
+    .img-preview-container {
+        border: 2px dashed #dee2e6; border-radius: 12px; padding: 15px; background: #fdfdfd;
+    }
+</style>
+
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">Create Travel Package</h1>
+        <p class="opacity-75 lead">Design a new adventure and bring it to life</p>
+    </div>
+</div>
+
+<div class="container">
     <div class="row justify-content-center">
-        <div class="col-lg-7">
-            <div class="card shadow-lg" style="border-radius: 18px;">
-                <div class="card-header text-center bg-primary text-white" style="border-radius: 18px 18px 0 0;">
-                    <h3 class="py-2">Create New Package</h3>
-                </div>
-
-                <div class="card-body p-4">
-
-                    <form asp-action="CreatePackage" method="post" enctype="multipart/form-data">
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Destination</label>
-                            <span asp-validation-for="destination" class="text-danger"></span>
-                            <input asp-for="destination" class="form-control" placeholder="e.g. Paris, France" required />
+        <div class="col-lg-9">
+            
+            <div class="form-card">
+                <form asp-action="CreatePackage" method="post" enctype="multipart/form-data">
+                    
+                    <div class="row">
+                        <div class="col-12"><span class="section-title">General Details</span></div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Destination</label>
+                            <input asp-for="destination" class="form-control form-control-custom" placeholder="e.g. Paris" required />
+                            <span asp-validation-for="destination" class="text-danger small"></span>
                         </div>
-
-                        <div class="mb-3">
-                            <label class="fw-bold">Country</label>
-                            <span asp-validation-for="country" class="text-danger"></span>
-
-                            <input asp-for="country" class="form-control" />
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Country</label>
+                            <input asp-for="country" class="form-control form-control-custom" placeholder="e.g. France" required />
+                            <span asp-validation-for="country" class="text-danger small"></span>
                         </div>
+                    </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Start Date</label>
-                            <span asp-validation-for="StartDate" class="text-danger"></span>
-                            <input asp-for="StartDate" type="date" class="form-control" required />
+                    <div class="row mt-3">
+                        <div class="col-12"><span class="section-title">Logistics & Dates</span></div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input asp-for="StartDate" type="date" class="form-control form-control-custom" required />
                         </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">End Date</label>
-                            <span asp-validation-for="EndDate" class="text-danger"></span>
-                            <input asp-for="EndDate" type="date" class="form-control" required />
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input asp-for="EndDate" type="date" class="form-control form-control-custom" required />
                         </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Total Price ($)</label>
-                            <span asp-validation-for="sum" class="text-danger"></span>
-                            <input asp-for="sum" type="number" class="form-control" required />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Age Limit</label>
-                            <span asp-validation-for="ageLimit" class="text-danger"></span>
-                            <input asp-for="ageLimit" type="number" class="form-control" required />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Available Spots</label>
-                            <span asp-validation-for="numFreePlaces" class="text-danger"></span>
-                            <input asp-for="numFreePlaces" type="number" class="form-control" required />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Category</label>
-                            <span asp-validation-for="idCategory" class="text-danger"></span>
-                            <select asp-for="idCategory" class="form-select" required>
-                                <option disabled>Select a category...</option>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Category</label>
+                            <select asp-for="idCategory" class="form-select form-select-custom" required>
+                                <option disabled selected>Choose category...</option>
                                 @foreach (var cat in ViewBag.Categories)
                                 {
                                     <option value="@cat.Id">@cat.name</option>
                                 }
                             </select>
                         </div>
+                    </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Upload Images</label>
-                            <input type="file" name="images" class="form-control" accept="image/*" multiple />
+                    <div class="row mt-3">
+                        <div class="col-12"><span class="section-title">Capacity & Pricing</span></div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Price ($)</label>
+                            <input asp-for="sum" type="number" class="form-control form-control-custom" placeholder="0.00" required />
                         </div>
-                        
-                        @if (ViewBag.Images != null && ViewBag.Images.Count > 0)
-                        {
-                            <label class="fw-bold mt-3">Images from original package:</label>
-                            <div class="d-flex flex-wrap gap-2 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Age Limit</label>
+                            <input asp-for="ageLimit" type="number" class="form-control form-control-custom" required />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Available Spots</label>
+                            <input asp-for="numFreePlaces" type="number" class="form-control form-control-custom" required />
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-12"><span class="section-title">Media & Cancellation</span></div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Upload New Images</label>
+                            <input type="file" name="images" class="form-control form-control-custom" accept="image/*" multiple />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Cancel Period (Days)</label>
+                            <input asp-for="cancelationDays" type="number" class="form-control form-control-custom" required />
+                        </div>
+                    </div>
+
+                    @if (ViewBag.Images != null && ViewBag.Images.Count > 0)
+                    {
+                        <div class="img-preview-container mb-4">
+                            <p class="small fw-bold text-muted mb-2">Original Images (Will be duplicated):</p>
+                            <div class="d-flex flex-wrap gap-2">
                                 @foreach (var img in ViewBag.Images)
                                 {
-                                    <img src="@img.ImageLocation"
-                                         style="width:120px;height:80px;object-fit:cover;border-radius:6px;" />
-
-                                    <!-- חשוב! מעביר את התמונה ל-POST -->
-                                    <input type="hidden" name="duplicateImgPaths" value="@img.ImageLocation" />
+                                    <div class="position-relative">
+                                        <img src="@img.ImageLocation" style="width:100px;height:70px;object-fit:cover;border-radius:8px; border: 1px solid #eee;" />
+                                        <input type="hidden" name="duplicateImgPaths" value="@img.ImageLocation" />
+                                    </div>
                                 }
                             </div>
-                        }
-
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Cancellation Day</label>
-                            <span asp-validation-for="cancelationDays" class="text-danger"></span>
-                            <input asp-for="cancelationDays" type="number" class="form-control" required />
                         </div>
+                    }
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Description</label>
-                            <span asp-validation-for="information" class="text-danger"></span>
-                            <textarea asp-for="information" class="form-control" rows="3" required></textarea>
-                        </div>
+                    <div class="mb-4">
+                        <label class="form-label">Full Trip Description</label>
+                        <textarea asp-for="information" class="form-control form-control-custom" rows="4" placeholder="Describe the amazing journey..." required></textarea>
+                    </div>
 
-                        <!-- Submit Button -->
-                        <button class="btn btn-primary w-100 py-2 fw-bold mb-5" style="font-size: 1.1rem;">
-                            Create Package
-                        </button>
+                    <button type="submit" class="btn btn-create-package w-100 shadow-sm mt-2">
+                        <i class="fa-solid fa-paper-plane me-2"></i>Publish Travel Package
+                    </button>
 
-                    </form>
-
-                </div>
+                </form>
             </div>
+
         </div>
     </div>
 </div>
 
-<style>
-    .card {
-        animation: fadeIn 0.4s ease-out;
-    }
-
-
-</style>
-
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

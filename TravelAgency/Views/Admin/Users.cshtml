@@ -1,73 +1,123 @@
-@* @model List<TravelAgency.Models.> *@
+@* @model List<TravelAgency.Models.UserViewModel> *@
 
 @{
     Layout = "_Layout";
 }
 
-<div class="container mt-4">
+<style>
+    body { background-color: #f0f2f5; }
+    
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
 
-    <h2 class="fw-bold mb-4">User Management</h2>
+    .admin-card {
+        background: #fff; border: none; border-radius: 16px; overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
 
-    <table class="table table-bordered table-hover shadow-sm">
-        <thead class="table-dark">
-            <tr>
-                <th>#</th>
-                <th>Full Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th style="width: 200px;">Actions</th>
-            </tr>
-        </thead>
+    .table thead th {
+        background-color: #f8f9fa; border: none; color: #6c757d;
+        font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; padding: 1.2rem;
+    }
 
-        <tbody>
-            @foreach (var u in Model)
-            {
-                <tr>
-                    <td>@u.Id</td>
-                    <td>@u.firstName @u.lastName</td>
-                    <td>@u.email</td>
-                    <td>@u.phoneNumber</td>
+    .table td { vertical-align: middle; padding: 1.2rem; border-color: #f1f1f1; }
 
-                    <td>
-                        <span class="badge bg-primary">@u.typeName</span> 
-                        
-  
-                    </td>
+    .user-name { font-weight: 700; color: #2c3e50; }
+    
+    .badge-type {
+        background-color: rgba(90, 24, 154, 0.1); color: #5A189A;
+        border-radius: 8px; padding: 6px 12px; font-weight: 700; font-size: 0.75rem;
+    }
 
-                    <td>
-                        @if (u.inactive == 0)
-                        {
-                            <span class="badge bg-success">Active</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary">Inactive</span>
-                        }
-                    </td>
+    .status-active { background-color: #d1e7dd; color: #0f5132; border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 700; }
+    .status-inactive { background-color: #f8d7da; color: #842029; border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-weight: 700; }
 
-                    <td>
-                        <a class="btn btn-warning btn-sm" href="/Admin/EditUser/@u.Id">Edit</a>
+    .btn-action {
+        border-radius: 8px; font-weight: 600; padding: 6px 12px; transition: 0.2s;
+    }
 
-                        @* <a class="btn btn-info btn-sm" href="/Admin/ChangeType/@u.Id">Change Type</a> *@
+    .btn-trips {
+        background-color: #e3f2fd; color: #0d6efd; border: none;
+    }
+    .btn-trips:hover { background-color: #0d6efd; color: #fff; }
+</style>
 
-                        <form method="post" action="/Admin/DeactivateUser" style="display:inline;">
-                            <input type="hidden" name="id" value="@u.Id" />
-                            <button onclick="return confirm('Deactivate this user?');"
-                                    class="btn btn-danger btn-sm">
-                                Deactivate
-                            </button>
-                        </form>
-                    </td>
-                    <td>
-                        <a class="btn btn-info btn-sm" href="/Admin/UserTrips/@u.Id">
-                            View Trips
-                        </a>
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">User Management</h1>
+        <p class="opacity-75 lead">Manage platform members, guides, and administrators</p>
+    </div>
+</div>
 
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+<div class="container pb-5">
+    <div class="admin-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User</th>
+                        <th>Contact Info</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var u in Model)
+                    {
+                        <tr>
+                            <td class="text-muted fw-bold">#@u.Id</td>
+                            <td>
+                                <div class="user-name">@u.firstName @u.lastName</div>
+                            </td>
+                            <td>
+                                <div class="small fw-600">@u.email</div>
+                                <div class="small text-muted">@u.phoneNumber</div>
+                            </td>
+
+                            <td>
+                                <span class="badge-type">@u.typeName</span> 
+                            </td>
+
+                            <td>
+                                @if (u.inactive == 0)
+                                {
+                                    <span class="status-active">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="status-inactive">Inactive</span>
+                                }
+                            </td>
+
+                            <td>
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <a class="btn btn-trips btn-action btn-sm" href="/Admin/UserTrips/@u.Id">
+                                        <i class="fa-solid fa-plane-departure me-1"></i> Trips
+                                    </a>
+
+                                    <a class="btn btn-outline-warning btn-action btn-sm" href="/Admin/EditUser/@u.Id">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+
+                                    <form method="post" action="/Admin/DeactivateUser" class="d-inline">
+                                        <input type="hidden" name="id" value="@u.Id" />
+                                        <button onclick="return confirm('Deactivate this user?');"
+                                                class="btn btn-outline-danger btn-action btn-sm">
+                                            <i class="fa-solid fa-user-slash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>

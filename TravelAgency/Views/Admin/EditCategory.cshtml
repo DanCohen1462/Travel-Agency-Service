@@ -2,37 +2,105 @@
 
 @{
     ViewData["Title"] = "Edit Category";
+    Layout = "_Layout";
 }
 
-<div class="container mt-5">
+<style>
+    body { background-color: #f0f2f5; }
+    
+    /* Header Style - Matching "My Journeys" */
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    /* Form Card Container */
+    .form-card {
+        background: #fff; border: none; border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        padding: 2.5rem;
+    }
+
+    /* Input Styling */
+    .form-label { color: #2c3e50; font-weight: 700; margin-bottom: 0.75rem; }
+    
+    .form-control-custom {
+        border-radius: 12px; border: 2px solid #eef2f7;
+        padding: 12px 15px; transition: all 0.3s;
+        background-color: #f8f9fa;
+    }
+    .form-control-custom:focus {
+        border-color: #1C6DD0; background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(28, 109, 208, 0.1); outline: none;
+    }
+
+    /* Action Buttons from Model */
+    .btn-save-changes {
+        background: #5A189A; color: #fff !important;
+        border-radius: 50px; padding: 12px; font-weight: 700;
+        border: none; transition: all 0.3s;
+    }
+    .btn-save-changes:hover { 
+        background: #4B147F; transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(90, 24, 154, 0.3);
+    }
+
+    .btn-cancel-custom {
+        border-radius: 50px; padding: 12px; font-weight: 600;
+        color: #6c757d; border: 2px solid #eef2f7; transition: 0.3s;
+        text-decoration: none; display: inline-block; text-align: center;
+    }
+    .btn-cancel-custom:hover { background-color: #f8f9fa; color: #2c3e50; border-color: #dee2e6; }
+</style>
+
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">Edit Category</h1>
+        <p class="opacity-75 lead">Modify and refine your travel categories</p>
+    </div>
+</div>
+
+<div class="container pb-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm border-0" style="border-radius: 12px;">
-                <div class="card-header bg-white border-0 pt-4 text-center">
-                    <h3 class="fw-bold"><i class="fas fa-edit me-2 text-primary"></i>Edit Category</h3>
+        <div class="col-md-6 col-lg-5">
+            
+            <div class="form-card">
+                <div class="text-center mb-4">
+                    <div class="bg-light d-inline-block p-3 rounded-circle mb-3">
+                        <i class="fa-solid fa-pen-to-square fa-2x text-primary"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark">Category Information</h4>
                 </div>
-                <div class="card-body p-4">
-                    <form asp-action="EditCategory" method="post">
-                        <input type="hidden" asp-for="Id" />
 
-                        <div class="mb-4">
-                            <label asp-for="name" class="form-label fw-bold">Category Name</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="fas fa-tag text-muted"></i></span>
-                                <input asp-for="name" class="form-control bg-light" placeholder="Enter category name" />
-                            </div>
-                            <span asp-validation-for="name" class="text-danger small"></span>
-                        </div>
+                <form asp-action="EditCategory" method="post">
+                    <input type="hidden" asp-for="Id" />
 
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
-                                <i class="fas fa-save me-1"></i> Save Changes
+                    <div class="mb-4">
+                        <label asp-for="name" class="form-label">Category Name</label>
+                        <input asp-for="name" class="form-control form-control-custom" placeholder="Edit category name..." />
+                        <span asp-validation-for="name" class="text-danger small mt-1 d-block"></span>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-8">
+                            <button type="submit" class="btn btn-save-changes w-100">
+                                <i class="fas fa-save me-2"></i>Update
                             </button>
-                            <a asp-action="CategoryIndex" class="btn btn-outline-secondary w-100 py-2">Cancel</a>
                         </div>
-                    </form>
-                </div>
+                        <div class="col-4">
+                            <a asp-action="CategoryIndex" class="btn btn-cancel-custom w-100">
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
             </div>
+
         </div>
     </div>
 </div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

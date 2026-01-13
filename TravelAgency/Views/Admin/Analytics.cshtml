@@ -1,58 +1,97 @@
 @{
-    Layout = "_Layout";
-    ViewData["Title"] = "Operations Analytics";
+Layout = "_Layout";
+ViewData["Title"] = "Operations Analytics";
 }
 
-<div class="container-fluid py-4" style="background-color: #f8f9fc; min-height: 100vh;">
-    
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h2 class="h3 mb-0 text-gray-800 fw-bold">Management Insights</h2>
-        <button class="btn btn-sm btn-primary shadow-sm" onclick="window.print()">
-            <i class="fas fa-download fa-sm text-white-50 me-1"></i> Generate Report
+<style>
+    body { background-color: #f0f2f5; }
+
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .stat-card {
+        background: #fff; border: none; border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover { transform: translateY(-5px); }
+
+    .card-title-custom {
+        font-weight: 700; color: #2c3e50; font-size: 1.1rem;
+        display: flex; align-items: center; gap: 10px;
+    }
+
+    .chart-container { position: relative; width: 100%; }
+
+    .btn-report {
+        background: rgba(255,255,255,0.2); border: 2px solid white;
+        color: white; border-radius: 50px; padding: 8px 25px;
+        font-weight: 700; transition: 0.3s;
+    }
+
+    .btn-report:hover { background: white; color: #1C6DD0; }
+
+    .legend-dot {
+        width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 5px;
+    }
+</style>
+
+<div class="page-header">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="fw-bold mb-0">Management Insights</h1>
+            <p class="opacity-75 mb-0">Real-time operational analytics and guide performance</p>
+        </div>
+        <button class="btn btn-report" onclick="window.print()">
+            <i class="fas fa-file-export me-2"></i>Generate Report
         </button>
     </div>
+</div>
 
+<div class="container pb-5">
     <div class="row g-4">
 
         <div class="col-xl-4 col-lg-5">
-            <div class="card shadow border-0 h-100" style="border-radius: 15px;">
-                <div class="card-header py-3 bg-white border-0">
-                    <h6 class="m-0 font-weight-bold text-primary">Guide Assignment Status</h6>
+            <div class="stat-card p-4 h-100">
+                <div class="card-title-custom mb-4">
+                    <i class="fas fa-chart-pie text-primary"></i> Guide Assignment
                 </div>
-                <div class="card-body">
-                    <div style="height: 250px;">
-                        <canvas id="assignmentChart"></canvas>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="assignmentChart"></canvas>
+                </div>
+                <div class="d-flex justify-content-center gap-4 mt-4">
+                    <div class="small fw-bold">
+                        <span class="legend-dot" style="background: #e74a3b;"></span>Unassigned
                     </div>
-                    <div class="mt-4 text-center small">
-                        <span class="badge bg-danger p-2 me-2">Unassigned</span>
-                        <span class="badge bg-primary p-2">Assigned</span>
+                    <div class="small fw-bold">
+                        <span class="legend-dot" style="background: #4e73df;"></span>Assigned
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="col-xl-8 col-lg-7">
-            <div class="card shadow border-0 h-100" style="border-radius: 15px;">
-                <div class="card-header py-3 bg-white border-0">
-                    <h6 class="m-0 font-weight-bold text-primary">Top 5 Destinations (By Travelers)</h6>
+            <div class="stat-card p-4 h-100">
+                <div class="card-title-custom mb-4">
+                    <i class="fas fa-map-marked-alt text-success"></i> Top 5 Destinations
                 </div>
-                <div class="card-body">
-                    <div style="height: 320px;">
-                        <canvas id="popularChart"></canvas>
-                    </div>
+                <div class="chart-container" style="height: 320px;">
+                    <canvas id="popularChart"></canvas>
                 </div>
             </div>
         </div>
 
         <div class="col-12">
-            <div class="card shadow border-0" style="border-radius: 15px;">
-                <div class="card-header py-3 bg-white border-0">
-                    <h6 class="m-0 font-weight-bold text-primary">Instructor Workload (Number of Trips)</h6>
+            <div class="stat-card p-4">
+                <div class="card-title-custom mb-4">
+                    <i class="fas fa-users-cog text-warning"></i> Instructor Workload
                 </div>
-                <div class="card-body">
-                    <div style="height: 300px;">
-                        <canvas id="guidesChart"></canvas>
-                    </div>
+                <div class="chart-container" style="height: 350px;">
+                    <canvas id="guidesChart"></canvas>
                 </div>
             </div>
         </div>
@@ -60,16 +99,18 @@
     </div>
 </div>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-    // שליפת הנתונים מה-ViewBag (שימוש ב-camelCase כפי שהם עוברים ב-JSON)
     const assignData = @Html.Raw(Json.Serialize(ViewBag.UnassignedData));
     const popularData = @Html.Raw(Json.Serialize(ViewBag.PopularPackages));
     const guidesData = @Html.Raw(Json.Serialize(ViewBag.GuidesWorkload));
 
-    // 1. גרף שיבוץ - Doughnut
+    const commonOptions = {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } }
+    };
+
+    // 1. Assignment Chart
     new Chart(document.getElementById('assignmentChart'), {
         type: 'doughnut',
         data: {
@@ -77,33 +118,28 @@
             datasets: [{
                 data: [assignData.unassigned, assignData.assigned],
                 backgroundColor: ['#e74a3b', '#4e73df'],
-                hoverOffset: 10,
-                borderWidth: 0
+                borderWidth: 0,
+                hoverOffset: 15
             }]
         },
-        options: {
-            maintainAspectRatio: false,
-            cutout: '75%',
-            plugins: { legend: { display: false } }
-        }
+        options: { ...commonOptions, cutout: '80%' }
     });
 
-    // 2. גרף יעדים פופולריים - Horizontal Bar
+    // 2. Popular Destinations
     new Chart(document.getElementById('popularChart'), {
         type: 'bar',
         data: {
             labels: Object.keys(popularData),
             datasets: [{
-                label: 'Total Travelers',
                 data: Object.values(popularData),
-                backgroundColor: '#36b9cc',
-                borderRadius: 5
+                backgroundColor: '#00C9A7',
+                borderRadius: 10,
+                barThickness: 25
             }]
         },
         options: {
-            indexAxis: 'y', // הופך את הגרף לאופקי
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            ...commonOptions,
+            indexAxis: 'y',
             scales: {
                 x: { grid: { display: false }, ticks: { stepSize: 1 } },
                 y: { grid: { display: false } }
@@ -111,23 +147,22 @@
         }
     });
 
-    // 3. גרף עומס מדריכים - Standard Bar
+    // 3. Guides Workload
     new Chart(document.getElementById('guidesChart'), {
         type: 'bar',
         data: {
             labels: Object.keys(guidesData),
             datasets: [{
-                label: 'Packages Handled',
                 data: Object.values(guidesData),
-                backgroundColor: '#f6c23e',
-                barThickness: 50
+                backgroundColor: '#5A189A',
+                borderRadius: 10,
+                barThickness: 40
             }]
         },
         options: {
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            ...commonOptions,
             scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { stepSize: 1 } },
                 x: { grid: { display: false } }
             }
         }
