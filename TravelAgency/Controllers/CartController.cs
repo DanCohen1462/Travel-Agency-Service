@@ -1054,8 +1054,16 @@ try
         }
     }
 
-    // ✅ Calculate the REAL total charged from the reservations inserted in THIS payment
+// ✅ Calculate the REAL total charged from the reservations inserted in THIS payment
     int chargedTotal = GetReservationsTotal(userId.Value, insertedReservationIds);
+
+// ✅ NEW: if package is now truly full (no places + no temp blocks), switch waitlist reason cart->full
+    try
+    {
+        var paidPackageIds = GetPackageIdsFromInsertedReservations(userId.Value, insertedReservationIds);
+        UpdateWaitingListAfterSuccessfulPayment(paidPackageIds);
+    }
+    catch { /* must not break payment */ }
 
     _notificationService.Create(
         userId.Value,
@@ -1295,7 +1303,141 @@ WHERE Id = @pid;
     }
 }
 
+// ✅ NEW: get package ids from the reservations inserted in THIS payment
+private List<int> GetPackageIdsFromInsertedReservations(int userId, List<int> reservationIds)
+{
+    var result = new List<int>();
+    if (reservationIds == null || reservationIds.Count == 0) return result;
+
+    using var conn = new SqlConnection(_connectionString);
+    conn.Open();
+
+    var ridParams = reservationIds.Select((id, i) => $"@rid{i}").ToList();
+    var inClause = string.Join(", ", ridParams);
+
+    using var cmd = new SqlCommand($@"
+SELECT DISTINCT h.PackageId
+FROM HistoryReservation h
+WHERE h.UserId = @uid
+  AND h.inactive = 0
+  AND h.Id IN ({inClause});
+", conn);
+
+    cmd.Parameters.AddWithValue("@uid", userId);
+    for (int i = 0; i < reservationIds.Count; i++)
+        cmd.Parameters.AddWithValue($"@rid{i}", reservationIds[i]);
+
+    using var r = cmd.ExecuteReader();
+    while (r.Read())
+        result.Add(r.GetInt32(0));
+
+    return result.Distinct().ToList();
+}
+
+// ✅ NEW: flip waitlist reason cart->full ONLY when package is truly full (no free places + no temp blocks)
+// and notify ONLY users that actually changed (no duplicates)
+private void UpdateWaitingListAfterSuccessfulPayment(List<int> packageIdsPaid)
+{
+    if (packageIdsPaid == null || packageIdsPaid.Count == 0) return;
+
+    using var conn = new SqlConnection(_connectionString);
+    conn.Open();
+
+    foreach (var pid in packageIdsPaid.Distinct())
+    {
+        // 1) Package must be currently full (freePlaces <= 0)
+        int freePlaces = 0;
+        using (var cmdFree = new SqlCommand(@"
+SELECT numFreePlaces
+FROM Package
+WHERE Id = @pid AND inactive = 0;
+", conn))
+        {
+            cmdFree.Parameters.AddWithValue("@pid", pid);
+            var obj = cmdFree.ExecuteScalar();
+            if (obj == null || obj == DBNull.Value) continue;
+            freePlaces = Convert.ToInt32(obj);
+        }
+
+        if (freePlaces > 0) continue;
+
+        // 2) If there are TEMP blocks for this package (any user holds/active offers), keep 15-min logic (do nothing)
+        bool hasTempBlocks = false;
+        using (var cmdTemp = new SqlCommand(@"
+SELECT CASE WHEN
+    EXISTS (SELECT 1 FROM shoppingcart WHERE PackageId=@pid AND inactive=0 AND ExpiresAt > GETDATE())
+ OR EXISTS (SELECT 1 FROM WaitlistOffers WHERE PackageId=@pid AND IsUsed=0 AND OfferEnd > GETDATE() AND ExpiredAt IS NULL AND Reason='cart')
+THEN 1 ELSE 0 END;
+", conn))
+        {
+            cmdTemp.Parameters.AddWithValue("@pid", pid);
+            hasTempBlocks = Convert.ToInt32(cmdTemp.ExecuteScalar()) == 1;
+        }
+        if (hasTempBlocks) continue;
+
+        // 3) Collect affected users BEFORE update (only rows that will actually change)
+        var affected = new List<(int UserId, int NumPersons)>();
+        using (var sel = new SqlCommand(@"
+SELECT UserId, ISNULL(numPersons,1)
+FROM WaitingList
+WHERE PackageId=@pid AND inactive=0 AND Reason='cart';
+", conn))
+        {
+            sel.Parameters.AddWithValue("@pid", pid);
+            using var r = sel.ExecuteReader();
+            while (r.Read())
+                affected.Add((r.GetInt32(0), r.GetInt32(1)));
+        }
+
+        if (affected.Count == 0) continue;
+
+        // 4) Update cart->full (one-time; next runs won't touch these rows)
+        using (var upd = new SqlCommand(@"
+UPDATE WaitingList
+SET Reason='full'
+WHERE PackageId=@pid AND inactive=0 AND Reason='cart';
+", conn))
+        {
+            upd.Parameters.AddWithValue("@pid", pid);
+            upd.ExecuteNonQuery();
+        }
+
+        // 5) Build trip label for message
+        string dest = "", country = "";
+        using (var cmdTrip = new SqlCommand(@"
+SELECT TOP 1 ISNULL(destination,''), ISNULL(country,'')
+FROM Package
+WHERE Id=@pid;
+", conn))
+        {
+            cmdTrip.Parameters.AddWithValue("@pid", pid);
+            using var rr = cmdTrip.ExecuteReader();
+            if (rr.Read())
+            {
+                dest = rr.GetString(0);
+                country = rr.GetString(1);
+            }
+        }
+
+        string tripLabel = string.IsNullOrWhiteSpace(dest) ? "this trip"
+            : (string.IsNullOrWhiteSpace(country) ? dest : $"{dest}, {country}");
+
+        // 6) Notify ONLY affected users (no duplicates because next time they won't be Reason='cart')
+        foreach (var x in affected.Distinct())
+        {
+            _notificationService.Create(
+                x.UserId,
+                title: "Waiting list update",
+                message: $"Update: {tripLabel} is now fully booked. Estimated waiting time is now based on 60-minute availability windows.",
+                type: "info",
+                linkUrl: $"/Package/PackageDetails?id={pid}&adults={x.NumPersons}&children=0"
+            );
+        }
+    }
+}
+
 // -------------------- EMAIL + PDF helpers --------------------
+
 
         private class TripDetailsPdfRow
         {

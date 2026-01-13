@@ -52,11 +52,98 @@ namespace TravelAgency.Services
             var cs = _config.GetConnectionString("DefaultConnection")
                      ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-           using var conn = new SqlConnection(cs);
+using var conn = new SqlConnection(cs);
 await conn.OpenAsync(ct);
+
+// ✅ NEW: Trip-start cleanup (do NOT touch Package.inactive)
+// Close temp mechanisms for packages whose StartDate has arrived/passed.
+// We do NOT return seats here (trip already started).
+try
+{
+    var startedPackageIds = new List<int>();
+
+    using (var selStarted = new SqlCommand(@"
+SELECT Id
+FROM Package
+WHERE StartDate <= GETDATE();
+", conn))
+    {
+        using var rr = await selStarted.ExecuteReaderAsync(ct);
+        while (await rr.ReadAsync(ct))
+            startedPackageIds.Add(rr.GetInt32(0));
+    }
+
+    foreach (var pid in startedPackageIds.Distinct())
+    {
+        using var txStarted = conn.BeginTransaction();
+        try
+        {
+            // 1) Expire active offers for started trip
+            using (var expOffers = new SqlCommand(@"
+UPDATE WaitlistOffers
+SET ExpiredAt = ISNULL(ExpiredAt, GETDATE())
+WHERE PackageId = @pid
+  AND IsUsed = 0
+  AND ExpiredAt IS NULL;
+", conn, txStarted))
+            {
+                expOffers.Parameters.AddWithValue("@pid", pid);
+                await expOffers.ExecuteNonQueryAsync(ct);
+            }
+
+            // 2) Deactivate Spot available notifications for this package
+            using (var deactSpot = new SqlCommand(@"
+UPDATE Notifications
+SET inactive = 1
+WHERE inactive = 0
+  AND Title = 'Spot available!'
+  AND LinkUrl LIKE ('/Package/PackageDetails?id=' + CAST(@pid AS NVARCHAR(20)) + '%');
+", conn, txStarted))
+            {
+                deactSpot.Parameters.AddWithValue("@pid", pid);
+                await deactSpot.ExecuteNonQueryAsync(ct);
+            }
+
+            // 3) Deactivate active shoppingcart holds for this started trip
+            using (var inactCart = new SqlCommand(@"
+UPDATE shoppingcart
+SET inactive = 1
+WHERE PackageId = @pid
+  AND inactive = 0;
+", conn, txStarted))
+            {
+                inactCart.Parameters.AddWithValue("@pid", pid);
+                await inactCart.ExecuteNonQueryAsync(ct);
+            }
+
+            // 4) Deactivate active waiting list rows for this started trip
+            using (var inactWL = new SqlCommand(@"
+UPDATE WaitingList
+SET inactive = 1
+WHERE PackageId = @pid
+  AND inactive = 0;
+", conn, txStarted))
+            {
+                inactWL.Parameters.AddWithValue("@pid", pid);
+                await inactWL.ExecuteNonQueryAsync(ct);
+            }
+
+            txStarted.Commit();
+        }
+        catch
+        {
+            try { txStarted.Rollback(); } catch { }
+        }
+    }
+}
+catch
+{
+    // silent: must not crash cleanup loop
+}
 
 // ✅ 0) ניקוי Offers שפגו (WaitlistOffers) => להחזיר מקומות ולתת Offer הבא
 var expiredOffers = new List<(int OfferId, int UserId, int PackageId, int NumPersons, string Reason)>();
+
 
 using (var selOff = new SqlCommand(@"
 SELECT Id, UserId, PackageId, NumPersons, Reason

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-
+using TravelAgency.Services;
 using System.Security.Cryptography;
 using System.Text;
 using TravelAgency.Models;
@@ -12,10 +12,16 @@ namespace TravelAgency.Controllers;
 public class AdminController : Controller
 {
     private readonly string _connectionString;
-    public AdminController(IConfiguration config)
+    private readonly NotificationService _notificationService;
+    private readonly EmailService _emailService;
+
+    public AdminController(IConfiguration config, NotificationService notificationService, EmailService emailService)
     {
         _connectionString = config.GetConnectionString("DefaultConnection");
+        _notificationService = notificationService;
+        _emailService = emailService;
     }
+
     // public override void OnActionExecuting(ActionExecutingContext context)
     // {
     //     // אם אין סשן משתמש — שלח לדף התחברות
@@ -803,20 +809,31 @@ public class AdminController : Controller
         {
             conn.Open();
 
+            // ✅ read old free places BEFORE update
+            int oldFree = 0;
+            using (var cmdOld = new SqlCommand(@"
+        SELECT numFreePlaces
+        FROM Package
+        WHERE Id = @id;
+    ", conn))
+            {
+                cmdOld.Parameters.AddWithValue("@id", model.Id);
+                oldFree = Convert.ToInt32(cmdOld.ExecuteScalar());
+            }
+
             string query = @"
-            UPDATE Package
-            SET destination = @dest,
-                StartDate = @start,
-                EndDate = @end,
-                sum = @sum,
-                ageLimit = @age,
-                numFreePlaces = @free,
-                idCategory = @cat,
-                information = @info,
-                country = @country,
-                CancelationDays = @CancellationDay
-            WHERE Id = @id";
-           
+    UPDATE Package
+    SET destination = @dest,
+        StartDate = @start,
+        EndDate = @end,
+        sum = @sum,
+        ageLimit = @age,
+        numFreePlaces = @free,
+        idCategory = @cat,
+        information = @info,
+        country = @country,
+        CancelationDays = @CancellationDay
+    WHERE Id = @id";
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
@@ -826,20 +843,26 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@sum", model.sum);
                 cmd.Parameters.AddWithValue("@age", model.ageLimit);
                 cmd.Parameters.AddWithValue("@free", model.numFreePlaces);
-           
+
                 cmd.Parameters.AddWithValue("@cat", model.idCategory);
-                // cmd.Parameters.AddWithValue("@info", model.information);
                 cmd.Parameters.AddWithValue("@info", model.information ?? (object)DBNull.Value);
 
                 cmd.Parameters.AddWithValue("@id", model.Id);
-                cmd.Parameters.AddWithValue("@country", model.country );
+                cmd.Parameters.AddWithValue("@country", model.country);
                 cmd.Parameters.AddWithValue("@CancellationDay", (object?)model.cancelationDays ?? DBNull.Value);
-
 
                 cmd.ExecuteNonQuery();
             }
+
+            // ✅ If admin increased free places, convert them to offers (fairness)
+            if (model.numFreePlaces > oldFree)
+            {
+                CreateOffersFromWaitlist(conn, model.Id, "admin");
+            }
+
             foreach (var file in images)
             {
+
                 if (file.Length > 0)
                 {
                     string fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
@@ -1443,4 +1466,161 @@ public class AdminController : Controller
     }
 
 
+    private void CreateOffersFromWaitlist(SqlConnection conn, int packageId, string reason)
+    {
+        // offer window by reason
+        int minutes = (reason == "cancel") ? 60 : 15;
+
+        // Loop: while there are free places, keep offering to the next suitable waiter
+        while (true)
+        {
+            // current free places
+            int freePlaces;
+            using (var cmdFree = new SqlCommand(@"
+                SELECT numFreePlaces
+                FROM Package
+                WHERE Id = @pid;
+            ", conn))
+            {
+                cmdFree.Parameters.AddWithValue("@pid", packageId);
+                freePlaces = (int)cmdFree.ExecuteScalar();
+            }
+
+            if (freePlaces <= 0) break;
+
+            // next waiter that fits (skip those who don't fit)
+            int waitId, userId, numPersons;
+            using (var cmd = new SqlCommand(@"
+                SELECT TOP 1 Id, UserId, numPersons
+                FROM WaitingList
+                WHERE PackageId = @pid
+                  AND inactive = 0
+                  AND numPersons <= @free
+                ORDER BY JoinDate ASC, Id ASC;
+            ", conn))
+            {
+                cmd.Parameters.AddWithValue("@pid", packageId);
+                cmd.Parameters.AddWithValue("@free", freePlaces);
+
+                using var r = cmd.ExecuteReader();
+                if (!r.Read()) break;
+
+                waitId = r.GetInt32(0);
+                userId = r.GetInt32(1);
+                numPersons = r.IsDBNull(2) ? 1 : r.GetInt32(2);
+            }
+
+            // ✅ close waiting list row so it won't receive another offer
+            using (var cmdInact = new SqlCommand(@"
+                UPDATE WaitingList
+                SET inactive = 1, notificationDate = GETDATE()
+                WHERE Id = @wid AND inactive = 0;
+            ", conn))
+            {
+                cmdInact.Parameters.AddWithValue("@wid", waitId);
+
+                int okWl = cmdInact.ExecuteNonQuery();
+                if (okWl == 0)
+                {
+                    continue;
+                }
+            }
+
+            // reserve places for this offer
+            using (var cmdHold = new SqlCommand(@"
+                UPDATE Package
+                SET numFreePlaces = numFreePlaces - @n
+                WHERE Id = @pid AND numFreePlaces >= @n;
+            ", conn))
+            {
+                cmdHold.Parameters.AddWithValue("@n", numPersons);
+                cmdHold.Parameters.AddWithValue("@pid", packageId);
+
+                int ok = cmdHold.ExecuteNonQuery();
+                if (ok == 0) break;
+            }
+
+            // insert offer
+            using (var cmdOffer = new SqlCommand(@"
+                INSERT INTO WaitlistOffers (PackageId, UserId, NumPersons, Reason, OfferStart, OfferEnd)
+                VALUES (@pid, @uid, @n, @reason, GETDATE(), DATEADD(minute, @mins, GETDATE()));
+            ", conn))
+            {
+                cmdOffer.Parameters.AddWithValue("@pid", packageId);
+                cmdOffer.Parameters.AddWithValue("@uid", userId);
+                cmdOffer.Parameters.AddWithValue("@n", numPersons);
+                cmdOffer.Parameters.AddWithValue("@reason", reason);
+                cmdOffer.Parameters.AddWithValue("@mins", minutes);
+                cmdOffer.ExecuteNonQuery();
+            }
+
+            string dest = "";
+            string country = "";
+
+            using (var cmdTrip = new SqlCommand(@"
+                SELECT TOP 1 destination, ISNULL(country,'')
+                FROM Package
+                WHERE Id = @pid;
+            ", conn))
+            {
+                cmdTrip.Parameters.AddWithValue("@pid", packageId);
+                using var rr = cmdTrip.ExecuteReader();
+                if (rr.Read())
+                {
+                    dest = rr.IsDBNull(0) ? "" : rr.GetString(0);
+                    country = rr.IsDBNull(1) ? "" : rr.GetString(1);
+                }
+            }
+
+            string tripLabel = string.IsNullOrWhiteSpace(dest) ? "your trip"
+                : (string.IsNullOrWhiteSpace(country) ? dest : $"{dest}, {country}");
+
+            _notificationService.Create(userId,
+                title: "Spot available!",
+                message: $"A spot is available for {tripLabel} for {numPersons} passenger(s). You have {minutes} minutes to add it to your cart.",
+                type: "success",
+                linkUrl: $"/Package/PackageDetails?id={packageId}&adults={numPersons}&children=0"
+            );
+
+            try
+            {
+                var email = GetUserEmail(userId);
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    var subject = "Spot available!";
+                    var body =
+                        $"Spot available!\n\n" +
+                        $"A spot is available for {tripLabel} for {numPersons} passenger(s). You have {minutes} minutes to add it to your cart.";
+
+                    _emailService.Send(email.Trim(), subject, body);
+                }
+            }
+            catch (Exception mailEx)
+            {
+                Console.WriteLine("Spot available email failed: " + mailEx);
+            }
+        }
+    }
+    // ✅ Helper: get user email by id
+    private string? GetUserEmail(int userId)
+    {
+        using (var conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            using (var cmd = new SqlCommand(@"
+                SELECT TOP 1 email
+                FROM Users
+                WHERE Id = @uid AND inactive = 0;
+            ", conn))
+            {
+                cmd.Parameters.AddWithValue("@uid", userId);
+
+                var obj = cmd.ExecuteScalar();
+                if (obj == null || obj == DBNull.Value) return null;
+
+                return obj.ToString();
+            }
+        }
+    }
 }
