@@ -1130,7 +1130,59 @@ public class AdminController : Controller
     
     
     
-    public IActionResult UserTrips(int id) // id = userId
+    // public IActionResult UserTrips(int id) // id = userId
+    // {
+    //     List<UserTripViewModel> trips = new();
+    //
+    //     using (SqlConnection conn = new SqlConnection(_connectionString))
+    //     {
+    //         conn.Open();
+    //
+    //         string query = @"
+    //         SELECT 
+    //             h.Id AS ReservationId,
+    //             p.destination,
+    //             p.StartDate,
+    //             p.EndDate,
+    //             h.numPersons,
+    //             h.sum,(
+    //         SELECT TOP 1 imageLocation 
+    //         FROM ImagesPackage 
+    //         WHERE packageId = p.Id
+    //     ) AS ImageUrl
+    //             
+    //         FROM HistoryReservation h
+    //         JOIN Package p ON h.packageId = p.Id
+    //         WHERE h.userId = @uid
+    //         ORDER BY p.StartDate DESC";
+    //
+    //         using (SqlCommand cmd = new SqlCommand(query, conn))
+    //         {
+    //             cmd.Parameters.AddWithValue("@uid", id);
+    //
+    //             using (SqlDataReader r = cmd.ExecuteReader())
+    //             {
+    //                 while (r.Read())
+    //                 {
+    //                     trips.Add(new UserTripViewModel
+    //                     {
+    //                         ReservationId = r.GetInt32(0),
+    //                         Destination = r.GetString(1),
+    //                         StartDate = r.GetDateTime(2),
+    //                         EndDate = r.GetDateTime(3),
+    //                         NumPersons = r.GetInt32(4),
+    //                         TotalPrice = r.GetInt32(5),
+    //                         ImageUrl = r.IsDBNull(6) ? "/images/default.jpg" : r.GetString(6)
+    //                     });
+    //                 }
+    //             }
+    //         }
+    //     }
+    //
+    //     ViewBag.UserId = id;
+    //     return View(trips);
+    // }
+    public IActionResult UserTrips(int id) 
     {
         List<UserTripViewModel> trips = new();
 
@@ -1138,22 +1190,20 @@ public class AdminController : Controller
         {
             conn.Open();
 
+            // השאילתה המאוחדת - שימוש ב-Package.Id כאינדקס 0
             string query = @"
             SELECT 
-                h.Id AS ReservationId,
-                p.destination,
-                p.StartDate,
-                p.EndDate,
-                h.numPersons,
-                h.sum,(
-            SELECT TOP 1 imageLocation 
-            FROM ImagesPackage 
-            WHERE packageId = p.Id
-        ) AS ImageUrl
-                
+                p.Id,                          -- 0
+                p.destination,                 -- 1
+                p.StartDate,                   -- 2
+                p.EndDate,                     -- 3
+                SUM(h.numPersons),             -- 4
+                SUM(h.sum),                    -- 5
+                (SELECT TOP 1 imageLocation FROM ImagesPackage WHERE packageId = p.Id) AS ImageUrl -- 6
             FROM HistoryReservation h
             JOIN Package p ON h.packageId = p.Id
             WHERE h.userId = @uid
+            GROUP BY p.Id, p.destination, p.StartDate, p.EndDate
             ORDER BY p.StartDate DESC";
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
@@ -1166,13 +1216,17 @@ public class AdminController : Controller
                     {
                         trips.Add(new UserTripViewModel
                         {
-                            ReservationId = r.GetInt32(0),
+                            PackageId = r.GetInt32(0),
+                            ReservationId = r.GetInt32(0), // נשתמש בזה לקישור לפרטי חבילה
                             Destination = r.GetString(1),
                             StartDate = r.GetDateTime(2),
                             EndDate = r.GetDateTime(3),
-                            NumPersons = r.GetInt32(4),
-                            TotalPrice = r.GetInt32(5),
-                            ImageUrl = r.IsDBNull(6) ? "/images/default.jpg" : r.GetString(6)
+                            NumPersons = Convert.ToInt32(r[4]), // שימוש ב-Convert בגלל ה-SUM
+                            TotalPrice = Convert.ToInt32(r[5]),
+                            ImageUrl = r.IsDBNull(6) ? "/images/default.jpg" : r.GetString(6),
+                            
+                            // חישוב קריטי עבור ה-View:
+                            IsUpcoming = r.GetDateTime(2) >= DateTime.Now 
                         });
                     }
                 }

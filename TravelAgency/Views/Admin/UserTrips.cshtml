@@ -1,59 +1,148 @@
 @model List<TravelAgency.Models.UserTripViewModel>
 
-<h2 class="mb-4">User Trips</h2>
-
-@if (Model.Count == 0)
-{
-    <p class="text-muted">This user has no reservations.</p>
+@{
+    Layout = "_Layout";
 }
 
-<!-- Upcoming trips -->
-<h4>Upcoming Trips</h4>
-<div class="row">
-    @foreach (var t in Model.Where(x => x.IsUpcoming))
-    {
-        <div class="col-md-4">
-            <div class="card mb-4 shadow-sm">
-                <img class="card-img-top" src="@t.ImageUrl" style="height: 180px; object-fit: cover;" />
-
-                <div class="card-body">
-                    <h5>@t.Destination</h5>
-                    <p class="text-muted">
-                        @t.StartDate.ToShortDateString() – @t.EndDate.ToShortDateString()
-                    </p>
-
-                    <p><strong>People:</strong> @t.NumPersons</p>
-                    <p><strong>Total Price:</strong> $@t.TotalPrice</p>
-
-                    <a href="/Admin/PackageDetails/@t.ReservationId" class="btn btn-primary">View Package</a>
-                </div>
-            </div>
-        </div>
+<style>
+    body { background-color: #f0f2f5; }
+    
+    .page-header {
+        background: linear-gradient(135deg, #1C6DD0, #00C9A7);
+        padding: 3rem 0; color: white; margin-bottom: 2rem;
+        border-radius: 0 0 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
+
+    .section-label {
+        font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        font-size: 0.9rem; margin-bottom: 1.5rem; display: flex; align-items: center;
+    }
+
+    .trip-card {
+        background: #fff; border: none; border-radius: 20px; overflow: hidden;
+        transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        height: 100%;
+    }
+
+    .trip-card:hover { transform: translateY(-8px); box-shadow: 0 12px 25px rgba(0,0,0,0.1); }
+
+    .img-wrapper { height: 180px; position: relative; }
+    
+    .trip-img { width: 100%; height: 100%; object-fit: cover; }
+
+    .past-trip { filter: grayscale(100%); opacity: 0.7; transition: 0.3s; }
+    .past-trip:hover { filter: grayscale(30%); opacity: 1; }
+
+    .price-badge {
+        background: #e8f5e9; color: #2e7d32; padding: 4px 12px;
+        border-radius: 50px; font-weight: 700; font-size: 0.9rem;
+    }
+
+    .status-pill {
+        position: absolute; top: 15px; right: 15px; padding: 5px 15px;
+        border-radius: 50px; font-weight: 700; font-size: 0.75rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+</style>
+
+<div class="page-header text-center">
+    <div class="container">
+        <h1 class="fw-bold display-5">User Journeys</h1>
+        <p class="opacity-75 lead">Travel history and upcoming reservations for User #@ViewBag.UserId</p>
+    </div>
 </div>
 
-<!-- Past trips -->
-<h4 class="mt-5">Past Trips</h4>
-<div class="row">
-    @foreach (var t in Model.Where(x => !x.IsUpcoming))
+<div class="container pb-5">
+
+    @if (Model == null || Model.Count == 0)
     {
-        <div class="col-md-4">
-            <div class="card mb-4 shadow-sm border-secondary">
-                <img class="card-img-top" src="@t.ImageUrl" style="height: 180px; object-fit: cover;" />
-
-                <div class="card-body">
-                    <h5>@t.Destination</h5>
-
-                    <p class="text-muted">
-                        @t.StartDate.ToShortDateString() – @t.EndDate.ToShortDateString()
-                    </p>
-
-                    <p><strong>People:</strong> @t.NumPersons</p>
-                    <p><strong>Total Price:</strong> $@t.TotalPrice</p>
-
-                    <span class="badge bg-secondary">Completed</span>
-                </div>
+        <div class="text-center py-5">
+            <div class="bg-white d-inline-block p-5 rounded-circle shadow-sm mb-4">
+                <i class="fa-solid fa-plane-slash fa-4x text-muted opacity-25"></i>
             </div>
+            <h3 class="text-secondary fw-bold">No trips found</h3>
+            <p class="text-muted">This user hasn't booked any journeys yet.</p>
+            <a href="/Admin/Users" class="btn btn-primary rounded-pill px-4 mt-3">Back to Users</a>
         </div>
     }
+    else
+    {
+        <div class="section-label text-primary">
+            <i class="fa-solid fa-clock-rotate-left me-2"></i> Upcoming Adventures
+        </div>
+        
+        <div class="row g-4">
+            @{ var upcoming = Model.Where(x => x.IsUpcoming).ToList(); }
+            @if (!upcoming.Any())
+            {
+                <div class="col-12"><div class="alert bg-white border-0 shadow-sm rounded-4 text-muted">No upcoming trips planned.</div></div>
+            }
+            @foreach (var t in upcoming)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="trip-card">
+                        <div class="img-wrapper">
+                            <img src="@t.ImageUrl" class="trip-img" alt="@t.Destination" />
+                            <span class="status-pill bg-primary text-white">Confirmed</span>
+                        </div>
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold text-dark mb-1">@t.Destination</h5>
+                            <p class="text-muted small mb-3">
+                                <i class="fa-regular fa-calendar me-1"></i> @t.StartDate.ToShortDateString() – @t.EndDate.ToShortDateString()
+                            </p>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <span class="small text-secondary"><i class="fa-solid fa-users me-1"></i> @t.NumPersons Persons</span>
+                                <span class="price-badge">$@t.TotalPrice</span>
+                            </div>
+
+                            <a href="/Admin/PackageDetails/@t.PackageId" class="btn btn-outline-primary w-100 rounded-pill fw-bold">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="my-5 border-top"></div>
+
+        <div class="section-label text-secondary">
+            <i class="fa-solid fa-circle-check me-2"></i> Completed Journeys
+        </div>
+
+        <div class="row g-4">
+            @{ var past = Model.Where(x => !x.IsUpcoming).ToList(); }
+            @if (!past.Any())
+            {
+                <div class="col-12"><p class="text-muted ps-2">No travel history found.</p></div>
+            }
+            @foreach (var t in past)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="trip-card">
+                        <div class="img-wrapper">
+                            <img src="@t.ImageUrl" class="trip-img past-trip" />
+                            <span class="status-pill bg-secondary text-white">Completed</span>
+                        </div>
+                        <div class="card-body p-4 bg-light bg-opacity-50">
+                            <h5 class="fw-bold text-secondary mb-1">@t.Destination</h5>
+                            <p class="text-muted small mb-3">@t.StartDate.ToShortDateString() – @t.EndDate.ToShortDateString()</p>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-muted">@t.NumPersons Travelers</span>
+                                <span class="fw-bold text-muted">$@t.TotalPrice</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="mt-5 text-center">
+        <a href="/Admin/Users" class="btn btn-link text-decoration-none text-muted">
+            <i class="fa-solid fa-arrow-left me-2"></i>Back to User Management
+        </a>
+    </div>
 </div>
