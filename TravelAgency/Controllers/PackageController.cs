@@ -158,7 +158,6 @@ namespace TravelAgency.Controllers
         {
             adults = adults < 1 ? 1 : adults;
             children = children < 0 ? 0 : children;
-
             int totalPassengers = adults + children;
 
             // Server validation: youngestAge required when children>0
@@ -178,7 +177,14 @@ namespace TravelAgency.Controllers
                     year
                 });
             }
-
+            HttpContext.Session.SetInt32("LastSearchAdults", adults);
+            HttpContext.Session.SetInt32("LastSearchChildren", children);
+            
+            if (children > 0 && youngestAge.HasValue)
+                HttpContext.Session.SetInt32("LastSearchYoungestAge", youngestAge.Value);
+            else
+                HttpContext.Session.Remove("LastSearchYoungestAge");
+            
             string freeText = (searchText ?? "").Trim();
             
 
@@ -551,6 +557,9 @@ namespace TravelAgency.Controllers
 
             adults = adults < 1 ? 1 : adults;
             children = children < 0 ? 0 : children;
+            HttpContext.Session.SetInt32("LastSearchAdults", adults);
+            HttpContext.Session.SetInt32("LastSearchChildren", children);
+            
             int totalPassengers = adults + children;
 
             // ✅ use pid from resolved id/packageId

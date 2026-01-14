@@ -113,7 +113,9 @@ namespace TravelAgency.Controllers
 
             int totalPersons = Math.Max(1, adults) + Math.Max(0, children);
             string returnUrl = Request.Headers["Referer"].ToString();
-
+            
+            HttpContext.Session.SetInt32("LastSearchAdults", Math.Max(1, adults));
+            HttpContext.Session.SetInt32("LastSearchChildren", Math.Max(0, children));
             // If this package is already in cart (SAME passenger count) -> don't add duplicate row
             using (var preConn = new SqlConnection(_connectionString))
             {
@@ -403,6 +405,8 @@ VALUES(@uid, @pid, @sum, 0, @n, GETDATE(), DATEADD(MINUTE, 15, GETDATE()), @offe
 
             int totalPersons = Math.Max(1, adults) + Math.Max(0, children);
 
+            HttpContext.Session.SetInt32("LastSearchAdults", Math.Max(1, adults));
+            HttpContext.Session.SetInt32("LastSearchChildren", Math.Max(0, children));
             // If this package is already in cart (SAME passenger count) -> go to cart, don't add duplicate row
             using (var preConn = new SqlConnection(_connectionString))
             {
