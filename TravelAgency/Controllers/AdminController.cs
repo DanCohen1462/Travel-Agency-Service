@@ -182,8 +182,64 @@ public class AdminController : Controller
 
             return RedirectToAction("Packages");
         }
+        
+    }
+    [HttpGet]
+    public IActionResult GuidePackagesPartial(int guideId)
+    {
+        // Only guides (type=2)
+        List<Package> packages = new List<Package>();
+
+        using (SqlConnection conn = new SqlConnection(_connectionString))
+        {
+            conn.Open();
+
+            // ensure guide exists + type=2
+            using (var cmdCheck = new SqlCommand(@"
+            SELECT COUNT(*)
+            FROM Users
+            WHERE Id = @gid AND inactive = 0 AND type = 2;
+        ", conn))
+            {
+                cmdCheck.Parameters.AddWithValue("@gid", guideId);
+                int ok = (int)cmdCheck.ExecuteScalar();
+                if (ok == 0)
+                {
+                    // return empty partial (safe)
+                    return PartialView("_GuidePackagesList", packages);
+                }
+            }
+
+            using (var cmd = new SqlCommand(@"
+            SELECT Id, destination, StartDate, EndDate, country
+            FROM Package
+            WHERE inactive = 0 AND UserId = @gid
+            ORDER BY startDate, endDate;
+        ", conn))
+            {
+                cmd.Parameters.AddWithValue("@gid", guideId);
+
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        packages.Add(new Package
+                        {
+                            Id = r.GetInt32(0),
+                            destination = r.GetString(1),
+                            StartDate = r.GetDateTime(2),
+                            EndDate = r.GetDateTime(3),
+                            country = r.IsDBNull(4) ? null : r.GetString(4),
+                        });
+                    }
+                }
+            }
+        }
+
+        return PartialView("_GuidePackagesList", packages);
     }
 
+    
     public IActionResult AssignGuide()
     {
         List<User> guides = new List<User>();

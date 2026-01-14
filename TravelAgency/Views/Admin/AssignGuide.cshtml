@@ -50,6 +50,8 @@
     /* Badges */
     .guide-name { font-weight: 600; color: #1C6DD0; }
     .package-dest { font-weight: 700; color: #2c3e50; }
+    
+
 </style>
 
 <div class="page-header text-center">
@@ -79,10 +81,15 @@
                                 <tr><th>Full Name</th></tr>
                             </thead>
                             <tbody>
-                                @foreach (var g in Model.Guides)
-                                {
-                                    <tr><td class="guide-name">@g.firstName @g.lastName</td></tr>
-                                }
+                            @foreach (var g in Model.Guides)
+                            {
+                                <tr class="guide-row" style="cursor:pointer;" data-guide-id="@g.Id">
+                                    <td class="guide-name">
+                                        @g.firstName @g.lastName
+                                    </td>
+                                </tr>
+                            }
+
                             </tbody>
                         </table>
                     }
@@ -91,15 +98,39 @@
         </div>
 
         <div class="col-md-8">
-            <div class="admin-card">
+
+            <!-- ✅ Assigned packages (same page) -->
+            <div class="admin-card mb-4" id="assigned-card" style="display:none;">
+                <div class="card-header-custom d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-solid fa-suitcase-rolling text-primary"></i>
+                        <span>Assigned Packages</span>
+                    </div>
+
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="back-to-pending">
+                        ← Back to Pending
+                    </button>
+                </div>
+
+                <div class="card-body p-0" id="assigned-packages-area">
+                    <div class="p-4 text-center text-muted">Click a guide to view assigned packages.</div>
+                </div>
+            </div>
+
+            <div class="admin-card" id="pending-card">
                 <div class="card-header-custom">
                     <i class="fa-solid fa-box-archive text-success"></i> Pending Packages
                 </div>
+
                 <div class="card-body p-0">
                     @if (!Model.UnassignedPackages.Any())
                     {
-                        <div class="p-4 text-center text-muted">All packages have been assigned.</div>
+                        <div class="p-4 text-center">
+                            <div class="empty-text-strong">All packages have been assigned.</div>
+                        </div>
                     }
+                    
+
                     else
                     {
                         <div class="table-responsive">
@@ -192,4 +223,48 @@
             document.getElementById('modal-package-id').value = packageId;
         });
     }
+
+    // ✅ Click guide -> load assigned packages into same page
+    document.querySelectorAll('.guide-row').forEach(function(row) {
+        row.addEventListener('click', async function() {
+            const gid = row.getAttribute('data-guide-id');
+            const area = document.getElementById('assigned-packages-area');
+
+            // UI highlight
+            document.querySelectorAll('.guide-row').forEach(r => r.classList.remove('table-active'));
+            row.classList.add('table-active');
+
+            area.innerHTML = '<div class="p-4 text-center text-muted">Loading...</div>';
+
+            try {
+                const res = await fetch(`/Admin/GuidePackagesPartial?guideId=${gid}`, { method: 'GET' });
+                const html = await res.text();
+                area.innerHTML = html;
+
+                // ✅ switch UI: show assigned, hide pending
+                document.getElementById('pending-card').style.display = 'none';
+                document.getElementById('assigned-card').style.display = 'block';
+
+            } catch (e) {
+                area.innerHTML = '<div class="p-4 text-center text-danger">Failed to load packages.</div>';
+            }
+
+        });
+    });
+    // ✅ Back button -> show pending again
+    const backBtn = document.getElementById('back-to-pending');
+    if (backBtn) {
+        backBtn.addEventListener('click', function () {
+            document.getElementById('assigned-card').style.display = 'none';
+            document.getElementById('pending-card').style.display = 'block';
+
+            // optional: reset assigned area text
+            document.getElementById('assigned-packages-area').innerHTML =
+                '<div class="p-4 text-center text-muted">Click a guide to view assigned packages.</div>';
+
+            // remove highlight from guides
+            document.querySelectorAll('.guide-row').forEach(r => r.classList.remove('table-active'));
+        });
+    }
+
 </script>
