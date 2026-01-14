@@ -3,11 +3,13 @@
     Layout = "_Layout";
 }
 
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap" rel="stylesheet">
 
 <style>
-    body { background: #fdfdfd; font-family: 'Poppins', sans-serif; }
+    body { background: #fdfdfd; } /* ✅ לא נוגעים בפונט של כל האתר */
+
+    /* ✅ הפונט של Poppins רק לתוכן של AboutUs */
+    .about-page { font-family: 'Poppins', sans-serif; }
 
     /* ===== HERO SECTION ===== */
     .about-hero {
@@ -151,6 +153,7 @@
     }
 </style>
 
+<div class="about-page">
 <div class="container-fluid p-0">
     <div class="about-hero">
         <div class="text-center">
@@ -159,7 +162,7 @@
         </div>
     </div>
 </div>
-
+</div>
 <div class="container pb-5">
     <div class="row">
         <div class="col-lg-10 mx-auto">
