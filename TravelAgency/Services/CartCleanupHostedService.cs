@@ -55,7 +55,6 @@ namespace TravelAgency.Services
 using var conn = new SqlConnection(cs);
 await conn.OpenAsync(ct);
 
-// ✅ NEW: Trip-start cleanup (do NOT touch Package.inactive)
 // Close temp mechanisms for packages whose StartDate has arrived/passed.
 // We do NOT return seats here (trip already started).
 try
