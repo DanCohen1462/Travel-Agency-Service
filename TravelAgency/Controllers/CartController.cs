@@ -186,12 +186,25 @@ using (var conn = new SqlConnection(_connectionString))
         }
     }
 
-    // 2) מחיר + numFreePlaces (למקרה שאין Offer)
+// 2) מחיר (כולל הנחה אם קיימת) + numFreePlaces (למקרה שאין Offer)
     using (var cmd = new SqlCommand(@"
-        SELECT sum, numFreePlaces
-        FROM Package
-        WHERE Id = @pid AND inactive = 0;
-    ", conn))
+    SELECT 
+        CAST(ROUND(
+            p.sum * (1.0 - (ISNULL(d.DiscountPercent, 0) / 100.0))
+        , 0) AS int) AS PricePerPerson,
+        p.numFreePlaces
+    FROM Package p
+    OUTER APPLY (
+        SELECT TOP (1) DiscountPercent
+        FROM Discount
+        WHERE PackageId = p.Id
+          AND IsActive = 1
+          AND StartDate <= GETDATE()
+          AND (EndDate IS NULL OR EndDate >= GETDATE())
+        ORDER BY StartDate DESC, Id DESC
+    ) d
+    WHERE p.Id = @pid AND p.inactive = 0;
+", conn))
     {
         cmd.Parameters.AddWithValue("@pid", packageId);
 
@@ -202,10 +215,10 @@ using (var conn = new SqlConnection(_connectionString))
             return RedirectToAction("Gallery", "Package");
         }
 
-
         pricePerPerson = r.GetInt32(0);
         freePlaces = r.GetInt32(1);
     }
+
 }
 
 // אם יש Offer — חייבים להתאים לכמות האנשים של ה-Offer
@@ -471,12 +484,25 @@ using (var conn = new SqlConnection(_connectionString))
         }
     }
 
-    // 2) מחיר + numFreePlaces (למקרה שאין Offer)
+// 2) מחיר (כולל הנחה אם קיימת) + numFreePlaces (למקרה שאין Offer)
     using (var cmd = new SqlCommand(@"
-        SELECT sum, numFreePlaces
-        FROM Package
-        WHERE Id = @pid AND inactive = 0;
-    ", conn))
+    SELECT 
+        CAST(ROUND(
+            p.sum * (1.0 - (ISNULL(d.DiscountPercent, 0) / 100.0))
+        , 0) AS int) AS PricePerPerson,
+        p.numFreePlaces
+    FROM Package p
+    OUTER APPLY (
+        SELECT TOP (1) DiscountPercent
+        FROM Discount
+        WHERE PackageId = p.Id
+          AND IsActive = 1
+          AND StartDate <= GETDATE()
+          AND (EndDate IS NULL OR EndDate >= GETDATE())
+        ORDER BY StartDate DESC, Id DESC
+    ) d
+    WHERE p.Id = @pid AND p.inactive = 0;
+", conn))
     {
         cmd.Parameters.AddWithValue("@pid", packageId);
 
@@ -487,10 +513,10 @@ using (var conn = new SqlConnection(_connectionString))
             return RedirectToAction("Gallery", "Package");
         }
 
-
         pricePerPerson = r.GetInt32(0);
         freePlaces = r.GetInt32(1);
     }
+
 }
 
 // אם יש Offer — חייבים להתאים לכמות האנשים של ה-Offer
@@ -961,7 +987,9 @@ public IActionResult RemoveRow(int rowId)
 
             }
 
+            ViewBag.TotalPrice = total;
             return View(new PaymentViewModel());
+
         }
         
         [HttpPost]
@@ -992,7 +1020,9 @@ public IActionResult RemoveRow(int rowId)
         ? "Payment failed: " + string.Join(" | ", reasons)
         : "Payment failed. Please check the highlighted fields.";
 
+    ViewBag.TotalPrice = total; // ✅ כדי שהסכום יופיע גם אחרי ולידציה נכשלת
     return View(model); // ✅ נשארים בעמוד Payment
+
 }
 
 try

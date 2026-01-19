@@ -9,8 +9,17 @@
     <h2 class="fw-bold mb-3">Rate your experience</h2>
     <p class="text-muted">This feedback is about the website (not the trip).</p>
 
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
     <div class="card shadow-sm" style="border-radius:16px;">
-        <div class="card-body">
+
             <form method="post" asp-controller="Feedback" asp-action="Website">
                 @Html.AntiForgeryToken()
 
@@ -33,4 +42,3 @@
             </form>
         </div>
     </div>
-</div>
