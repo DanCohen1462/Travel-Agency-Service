@@ -73,7 +73,7 @@ namespace TravelAgency.Controllers
             // אם עובד (type=2), שלח אותו ללוח הבקרה של עובד
             if (userType == 2)
             {
-                return RedirectToAction("Panel", "Worker");
+                return RedirectToAction("EmployeeDashboard", "Employee");
             }
 
             // אם לקוח (type=3), נציג את דף המלבנים

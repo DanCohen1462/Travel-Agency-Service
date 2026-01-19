@@ -73,9 +73,15 @@ namespace TravelAgency.Controllers
                 cmd.ExecuteNonQuery();
             }
 
-// ✅ show only Toast (white) via _Layout
             TempData["Success"] = "Thanks! Your rating was submitted.";
+
+// ✅ After website feedback: send employee to employee home
+            var userType = HttpContext.Session.GetString("UserType") ?? "";
+            if (userType == "2")
+                return RedirectToAction("EmployeeDashboard", "Employee");
+
             return RedirectToAction("Dashboard", "Users");
+
 
         }
         
