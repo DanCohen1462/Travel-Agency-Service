@@ -118,12 +118,8 @@ public IActionResult Package(int reservationId)
         using var r = cmd.ExecuteReader();
         if (!r.Read())
         {
-            if (!r.Read())
-            {
-                TempData["Error"] = "Trip not found.";
-                return RedirectToAction("MyTrips", "Users");
-            }
-
+            TempData["Error"] = "Trip not found.";
+            return RedirectToAction("MyTrips", "Users");
         }
 
         ViewBag.ReservationId = reservationId;
@@ -132,9 +128,10 @@ public IActionResult Package(int reservationId)
         ViewBag.Country = r["country"]?.ToString() ?? "";
         ViewBag.CategoryId = Convert.ToInt32(r["idCategory"]);
         ViewBag.CategoryName = r["CategoryName"]?.ToString() ?? "";
-        
-        // ✅ clean old error TempData so it won't show when the trip was found
-        TempData.Remove("FeedbackError");
+
+// ✅ clean old error TempData so it won't show when the trip was found
+        TempData.Remove("Error");
+
 
     }
 
@@ -228,10 +225,10 @@ public IActionResult Package(int reservationId, int rate, string description)
             int exists = (int)chk.ExecuteScalar();
             if (exists > 0)
             {
-                TempData["Error"] = "Trip not found.";
-                return RedirectToAction("MyTrips", "Users");
-
+                TempData["Error"] = "You have already submitted feedback for this trip group.";
+                return RedirectToAction("MyTrips", "Users", new { tab = "history" });
             }
+
         }
 
 
